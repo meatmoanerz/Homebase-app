@@ -183,11 +183,35 @@ export function getRecentPeriods(salaryDay: number, count: number = 6): BudgetPe
  */
 export function getNextPeriods(salaryDay: number, count: number = 6): BudgetPeriod[] {
   const periods: BudgetPeriod[] = []
-  
+
   for (let i = 0; i < count; i++) {
     const date = addMonths(new Date(), i)
     periods.push(getBudgetPeriod(date, salaryDay))
   }
-  
+
+  return periods
+}
+
+/**
+ * Get periods from January of the current year up to one month after the current budget period.
+ * Used for monthly income page where users need to select past and near-future months.
+ */
+export function getYearToCurrentPeriods(salaryDay: number): BudgetPeriod[] {
+  const current = getCurrentBudgetPeriod(salaryDay)
+  const [currentYear, currentMonth] = current.period.split('-').map(Number)
+  const lastMonth = Math.min(currentMonth + 1, 12)
+
+  const periods: BudgetPeriod[] = []
+  for (let m = 1; m <= lastMonth; m++) {
+    const periodStr = `${currentYear}-${String(m).padStart(2, '0')}`
+    const date = new Date(currentYear, m - 1)
+    periods.push({
+      period: periodStr,
+      startDate: getAdjustedSalaryDate(currentYear, m - 2 < 0 ? 11 : m - 2, salaryDay),
+      endDate: new Date(getAdjustedSalaryDate(currentYear, m - 1, salaryDay).getTime() - 86400000),
+      displayName: format(date, 'MMMM yyyy', { locale: sv }),
+    })
+  }
+
   return periods
 }
