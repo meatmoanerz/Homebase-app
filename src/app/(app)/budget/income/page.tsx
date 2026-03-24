@@ -14,7 +14,7 @@ import {
 } from '@/hooks/use-monthly-incomes'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { formatCurrency } from '@/lib/utils/formatters'
-import { getCurrentBudgetPeriod, getNextPeriods, formatPeriodDisplay } from '@/lib/utils/budget-period'
+import { getCurrentBudgetPeriod, getYearToCurrentPeriods, formatPeriodDisplay } from '@/lib/utils/budget-period'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Banknote, Pencil, Trash2, Copy, ChevronDown, Check } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -28,7 +28,7 @@ export default function MonthlyIncomePage() {
   const salaryDay = user?.salary_day || 25
 
   const currentPeriod = getCurrentBudgetPeriod(salaryDay)
-  const periods = getNextPeriods(salaryDay, 6)
+  const periods = getYearToCurrentPeriods(salaryDay)
 
   const initialPeriod = searchParams.get('period') || currentPeriod.period
   const [selectedPeriod, setSelectedPeriod] = useState(initialPeriod)
