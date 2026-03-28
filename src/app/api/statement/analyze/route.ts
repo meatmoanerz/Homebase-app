@@ -100,6 +100,59 @@ function parseSwedbankCsv(csvContent: string): SwedbankTransaction[] {
   return transactions
 }
 
+interface AmexCsvTransaction {
+  date: string
+  description: string
+  amount: number
+}
+
+function parseAmexCsv(csvContent: string): { transactions: AmexCsvTransaction[], invoiceTotal: number | null } {
+  const lines = csvContent.replace(/\r\n/g, '\n').trim().split('\n')
+  // Skip header row
+  const dataLines = lines.slice(1)
+
+  const transactions: AmexCsvTransaction[] = []
+  let invoiceTotal: number | null = null
+
+  for (const line of dataLines) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+
+    const cols = trimmed.split(',')
+    if (cols.length < 3) continue
+
+    const dateCol = cols[0].trim()
+    const descCol = cols[1].trim()
+    const amountCol = cols[2].trim()
+
+    // Skip summary rows (date column is empty)
+    if (!dateCol) {
+      // Try to extract invoice total from summary rows
+      if (descCol === 'Fakturans saldo (kontroll)' || descCol === 'SUMMA') {
+        const parsed = parseFloat(amountCol)
+        if (!isNaN(parsed) && invoiceTotal === null) {
+          invoiceTotal = parsed
+        }
+      }
+      continue
+    }
+
+    const amount = parseFloat(amountCol)
+    if (isNaN(amount)) continue
+
+    transactions.push({
+      date: dateCol,
+      description: descCol,
+      amount,
+    })
+  }
+
+  // Sort by date ascending
+  transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+  return { transactions, invoiceTotal }
+}
+
 interface ParsedTransaction {
   transaction_date: string
   process_date: string
@@ -238,6 +291,53 @@ export async function POST(request: Request) {
         analysisId: analysis.id,
         transactionCount: swedbankTransactions.length,
         invoiceTotal: null,
+        calculatedSum: parseFloat(calculatedSum.toFixed(2)),
+      })
+    }
+
+    // Amex CSV: parse directly without AI
+    if (bankId === 'amex' && isCsv) {
+      const fileContent = await file.text()
+      console.log(`Processing Amex CSV: ${file.name}, length: ${fileContent.length} chars`)
+
+      const { transactions: amexTransactions, invoiceTotal: amexInvoiceTotal } = parseAmexCsv(fileContent)
+      console.log(`Amex CSV parsed: ${amexTransactions.length} transactions, invoice total: ${amexInvoiceTotal}`)
+
+      if (amexTransactions.length > 0) {
+        const transactionRows = amexTransactions.map((t) => ({
+          analysis_id: analysis.id,
+          date: t.date,
+          description: t.description,
+          amount: Math.abs(t.amount),
+          cardholder: null,
+          cost_assignment: 'shared' as const,
+          is_expense: t.amount >= 0,
+          is_saved: false,
+          suggested_category_id: null,
+          confirmed_category_id: null,
+        }))
+
+        await supabaseAdmin
+          .from('statement_transactions')
+          .insert(transactionRows)
+      }
+
+      await supabaseAdmin
+        .from('statement_analyses')
+        .update({
+          status: 'completed',
+          transaction_count: amexTransactions.length,
+          invoice_total: amexInvoiceTotal,
+        })
+        .eq('id', analysis.id)
+
+      const calculatedSum = amexTransactions.reduce((sum, t) => sum + t.amount, 0)
+
+      return NextResponse.json({
+        success: true,
+        analysisId: analysis.id,
+        transactionCount: amexTransactions.length,
+        invoiceTotal: amexInvoiceTotal,
         calculatedSum: parseFloat(calculatedSum.toFixed(2)),
       })
     }
