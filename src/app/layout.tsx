@@ -12,7 +12,7 @@ const inter = Inter({
 const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: "variable",
   axes: ["opsz"],
 })
 
