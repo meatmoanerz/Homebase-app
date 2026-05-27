@@ -9,11 +9,13 @@ import { useBudgetByPeriod } from '@/hooks/use-budgets'
 import { useCategories } from '@/hooks/use-categories'
 import { getCurrentBudgetPeriod, formatPeriodDisplay } from '@/lib/utils/budget-period'
 import { KPICards } from '@/components/dashboard/kpi-cards'
+import { CashFlowHero } from '@/components/dashboard/cash-flow-hero'
 import { BudgetOverview } from '@/components/dashboard/budget-overview'
 import { RecentExpenses } from '@/components/dashboard/recent-expenses'
 import { ShowMyMonthCard } from '@/components/dashboard/show-my-month-card'
 import { PersonBudgetBreakdown } from '@/components/dashboard/person-budget-breakdown'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
+import { PeriodStrip } from '@/components/shared/period-strip'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 
@@ -154,14 +156,21 @@ export default function DashboardPage() {
       >
         <h1 className="font-serif text-[32px] font-medium tracking-tight">Översikt</h1>
         <p className="text-sm text-muted-foreground">
-          {formatPeriodDisplay(currentPeriod.period)}
+          Aktuell budgetperiod
         </p>
       </motion.div>
 
-      {/* Mobile period strip */}
-      <div className="md:hidden flex items-center justify-center font-serif text-[15px] text-muted-foreground pt-1">
-        {formatPeriodDisplay(currentPeriod.period)}
-      </div>
+      {/* Period strip with arrows */}
+      <PeriodStrip
+        label={formatPeriodDisplay(currentPeriod.period)}
+        className="pt-1"
+      />
+
+      {/* Hero: Cash Flow this period */}
+      <CashFlowHero
+        income={totalIncome}
+        spent={totalSpent}
+      />
 
       {/* KPI Cards */}
       <KPICards

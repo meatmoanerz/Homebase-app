@@ -17,6 +17,10 @@
   --hb-amanda: #c8826d;
   --hb-amanda-soft: #ebd3c8;
 
+  /* Nav: warm dark, not pure black */
+  --hb-nav: #3d3128;
+  --hb-nav-foreground: #f4ede3;
+
   /* Semantic Colors - Light */
   --background: #f4ede3;
   --foreground: #2a2420;
@@ -44,12 +48,11 @@
   --danger: #a14a30;
   --info: #6a9fc1;
 
-  /* Background Gradient */
+  /* Background - nearly flat, very subtle warmth shift */
   --background-gradient: linear-gradient(
-    135deg,
+    180deg,
     #f4ede3 0%,
-    #f2e9dc 40%,
-    #f6eedf 100%
+    #f4ede3 100%
   );
 
   /* Radius */
@@ -71,6 +74,10 @@
   --hb-tim-soft: #1e2f3d;
   --hb-amanda: #d59986;
   --hb-amanda-soft: #3d2820;
+
+  /* Nav in dark mode - slightly lighter than bg */
+  --hb-nav: #2a2420;
+  --hb-nav-foreground: #f0e8dc;
 
   --background: #1a1510;
   --foreground: #f0e8dc;
@@ -98,10 +105,9 @@
   --info: #7eb3d6;
 
   --background-gradient: linear-gradient(
-    135deg,
+    180deg,
     #1a1510 0%,
-    #1c1812 40%,
-    #1e1a14 100%
+    #1a1510 100%
   );
 }
 
@@ -142,6 +148,9 @@
   --color-hb-amanda: var(--hb-amanda);
   --color-hb-amanda-soft: var(--hb-amanda-soft);
 
+  --color-hb-nav: var(--hb-nav);
+  --color-hb-nav-foreground: var(--hb-nav-foreground);
+
   /* Status */
   --color-success: var(--success);
   --color-warning: var(--warning);
@@ -177,7 +186,12 @@ body {
 
 /* Serif utility — use for headings and hero numbers */
 .font-serif {
-  font-family: var(--font-serif);
+  font-family: var(--font-serif) !important;
+}
+
+/* Sans utility (default but explicit for cases where it needs to override serif) */
+.font-sans {
+  font-family: var(--font-sans) !important;
 }
 
 /* Safe area for mobile */

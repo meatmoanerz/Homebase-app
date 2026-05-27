@@ -90,7 +90,7 @@ export function BottomNav({ className }: BottomNavProps) {
       >
         <motion.div
           whileTap={{ scale: 0.9 }}
-          className="flex items-center justify-center rounded-full bg-foreground text-background shadow-xl shadow-foreground/30"
+          className="flex items-center justify-center rounded-full bg-hb-nav text-hb-nav-foreground shadow-xl shadow-hb-nav/30"
           style={{ width: 52, height: 52 }}
         >
           <PlusIcon className="w-[22px] h-[22px]" />
@@ -104,8 +104,8 @@ export function BottomNav({ className }: BottomNavProps) {
           "bottom-[calc(env(safe-area-inset-bottom,0px)+20px)]",
           "left-1/2 -translate-x-1/2",
           "w-[calc(100%-40px)] max-w-[380px]",
-          "bg-foreground rounded-full p-1.5",
-          "shadow-2xl shadow-foreground/20",
+          "bg-hb-nav rounded-full p-1.5",
+          "shadow-2xl shadow-hb-nav/25",
           "flex justify-around items-center",
           className
         )}
@@ -123,8 +123,8 @@ export function BottomNav({ className }: BottomNavProps) {
                 "flex items-center justify-center rounded-full transition-all duration-200",
                 "min-w-[44px] min-h-[36px] px-3 py-2",
                 isActive
-                  ? "bg-hb-cognac text-foreground"
-                  : "text-background/55"
+                  ? "bg-hb-cognac text-hb-nav"
+                  : "text-hb-nav-foreground/55"
               )}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}

@@ -33,7 +33,7 @@ function PerspectiveAvatars() {
           onClick={() => setPerspective('all')}
           className={cn(
             "w-10 h-10 rounded-full border-2 grid place-items-center transition-all",
-            perspective === 'all' ? "border-foreground" : "border-transparent"
+            perspective === 'all' ? "border-hb-cognac" : "border-transparent"
           )}
           aria-label="Visa för alla"
           title="Alla"
@@ -102,7 +102,7 @@ export function Sidebar() {
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-sm font-medium transition-all',
                 isActive
-                  ? 'bg-foreground text-background'
+                  ? 'bg-hb-nav text-hb-nav-foreground'
                   : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
               )}
               aria-current={isActive ? 'page' : undefined}
