@@ -184,9 +184,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Serif utility — use for headings and hero numbers */
+/* Serif utility — matches mock's Fraunces setup */
 .font-serif {
   font-family: var(--font-serif) !important;
+  letter-spacing: -0.02em;
+  font-feature-settings: "ss01", "ss02";
 }
 
 /* Sans utility (default but explicit for cases where it needs to override serif) */
