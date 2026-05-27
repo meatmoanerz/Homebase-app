@@ -29,7 +29,7 @@ export function AppShell({ children }: AppShellProps) {
       <div
         className={cn(
           'min-h-[100dvh]',
-          'pb-[120px] md:pb-8',
+          'pb-[160px] md:pb-8',
           'md:pl-60'
         )}
       >

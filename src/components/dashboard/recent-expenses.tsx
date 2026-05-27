@@ -1,12 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { formatCurrency, formatRelativeDate } from '@/lib/utils/formatters'
-import { ChevronRight, Receipt, Users, UserCheck } from 'lucide-react'
+import { Receipt } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { cn } from '@/lib/utils/cn'
+import { AssignmentPill, AmexPill } from '@/components/shared/assignment-pill'
 import type { ExpenseWithCategory } from '@/types'
 
 interface RecentExpensesProps {
@@ -24,90 +22,79 @@ const categoryIcons: Record<string, string> = {
   Resor: '✈️',
   El: '⚡',
   Prenumerationer: '📱',
+  Hälsa: '💊',
+  Streaming: '🎬',
 }
 
 export function RecentExpenses({ expenses }: RecentExpensesProps) {
   if (expenses.length === 0) {
     return (
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Senaste utgifterna</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="w-12 h-12 rounded-full bg-hb-sage/30 flex items-center justify-center mb-3">
-              <Receipt className="w-6 h-6 text-hb-cognac" />
-            </div>
-            <p className="text-sm text-muted-foreground mb-3">
-              Inga utgifter ännu denna period
-            </p>
-            <Button asChild size="sm">
-              <Link href="/expenses">Lägg till utgift</Link>
-            </Button>
+      <section>
+        <div className="flex items-baseline justify-between pb-3">
+          <h2 className="font-serif text-[20px] font-medium tracking-tight">Senaste</h2>
+        </div>
+        <div className="bg-card border border-border rounded-2xl p-8 text-center shadow-sm">
+          <div className="w-12 h-12 mx-auto rounded-xl bg-hb-cognac/10 grid place-items-center mb-3">
+            <Receipt className="w-6 h-6 text-hb-cognac" />
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-sm text-muted-foreground mb-4">
+            Inga utgifter ännu denna period
+          </p>
+          <Link
+            href="/expenses"
+            className="inline-flex items-center px-4 py-2 rounded-full bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
+          >
+            Lägg till utgift
+          </Link>
+        </div>
+      </section>
     )
   }
 
   return (
-    <Card className="border-0 shadow-sm">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base">Senaste utgifterna</CardTitle>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/expenses/list" className="text-xs">
-              Visa alla
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </Link>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-1">
+    <section>
+      <div className="flex items-baseline justify-between pb-3">
+        <h2 className="font-serif text-[20px] font-medium tracking-tight">Senaste</h2>
+        <Link
+          href="/expenses/list"
+          className="text-xs text-hb-cognac-deep font-medium tracking-wide hover:underline"
+        >
+          Alla →
+        </Link>
+      </div>
+
+      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
         {expenses.map((expense, index) => (
           <motion.div
             key={expense.id}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.05 }}
-            className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.04 }}
+            className="flex items-center justify-between px-4 py-3.5 border-b border-border last:border-b-0 hover:bg-secondary/40 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-hb-sage/20 flex items-center justify-center text-lg">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="w-8 h-8 rounded-lg bg-secondary grid place-items-center text-base flex-shrink-0">
                 {categoryIcons[expense.category?.name ?? ''] || '💰'}
               </div>
-              <div>
-                <p className="font-medium text-sm">{expense.description}</p>
-                <p className="text-xs text-muted-foreground">
-                  {expense.category?.name} • {formatRelativeDate(expense.date)}
-                </p>
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-sm tracking-tight truncate">
+                  {expense.description}
+                </div>
+                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                  <span className="text-[11px] text-muted-foreground">
+                    {expense.category?.name} · {formatRelativeDate(expense.date)}
+                  </span>
+                  {expense.is_ccm && <AmexPill />}
+                  <AssignmentPill assignment={expense.cost_assignment} />
+                </div>
               </div>
             </div>
-            <div className="text-right flex items-center gap-2">
-              {/* Cost assignment indicator */}
-              {expense.cost_assignment === 'shared' && (
-                <div className="w-5 h-5 rounded-full bg-hb-tim/20 flex items-center justify-center" title="Delad utgift">
-                  <Users className="w-3 h-3 text-hb-tim" />
-                </div>
-              )}
-              {expense.cost_assignment === 'partner' && (
-                <div className="w-5 h-5 rounded-full bg-hb-terracotta/20 flex items-center justify-center" title="Partnerns utgift">
-                  <UserCheck className="w-3 h-3 text-hb-terracotta" />
-                </div>
-              )}
-              <div>
-                <p className={cn(
-                  "font-semibold",
-                  expense.is_ccm ? "text-hb-tim" : "text-foreground"
-                )}>
-                  -{formatCurrency(expense.amount)}
-                </p>
-              </div>
+            <div className="font-serif text-[16px] font-medium tracking-tight text-foreground ml-2 flex-shrink-0">
+              {formatCurrency(expense.amount)}
             </div>
           </motion.div>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   )
 }
-

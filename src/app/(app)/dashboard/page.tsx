@@ -145,20 +145,23 @@ export default function DashboardPage() {
     : 0
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Header */}
+    <div className="px-4 md:px-8 pt-2 md:pt-4 pb-4 space-y-5">
+      {/* Desktop title (mobile shows in header) */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-1"
+        className="hidden md:block space-y-1"
       >
-        <h1 className="text-2xl font-bold text-hb-cognac">
-          Hej, {user?.first_name}! 👋
-        </h1>
+        <h1 className="font-serif text-[32px] font-medium tracking-tight">Översikt</h1>
         <p className="text-sm text-muted-foreground">
           {formatPeriodDisplay(currentPeriod.period)}
         </p>
       </motion.div>
+
+      {/* Mobile period strip */}
+      <div className="md:hidden flex items-center justify-center font-serif text-[15px] text-muted-foreground pt-1">
+        {formatPeriodDisplay(currentPeriod.period)}
+      </div>
 
       {/* KPI Cards */}
       <KPICards

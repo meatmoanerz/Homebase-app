@@ -78,20 +78,19 @@ export function BottomNav({ className }: BottomNavProps) {
 
   return (
     <>
-      {/* Floating FAB - separate from nav */}
+      {/* Floating FAB - separate from nav, positioned above nav pill */}
       <Link
         href="/expenses"
         className={cn(
-          "fixed right-5 z-[91] keyboard-hide",
-          "bottom-[calc(env(safe-area-inset-bottom,0px)+88px)]",
-          className?.includes('md:hidden') ? 'md:hidden' : ''
+          "fixed right-5 z-[91] keyboard-hide md:hidden",
+          "bottom-[calc(env(safe-area-inset-bottom,0px)+96px)]",
         )}
         aria-label="Lägg till ny utgift"
         onClick={() => triggerHaptic('medium')}
       >
         <motion.div
           whileTap={{ scale: 0.9 }}
-          className="flex items-center justify-center w-13 h-13 rounded-full bg-foreground text-background shadow-lg shadow-foreground/25"
+          className="flex items-center justify-center rounded-full bg-foreground text-background shadow-xl shadow-foreground/30"
           style={{ width: 52, height: 52 }}
         >
           <PlusIcon className="w-[22px] h-[22px]" />
@@ -102,7 +101,7 @@ export function BottomNav({ className }: BottomNavProps) {
       <nav
         className={cn(
           "fixed z-[90] keyboard-hide",
-          "bottom-[calc(env(safe-area-inset-bottom,0px)+16px)]",
+          "bottom-[calc(env(safe-area-inset-bottom,0px)+20px)]",
           "left-1/2 -translate-x-1/2",
           "w-[calc(100%-40px)] max-w-[380px]",
           "bg-foreground rounded-full p-1.5",
