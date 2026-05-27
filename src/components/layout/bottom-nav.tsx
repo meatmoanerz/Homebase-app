@@ -6,15 +6,7 @@ import { cn } from '@/lib/utils/cn'
 import { motion } from 'framer-motion'
 import { triggerHaptic } from '@/hooks/use-capacitor'
 
-// Custom icons with filled/outlined variants
-function HomeIcon({ filled, className }: { filled?: boolean; className?: string }) {
-  if (filled) {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12.71 2.29a1 1 0 00-1.42 0l-9 9a1 1 0 001.42 1.42L4 12.41V21a1 1 0 001 1h5a1 1 0 001-1v-5h2v5a1 1 0 001 1h5a1 1 0 001-1v-8.59l.29.3a1 1 0 001.42-1.42l-9-9z"/>
-      </svg>
-    )
-  }
+function HomeIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -23,14 +15,7 @@ function HomeIcon({ filled, className }: { filled?: boolean; className?: string 
   )
 }
 
-function WalletIcon({ filled, className }: { filled?: boolean; className?: string }) {
-  if (filled) {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M21 7H3V5a2 2 0 012-2h14a2 2 0 012 2v2zm0 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V9h18zm-5 4a1 1 0 100 2 1 1 0 000-2z"/>
-      </svg>
-    )
-  }
+function WalletIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="5" width="20" height="14" rx="2"/>
@@ -40,39 +25,29 @@ function WalletIcon({ filled, className }: { filled?: boolean; className?: strin
   )
 }
 
-function ReceiptIcon({ filled, className }: { filled?: boolean; className?: string }) {
-  if (filled) {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-2 12H7v-2h10v2zm0-4H7V9h10v2z"/>
-      </svg>
-    )
-  }
+function ReceiptIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="2"/>
-      <path d="M7 9h10"/>
-      <path d="M7 13h10"/>
-      <path d="M7 17h6"/>
+      <path d="M4 2v20l3-2 3 2 3-2 3 2 3-2V2z"/>
+      <path d="M8 7h8M8 11h8M8 15h5"/>
     </svg>
   )
 }
 
-function MoreIcon({ filled, className }: { filled?: boolean; className?: string }) {
-  if (filled) {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-        <circle cx="5" cy="12" r="2.5"/>
-        <circle cx="12" cy="12" r="2.5"/>
-        <circle cx="19" cy="12" r="2.5"/>
-      </svg>
-    )
-  }
+function ListIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="5" cy="12" r="1"/>
-      <circle cx="12" cy="12" r="1"/>
-      <circle cx="19" cy="12" r="1"/>
+      <path d="M21 5H3v14h18z"/>
+      <path d="M3 10h18"/>
+    </svg>
+  )
+}
+
+function SettingsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
     </svg>
   )
 }
@@ -80,44 +55,18 @@ function MoreIcon({ filled, className }: { filled?: boolean; className?: string 
 function PlusIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/>
-      <path d="M12 8v8"/>
-      <path d="M8 12h8"/>
+      <line x1="12" y1="5" x2="12" y2="19"/>
+      <line x1="5" y1="12" x2="19" y2="12"/>
     </svg>
   )
 }
 
 const navItems = [
-  {
-    href: '/dashboard',
-    label: 'Hem',
-    Icon: HomeIcon,
-    matchPath: '/dashboard',
-  },
-  {
-    href: '/budget',
-    label: 'Budget',
-    Icon: WalletIcon,
-    matchPath: '/budget',
-  },
-  {
-    href: '/expenses',
-    label: '',
-    Icon: PlusIcon,
-    isMain: true,
-  },
-  {
-    href: '/expenses/list',
-    label: 'Utgifter',
-    Icon: ReceiptIcon,
-    matchPath: '/expenses/list',
-  },
-  {
-    href: '/settings',
-    label: 'Mer',
-    Icon: MoreIcon,
-    matchPath: '/settings',
-  },
+  { href: '/dashboard', label: 'Översikt', Icon: HomeIcon, matchPath: '/dashboard' },
+  { href: '/expenses/list', label: 'Utgifter', Icon: ListIcon, matchPath: '/expenses' },
+  { href: '/budget', label: 'Budget', Icon: WalletIcon, matchPath: '/budget' },
+  { href: '/receipts', label: 'Kvitton', Icon: ReceiptIcon, matchPath: '/receipts' },
+  { href: '/settings', label: 'Mer', Icon: SettingsIcon, matchPath: '/settings' },
 ]
 
 interface BottomNavProps {
@@ -128,72 +77,65 @@ export function BottomNav({ className }: BottomNavProps) {
   const pathname = usePathname()
 
   return (
-    <nav
-      className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-card/95 backdrop-blur-lg border-t border-border keyboard-hide",
-        // Use safe-area-inset for positioning to handle browser chrome changes
-        "pb-[env(safe-area-inset-bottom,0px)]",
-        className
-      )}
-      style={{
-        // Ensure consistent positioning with browser chrome changes
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      }}
-      aria-label="Mobilnavigation"
-    >
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
-        {navItems.map((item) => {
-          // Check if this route is active
-          const isActive = item.matchPath
-            ? pathname === item.matchPath || pathname.startsWith(item.matchPath + '/')
-            : false
-          const { Icon } = item
+    <>
+      {/* Floating FAB - separate from nav */}
+      <Link
+        href="/expenses"
+        className={cn(
+          "fixed right-5 z-[91] keyboard-hide",
+          "bottom-[calc(env(safe-area-inset-bottom,0px)+88px)]",
+          className?.includes('md:hidden') ? 'md:hidden' : ''
+        )}
+        aria-label="Lägg till ny utgift"
+        onClick={() => triggerHaptic('medium')}
+      >
+        <motion.div
+          whileTap={{ scale: 0.9 }}
+          className="flex items-center justify-center w-13 h-13 rounded-full bg-foreground text-background shadow-lg shadow-foreground/25"
+          style={{ width: 52, height: 52 }}
+        >
+          <PlusIcon className="w-[22px] h-[22px]" />
+        </motion.div>
+      </Link>
 
-          if (item.isMain) {
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="relative flex items-center justify-center -mt-6"
-                aria-label="Lägg till ny utgift"
-                onClick={() => triggerHaptic('medium')}
-              >
-                <motion.div
-                  whileTap={{ scale: 0.9 }}
-                  className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-hb-cognac to-[#5a7360] text-white shadow-lg shadow-hb-cognac/30"
-                >
-                  <Icon className="w-7 h-7" aria-hidden="true" />
-                </motion.div>
-              </Link>
-            )
-          }
+      {/* Floating pill nav */}
+      <nav
+        className={cn(
+          "fixed z-[90] keyboard-hide",
+          "bottom-[calc(env(safe-area-inset-bottom,0px)+16px)]",
+          "left-1/2 -translate-x-1/2",
+          "w-[calc(100%-40px)] max-w-[380px]",
+          "bg-foreground rounded-full p-1.5",
+          "shadow-2xl shadow-foreground/20",
+          "flex justify-around items-center",
+          className
+        )}
+        aria-label="Mobilnavigation"
+      >
+        {navItems.map((item) => {
+          const isActive = pathname === item.matchPath || pathname.startsWith(item.matchPath + '/')
+          const { Icon } = item
 
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 py-2 px-4 transition-colors relative min-w-[60px]",
-                isActive ? "text-hb-cognac" : "text-muted-foreground"
+                "flex items-center justify-center rounded-full transition-all duration-200",
+                "min-w-[44px] min-h-[36px] px-3 py-2",
+                isActive
+                  ? "bg-hb-cognac text-foreground"
+                  : "text-background/55"
               )}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
               onClick={() => triggerHaptic('light')}
             >
-              <Icon filled={isActive} className="w-5 h-5" aria-hidden="true" />
-              <span className="text-[10px] font-medium">{item.label}</span>
-              {/* Dot indicator */}
-              {isActive && (
-                <motion.div
-                  layoutId="navDot"
-                  className="absolute -bottom-1 w-1 h-1 rounded-full bg-hb-cognac"
-                  transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
-                />
-              )}
+              <Icon className="w-[18px] h-[18px]" />
             </Link>
           )
         })}
-      </div>
-    </nav>
+      </nav>
+    </>
   )
 }

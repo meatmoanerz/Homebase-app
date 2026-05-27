@@ -2,6 +2,7 @@
 
 import { BottomNav } from './bottom-nav'
 import { Sidebar } from './sidebar'
+import { MobileHeader } from './mobile-header'
 import { RealtimeProvider } from '@/components/realtime-provider'
 import { IncomeReminderDialog } from '@/components/income-reminder-dialog'
 import { cn } from '@/lib/utils/cn'
@@ -27,11 +28,14 @@ export function AppShell({ children }: AppShellProps) {
       {/* Main content area */}
       <div
         className={cn(
-          'min-h-[100dvh]', // Use dynamic viewport height for consistent behavior with browser chrome
-          'pb-24 md:pb-8',
-          'md:pl-64'
+          'min-h-[100dvh]',
+          'pb-[120px] md:pb-8',
+          'md:pl-60'
         )}
       >
+        {/* Mobile header with title + perspective trigger */}
+        <MobileHeader />
+
         <main
           id="main-content"
           className="max-w-lg md:max-w-4xl lg:max-w-6xl mx-auto"
