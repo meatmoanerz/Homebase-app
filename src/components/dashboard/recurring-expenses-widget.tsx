@@ -72,7 +72,7 @@ function RecurringExpensesWidgetContent() {
                 <p className="text-sm text-muted-foreground">Inga aktiva</p>
                 <Link
                   href="/expenses?tab=recurring"
-                  className="text-xs text-stacka-coral hover:underline inline-flex items-center gap-1"
+                  className="text-xs text-hb-terracotta hover:underline inline-flex items-center gap-1"
                 >
                   Lägg till <ArrowRight className="w-3 h-3" />
                 </Link>
@@ -98,7 +98,7 @@ function RecurringExpensesWidgetContent() {
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Återkommande</p>
-              <p className="text-xl font-bold text-stacka-olive">
+              <p className="text-xl font-bold text-hb-cognac">
                 {formatCurrency(totalMonthly)}
               </p>
               <p className="text-xs text-muted-foreground">
@@ -117,9 +117,9 @@ function RecurringExpensesWidgetContent() {
             </div>
             <Link
               href="/expenses?tab=recurring"
-              className="p-2 rounded-lg bg-stacka-sage/20 hover:bg-stacka-sage/30 transition-colors"
+              className="p-2 rounded-lg bg-hb-sage/20 hover:bg-hb-sage/30 transition-colors"
             >
-              <RefreshCw className="w-4 h-4 text-stacka-olive" />
+              <RefreshCw className="w-4 h-4 text-hb-cognac" />
             </Link>
           </div>
         </CardContent>

@@ -59,7 +59,7 @@ export function ArchiveList() {
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="text-xl font-bold text-stacka-olive">Arkiv</h1>
+        <h1 className="text-xl font-bold text-hb-cognac">Arkiv</h1>
       </motion.div>
 
       {/* Tab selector */}
@@ -75,7 +75,7 @@ export function ArchiveList() {
             className={cn(
               'flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-md transition-all',
               tab === 'monthly'
-                ? 'bg-white dark:bg-card text-stacka-olive shadow-sm'
+                ? 'bg-white dark:bg-card text-hb-cognac shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >
@@ -87,7 +87,7 @@ export function ArchiveList() {
             className={cn(
               'flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-md transition-all',
               tab === 'project'
-                ? 'bg-white dark:bg-card text-stacka-olive shadow-sm'
+                ? 'bg-white dark:bg-card text-hb-cognac shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >
@@ -134,7 +134,7 @@ export function ArchiveList() {
                         size="sm"
                         onClick={() => handleRestoreMonthly(budget.id)}
                         disabled={restoreMonthly.isPending}
-                        className="text-muted-foreground hover:text-stacka-olive"
+                        className="text-muted-foreground hover:text-hb-cognac"
                       >
                         <RotateCcw className="w-4 h-4 mr-1.5" />
                         Återställ
@@ -167,7 +167,7 @@ export function ArchiveList() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card className="border-0 shadow-sm border-l-4 border-l-stacka-mint/50">
+                <Card className="border-0 shadow-sm border-l-4 border-l-hb-sand/50">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
@@ -187,7 +187,7 @@ export function ArchiveList() {
                         size="sm"
                         onClick={() => handleRestoreProject(budget.id)}
                         disabled={restoreProject.isPending}
-                        className="text-muted-foreground hover:text-stacka-olive shrink-0"
+                        className="text-muted-foreground hover:text-hb-cognac shrink-0"
                       >
                         <RotateCcw className="w-4 h-4 mr-1.5" />
                         Återställ

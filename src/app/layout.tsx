@@ -1,12 +1,19 @@
 import type { Metadata, Viewport } from "next"
-import { DM_Sans, JetBrains_Mono } from "next/font/google"
+import { Inter, Fraunces, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
 import { Providers } from "./providers"
 
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+})
+
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  axes: ["opsz"],
 })
 
 const jetbrainsMono = JetBrains_Mono({
@@ -15,8 +22,8 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Stacka - Din personliga ekonomi",
-  description: "Håll koll på din budget, utgifter och sparande med Stacka",
+  title: "Homebase",
+  description: "Håll koll på din budget, utgifter och sparande",
   manifest: "/manifest.json",
   icons: {
     icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
@@ -24,7 +31,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Stacka",
+    title: "Homebase",
   },
 }
 
@@ -34,7 +41,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#657166",
+  themeColor: "#c08850",
 }
 
 export default function RootLayout({
@@ -45,7 +52,7 @@ export default function RootLayout({
   return (
     <html lang="sv" suppressHydrationWarning>
       <body
-        className={`${dmSans.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+        className={`${inter.variable} ${fraunces.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         <Providers>{children}</Providers>
       </body>

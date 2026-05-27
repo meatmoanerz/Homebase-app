@@ -74,7 +74,7 @@ export default function AddExpensePage() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-2xl font-bold text-stacka-olive">Utgifter</h1>
+        <h1 className="text-2xl font-bold text-hb-cognac">Utgifter</h1>
         <p className="text-sm text-muted-foreground">{subtitles[activeTab]}</p>
       </motion.div>
 
@@ -92,7 +92,7 @@ export default function AddExpensePage() {
             className={cn(
               "flex-1 flex items-center justify-center gap-2 py-2.5 px-3 min-h-[44px] rounded-lg text-sm font-medium transition-all duration-200 active:scale-[0.98]",
               activeTab === tab.id
-                ? "bg-white dark:bg-card shadow-sm text-stacka-olive"
+                ? "bg-white dark:bg-card shadow-sm text-hb-cognac"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -137,7 +137,7 @@ export default function AddExpensePage() {
                   className={cn(
                     "flex-1 py-2.5 px-3 min-h-[44px] rounded-md text-xs font-medium transition-all active:scale-[0.98]",
                     filter === 'all'
-                      ? "bg-white dark:bg-card shadow-sm text-stacka-olive"
+                      ? "bg-white dark:bg-card shadow-sm text-hb-cognac"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -148,7 +148,7 @@ export default function AddExpensePage() {
                   className={cn(
                     "flex-1 py-2.5 px-3 min-h-[44px] rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1 active:scale-[0.98]",
                     filter === 'ccm'
-                      ? "bg-white dark:bg-card shadow-sm text-stacka-coral"
+                      ? "bg-white dark:bg-card shadow-sm text-hb-terracotta"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -160,7 +160,7 @@ export default function AddExpensePage() {
                   className={cn(
                     "flex-1 py-2.5 px-3 min-h-[44px] rounded-md text-xs font-medium transition-all active:scale-[0.98]",
                     filter === 'direct'
-                      ? "bg-white dark:bg-card shadow-sm text-stacka-olive"
+                      ? "bg-white dark:bg-card shadow-sm text-hb-cognac"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -197,7 +197,7 @@ export default function AddExpensePage() {
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-stacka-sage/20 flex items-center justify-center text-lg">
+                        <div className="w-10 h-10 rounded-full bg-hb-sage/20 flex items-center justify-center text-lg">
                           {categoryIcons[expense.category?.name || ''] || '💰'}
                         </div>
                         <div>
@@ -210,18 +210,18 @@ export default function AddExpensePage() {
                       <div className="flex items-center gap-2">
                         {/* Cost assignment indicator */}
                         {expense.cost_assignment === 'shared' && (
-                          <div className="w-5 h-5 rounded-full bg-stacka-blue/20 flex items-center justify-center" title="Delad utgift">
-                            <Users className="w-3 h-3 text-stacka-blue" />
+                          <div className="w-5 h-5 rounded-full bg-hb-tim/20 flex items-center justify-center" title="Delad utgift">
+                            <Users className="w-3 h-3 text-hb-tim" />
                           </div>
                         )}
                         {expense.cost_assignment === 'partner' && (
-                          <div className="w-5 h-5 rounded-full bg-stacka-coral/20 flex items-center justify-center" title="Partnerns utgift">
-                            <UserCheck className="w-3 h-3 text-stacka-coral" />
+                          <div className="w-5 h-5 rounded-full bg-hb-terracotta/20 flex items-center justify-center" title="Partnerns utgift">
+                            <UserCheck className="w-3 h-3 text-hb-terracotta" />
                           </div>
                         )}
                         <span className={cn(
                           "font-semibold",
-                          expense.is_ccm ? "text-stacka-blue" : ""
+                          expense.is_ccm ? "text-hb-tim" : ""
                         )}>
                           -{formatCurrency(expense.amount)}
                         </span>

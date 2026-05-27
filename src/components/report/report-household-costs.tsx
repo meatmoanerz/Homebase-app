@@ -23,7 +23,7 @@ export function ReportHouseholdCosts({ expenses, hasPartner, userName, partnerNa
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
-            <Home className="w-4 h-4 text-stacka-olive" />
+            <Home className="w-4 h-4 text-hb-cognac" />
             <CardTitle className="text-base">Hushållskostnader</CardTitle>
           </div>
         </CardHeader>
@@ -31,7 +31,7 @@ export function ReportHouseholdCosts({ expenses, hasPartner, userName, partnerNa
           <p className="text-sm text-muted-foreground mb-2">
             Inga hushållskategorier valda.
           </p>
-          <Link href="/settings/household-categories" className="text-sm text-stacka-olive font-medium underline">
+          <Link href="/settings/household-categories" className="text-sm text-hb-cognac font-medium underline">
             Välj kategorier
           </Link>
         </CardContent>
@@ -63,10 +63,10 @@ export function ReportHouseholdCosts({ expenses, hasPartner, userName, partnerNa
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Home className="w-4 h-4 text-stacka-olive" />
+            <Home className="w-4 h-4 text-hb-cognac" />
             <CardTitle className="text-base">Hushållskostnader</CardTitle>
           </div>
-          <span className="text-lg font-bold text-stacka-olive">{formatCurrency(total)}</span>
+          <span className="text-lg font-bold text-hb-cognac">{formatCurrency(total)}</span>
         </div>
       </CardHeader>
       {hasPartner && (

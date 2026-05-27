@@ -222,7 +222,7 @@ export function SavingsGoalForm({ onSuccess }: SavingsGoalFormProps) {
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       {/* Target Amount - Large centered input */}
-      <div className="rounded-xl bg-stacka-sage/20 py-5 px-6">
+      <div className="rounded-xl bg-hb-sage/20 py-5 px-6">
         <p className="text-muted-foreground text-xs text-center mb-2">Målbelopp</p>
         <div className="flex items-baseline justify-center gap-1">
           <input
@@ -233,7 +233,7 @@ export function SavingsGoalForm({ onSuccess }: SavingsGoalFormProps) {
             placeholder="0"
             value={amountDisplay}
             onChange={handleAmountChange(setAmountDisplay, 'target_amount')}
-            className="text-4xl font-bold bg-transparent placeholder:text-muted-foreground/30 caret-stacka-olive tabular-nums text-right"
+            className="text-4xl font-bold bg-transparent placeholder:text-muted-foreground/30 caret-hb-cognac tabular-nums text-right"
             style={{
               outline: 'none',
               boxShadow: 'none',
@@ -307,7 +307,7 @@ export function SavingsGoalForm({ onSuccess }: SavingsGoalFormProps) {
                     <span>{defaultGoalCategoryLabels[cat]}</span>
                   </div>
                   {selectedGoalCategory === cat && !selectedCustomTypeId && (
-                    <Check className="w-4 h-4 text-stacka-olive" />
+                    <Check className="w-4 h-4 text-hb-cognac" />
                   )}
                 </button>
               ))}
@@ -330,7 +330,7 @@ export function SavingsGoalForm({ onSuccess }: SavingsGoalFormProps) {
                         <span>{type.name}</span>
                       </div>
                       {selectedCustomTypeId === type.id && (
-                        <Check className="w-4 h-4 text-stacka-olive" />
+                        <Check className="w-4 h-4 text-hb-cognac" />
                       )}
                     </button>
                   ))}
@@ -343,7 +343,7 @@ export function SavingsGoalForm({ onSuccess }: SavingsGoalFormProps) {
                   <button
                     type="button"
                     onClick={() => setShowAddCustomType(true)}
-                    className="w-full px-4 py-3 text-left hover:bg-muted/50 flex items-center gap-2 text-stacka-olive transition-colors"
+                    className="w-full px-4 py-3 text-left hover:bg-muted/50 flex items-center gap-2 text-hb-cognac transition-colors"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Lägg till egen typ</span>
@@ -380,7 +380,7 @@ export function SavingsGoalForm({ onSuccess }: SavingsGoalFormProps) {
                           className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center text-lg transition-all",
                             newCustomTypeIcon === icon
-                              ? "bg-stacka-sage/30 ring-2 ring-stacka-olive"
+                              ? "bg-hb-sage/30 ring-2 ring-hb-cognac"
                               : "bg-muted hover:bg-muted/80"
                           )}
                         >
@@ -448,9 +448,9 @@ export function SavingsGoalForm({ onSuccess }: SavingsGoalFormProps) {
       </div>
 
       {/* Monthly Savings Toggle */}
-      <div className="flex items-center justify-between p-4 rounded-xl bg-stacka-peach/20">
+      <div className="flex items-center justify-between p-4 rounded-xl bg-hb-sand-deep/20">
         <div className="flex items-center gap-3">
-          <PiggyBank className="w-5 h-5 text-stacka-coral" />
+          <PiggyBank className="w-5 h-5 text-hb-terracotta" />
           <div>
             <Label htmlFor="monthly_savings" className="text-sm font-medium">
               Månadssparande
@@ -489,9 +489,9 @@ export function SavingsGoalForm({ onSuccess }: SavingsGoalFormProps) {
 
       {/* Shared with Partner */}
       {hasPartner && (
-        <div className="flex items-center justify-between p-4 rounded-xl bg-stacka-blue/10">
+        <div className="flex items-center justify-between p-4 rounded-xl bg-hb-tim/10">
           <div className="flex items-center gap-3">
-            <Target className="w-5 h-5 text-stacka-blue" />
+            <Target className="w-5 h-5 text-hb-tim" />
             <div>
               <Label htmlFor="is_shared" className="text-sm font-medium">
                 Dela med partner

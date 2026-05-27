@@ -35,8 +35,8 @@ export function RecentExpenses({ expenses }: RecentExpensesProps) {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="w-12 h-12 rounded-full bg-stacka-sage/30 flex items-center justify-center mb-3">
-              <Receipt className="w-6 h-6 text-stacka-olive" />
+            <div className="w-12 h-12 rounded-full bg-hb-sage/30 flex items-center justify-center mb-3">
+              <Receipt className="w-6 h-6 text-hb-cognac" />
             </div>
             <p className="text-sm text-muted-foreground mb-3">
               Inga utgifter ännu denna period
@@ -73,7 +73,7 @@ export function RecentExpenses({ expenses }: RecentExpensesProps) {
             className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-stacka-sage/20 flex items-center justify-center text-lg">
+              <div className="w-10 h-10 rounded-full bg-hb-sage/20 flex items-center justify-center text-lg">
                 {categoryIcons[expense.category?.name ?? ''] || '💰'}
               </div>
               <div>
@@ -86,19 +86,19 @@ export function RecentExpenses({ expenses }: RecentExpensesProps) {
             <div className="text-right flex items-center gap-2">
               {/* Cost assignment indicator */}
               {expense.cost_assignment === 'shared' && (
-                <div className="w-5 h-5 rounded-full bg-stacka-blue/20 flex items-center justify-center" title="Delad utgift">
-                  <Users className="w-3 h-3 text-stacka-blue" />
+                <div className="w-5 h-5 rounded-full bg-hb-tim/20 flex items-center justify-center" title="Delad utgift">
+                  <Users className="w-3 h-3 text-hb-tim" />
                 </div>
               )}
               {expense.cost_assignment === 'partner' && (
-                <div className="w-5 h-5 rounded-full bg-stacka-coral/20 flex items-center justify-center" title="Partnerns utgift">
-                  <UserCheck className="w-3 h-3 text-stacka-coral" />
+                <div className="w-5 h-5 rounded-full bg-hb-terracotta/20 flex items-center justify-center" title="Partnerns utgift">
+                  <UserCheck className="w-3 h-3 text-hb-terracotta" />
                 </div>
               )}
               <div>
                 <p className={cn(
                   "font-semibold",
-                  expense.is_ccm ? "text-stacka-blue" : "text-foreground"
+                  expense.is_ccm ? "text-hb-tim" : "text-foreground"
                 )}>
                   -{formatCurrency(expense.amount)}
                 </p>

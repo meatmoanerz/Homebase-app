@@ -160,7 +160,7 @@
     "salaryDay": "Salary day",
     "currency": "Currency",
     "notifications": "Notifications",
-    "about": "About Stacka",
+    "about": "About Homebase",
     "help": "Help",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service"
@@ -178,7 +178,7 @@
     "shareDescription": "Share your budget and expenses with your partner"
   },
   "onboarding": {
-    "welcome": "Welcome to Stacka!",
+    "welcome": "Welcome to Homebase!",
     "subtitle": "Let's get started with your finances",
     "step1Title": "What's your name?",
     "step2Title": "When do you get paid?",
@@ -188,7 +188,7 @@
     "step4Title": "Do you have a partner?",
     "step4Description": "You can share budget and expenses",
     "step5Title": "All done!",
-    "step5Description": "You're ready to start using Stacka",
+    "step5Description": "You're ready to start using Homebase",
     "getStarted": "Get started"
   },
   "loans": {

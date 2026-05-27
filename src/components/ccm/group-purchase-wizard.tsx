@@ -232,7 +232,7 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-stacka-olive" />
+            <Users className="w-5 h-5 text-hb-cognac" />
             {isEditMode ? 'Redigera gruppköp' : 'Lägg till gruppköp'}
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
@@ -271,7 +271,7 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
                         setTotalAmount(val)
                       }}
                       placeholder="0"
-                      className="w-full h-14 px-4 text-2xl font-bold rounded-lg bg-muted/50 border border-border focus:border-stacka-olive focus:ring-1 focus:ring-stacka-olive outline-none transition-colors"
+                      className="w-full h-14 px-4 text-2xl font-bold rounded-lg bg-muted/50 border border-border focus:border-hb-cognac focus:ring-1 focus:ring-hb-cognac outline-none transition-colors"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-lg text-muted-foreground">kr</span>
                   </div>
@@ -285,7 +285,7 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="T.ex. Middag restaurang"
-                    className="w-full h-10 px-3 rounded-lg bg-muted/50 border border-border focus:border-stacka-olive focus:ring-1 focus:ring-stacka-olive outline-none transition-colors text-sm"
+                    className="w-full h-10 px-3 rounded-lg bg-muted/50 border border-border focus:border-hb-cognac focus:ring-1 focus:ring-hb-cognac outline-none transition-colors text-sm"
                   />
                 </div>
 
@@ -295,7 +295,7 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
                   <div className="relative">
                     <div
                       onClick={() => setCategoryOpen(!categoryOpen)}
-                      className="w-full h-10 px-3 flex items-center justify-between rounded-lg bg-muted/50 border border-border cursor-pointer hover:border-stacka-olive/50 transition-colors"
+                      className="w-full h-10 px-3 flex items-center justify-between rounded-lg bg-muted/50 border border-border cursor-pointer hover:border-hb-cognac/50 transition-colors"
                     >
                       <span className={cn("text-sm", !selectedCategory && "text-muted-foreground")}>
                         {selectedCategory?.name || 'Välj kategori'}
@@ -329,7 +329,7 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
                                 onClick={() => handleCategorySelect(cat)}
                                 className={cn(
                                   "w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors flex items-center justify-between",
-                                  cat.id === categoryId && "bg-stacka-olive/10 text-stacka-olive"
+                                  cat.id === categoryId && "bg-hb-cognac/10 text-hb-cognac"
                                 )}
                               >
                                 {cat.name}
@@ -351,7 +351,7 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
                       type="date"
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
-                      className="w-full h-10 px-3 rounded-lg bg-muted/50 border border-border focus:border-stacka-olive focus:ring-1 focus:ring-stacka-olive outline-none transition-colors text-sm"
+                      className="w-full h-10 px-3 rounded-lg bg-muted/50 border border-border focus:border-hb-cognac focus:ring-1 focus:ring-hb-cognac outline-none transition-colors text-sm"
                     />
                     <p className="text-xs text-muted-foreground mt-1">{formatDisplayDate(date)}</p>
                   </div>
@@ -372,9 +372,9 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
                 <p className="text-base font-semibold">Dela upp kostnad</p>
 
                 {/* Total amount reference */}
-                <div className="p-4 bg-stacka-mint/20 dark:bg-stacka-olive/10 rounded-lg">
+                <div className="p-4 bg-hb-sand/20 dark:bg-hb-cognac/10 rounded-lg">
                   <p className="text-sm text-muted-foreground">Totalt belopp</p>
-                  <p className="text-2xl font-bold text-stacka-olive">
+                  <p className="text-2xl font-bold text-hb-cognac">
                     {formatCurrency(totalNum)}
                   </p>
                 </div>
@@ -398,7 +398,7 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
                         setUserShare(val)
                       }}
                       placeholder="0"
-                      className="w-full h-10 px-3 rounded-lg bg-muted/50 border border-border focus:border-stacka-olive focus:ring-1 focus:ring-stacka-olive outline-none transition-colors text-sm font-medium"
+                      className="w-full h-10 px-3 rounded-lg bg-muted/50 border border-border focus:border-hb-cognac focus:ring-1 focus:ring-hb-cognac outline-none transition-colors text-sm font-medium"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">kr</span>
                   </div>
@@ -422,7 +422,7 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
                           setPartnerShare(val)
                         }}
                         placeholder="0"
-                        className="w-full h-10 px-3 rounded-lg bg-muted/50 border border-border focus:border-stacka-olive focus:ring-1 focus:ring-stacka-olive outline-none transition-colors text-sm font-medium"
+                        className="w-full h-10 px-3 rounded-lg bg-muted/50 border border-border focus:border-hb-cognac focus:ring-1 focus:ring-hb-cognac outline-none transition-colors text-sm font-medium"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">kr</span>
                     </div>
@@ -504,13 +504,13 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
                     className={cn(
                       "w-full p-4 rounded-lg border-2 transition-all text-left",
                       swishRecipient === 'user'
-                        ? "border-stacka-olive bg-stacka-mint/20 dark:bg-stacka-olive/10"
-                        : "border-border hover:border-stacka-olive/50"
+                        ? "border-hb-cognac bg-hb-sand/20 dark:bg-hb-cognac/10"
+                        : "border-border hover:border-hb-cognac/50"
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-stacka-olive/10 flex items-center justify-center">
-                        <User className="w-5 h-5 text-stacka-olive" />
+                      <div className="w-10 h-10 rounded-full bg-hb-cognac/10 flex items-center justify-center">
+                        <User className="w-5 h-5 text-hb-cognac" />
                       </div>
                       <div>
                         <p className="font-medium">{user?.first_name || 'Jag'} fick Swish</p>
@@ -527,13 +527,13 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
                     className={cn(
                       "w-full p-4 rounded-lg border-2 transition-all text-left",
                       swishRecipient === 'partner'
-                        ? "border-stacka-olive bg-stacka-mint/20 dark:bg-stacka-olive/10"
-                        : "border-border hover:border-stacka-olive/50"
+                        ? "border-hb-cognac bg-hb-sand/20 dark:bg-hb-cognac/10"
+                        : "border-border hover:border-hb-cognac/50"
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-stacka-olive/10 flex items-center justify-center">
-                        <UserCheck className="w-5 h-5 text-stacka-olive" />
+                      <div className="w-10 h-10 rounded-full bg-hb-cognac/10 flex items-center justify-center">
+                        <UserCheck className="w-5 h-5 text-hb-cognac" />
                       </div>
                       <div>
                         <p className="font-medium">{partner?.first_name || 'Partner'} fick Swish</p>
@@ -550,13 +550,13 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
                     className={cn(
                       "w-full p-4 rounded-lg border-2 transition-all text-left",
                       swishRecipient === 'shared'
-                        ? "border-stacka-olive bg-stacka-mint/20 dark:bg-stacka-olive/10"
-                        : "border-border hover:border-stacka-olive/50"
+                        ? "border-hb-cognac bg-hb-sand/20 dark:bg-hb-cognac/10"
+                        : "border-border hover:border-hb-cognac/50"
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-stacka-olive/10 flex items-center justify-center">
-                        <Users className="w-5 h-5 text-stacka-olive" />
+                      <div className="w-10 h-10 rounded-full bg-hb-cognac/10 flex items-center justify-center">
+                        <Users className="w-5 h-5 text-hb-cognac" />
                       </div>
                       <div>
                         <p className="font-medium">Delat (50/50)</p>
@@ -586,11 +586,11 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
 
                 <div className="space-y-3">
                   {/* Total */}
-                  <div className="p-4 rounded-lg bg-stacka-coral/10 dark:bg-stacka-coral/5">
+                  <div className="p-4 rounded-lg bg-hb-terracotta/10 dark:bg-hb-terracotta/5">
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="text-xs text-muted-foreground">Totalt på kreditkort</p>
-                        <p className="text-xl font-bold text-stacka-coral">{formatCurrency(totalNum)}</p>
+                        <p className="text-xl font-bold text-hb-terracotta">{formatCurrency(totalNum)}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-muted-foreground">{description}</p>
@@ -605,7 +605,7 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
 
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-stacka-olive" />
+                        <User className="w-4 h-4 text-hb-cognac" />
                         <span className="text-sm">{user?.first_name || 'Du'}</span>
                       </div>
                       <span className="font-semibold">{formatCurrency(userShareNum)}</span>
@@ -614,7 +614,7 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
                     {hasPartner && partnerShareNum > 0 && (
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                          <UserCheck className="w-4 h-4 text-stacka-olive" />
+                          <UserCheck className="w-4 h-4 text-hb-cognac" />
                           <span className="text-sm">{partner?.first_name || 'Partner'}</span>
                         </div>
                         <span className="font-semibold">{formatCurrency(partnerShareNum)}</span>
@@ -626,7 +626,7 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
                         <div className="border-t pt-2">
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">Swish tillbaka</span>
-                            <span className="font-semibold text-stacka-olive">{formatCurrency(swishAmount)}</span>
+                            <span className="font-semibold text-hb-cognac">{formatCurrency(swishAmount)}</span>
                           </div>
                           {hasPartner && (
                             <p className="text-xs text-muted-foreground mt-1">
@@ -643,9 +643,9 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
                   </div>
 
                   {/* Budget impact */}
-                  <div className="p-4 rounded-lg bg-stacka-olive/10 dark:bg-stacka-olive/5">
+                  <div className="p-4 rounded-lg bg-hb-cognac/10 dark:bg-hb-cognac/5">
                     <p className="text-xs font-medium text-muted-foreground uppercase">Budgetpåverkan</p>
-                    <p className="text-lg font-bold text-stacka-olive mt-1">
+                    <p className="text-lg font-bold text-hb-cognac mt-1">
                       {formatCurrency(userShareNum + partnerShareNum)}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -675,7 +675,7 @@ export function GroupPurchaseWizard({ open, onOpenChange, editExpense }: GroupPu
               type="button"
               className={cn(
                 "flex-1",
-                currentStep === 'review' && "bg-stacka-olive hover:bg-stacka-olive/90"
+                currentStep === 'review' && "bg-hb-cognac hover:bg-hb-cognac/90"
               )}
               onClick={currentStep === 'review' ? handleSubmit : goNext}
               disabled={!isStepValid() || createGroupPurchase.isPending || updateGroupPurchase.isPending}

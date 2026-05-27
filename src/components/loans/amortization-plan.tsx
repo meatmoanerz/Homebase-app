@@ -108,18 +108,18 @@ export function AmortizationPlanDialog({ loan, open, onOpenChange }: Amortizatio
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 gap-3 mb-4">
-          <Card className="border-0 shadow-sm bg-stacka-sage/10">
+          <Card className="border-0 shadow-sm bg-hb-sage/10">
             <CardContent className="p-3 text-center">
-              <Calendar className="w-5 h-5 mx-auto mb-1 text-stacka-olive" />
+              <Calendar className="w-5 h-5 mx-auto mb-1 text-hb-cognac" />
               <p className="text-lg font-bold">{summary.yearsRemaining} år</p>
               <p className="text-xs text-muted-foreground">
                 ({summary.monthsRemaining} månader)
               </p>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm bg-stacka-peach/10">
+          <Card className="border-0 shadow-sm bg-hb-sand-deep/10">
             <CardContent className="p-3 text-center">
-              <Coins className="w-5 h-5 mx-auto mb-1 text-stacka-coral" />
+              <Coins className="w-5 h-5 mx-auto mb-1 text-hb-terracotta" />
               <p className="text-lg font-bold">{formatCurrency(summary.totalInterest)}</p>
               <p className="text-xs text-muted-foreground">Total räntekostnad</p>
             </CardContent>
@@ -173,7 +173,7 @@ export function AmortizationPlanDialog({ loan, open, onOpenChange }: Amortizatio
                 className="grid grid-cols-4 gap-2 px-3 py-3 rounded-lg bg-muted/30 text-sm"
               >
                 <span className="font-medium">{year.year}</span>
-                <span className="text-right text-stacka-olive">
+                <span className="text-right text-hb-cognac">
                   {formatCurrency(year.totalPrincipal)}
                 </span>
                 <span className="text-right text-muted-foreground">
@@ -206,7 +206,7 @@ export function AmortizationPlanDialog({ loan, open, onOpenChange }: Amortizatio
                   <span className="font-medium">
                     {format(monthDate, 'MMM yyyy', { locale: sv })}
                   </span>
-                  <span className="text-right text-stacka-olive">
+                  <span className="text-right text-hb-cognac">
                     {formatCurrency(month.principal)}
                   </span>
                   <span className="text-right text-muted-foreground">
@@ -251,7 +251,7 @@ export function AmortizationPlanDialog({ loan, open, onOpenChange }: Amortizatio
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Total räntekostnad</span>
-            <span className="font-medium text-stacka-coral">{formatCurrency(summary.totalInterest)}</span>
+            <span className="font-medium text-hb-terracotta">{formatCurrency(summary.totalInterest)}</span>
           </div>
           <div className="flex justify-between text-sm font-semibold">
             <span>Totalt att betala</span>

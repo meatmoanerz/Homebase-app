@@ -30,13 +30,13 @@ function BudgetOverviewContent({ expenses, budgetItems }: BudgetOverviewProps) {
       label: 'Fasta kostnader',
       budget: budgetItems.fixed,
       spent: spentByType['Fixed'] || 0,
-      color: 'bg-stacka-coral',
+      color: 'bg-hb-terracotta',
     },
     {
       label: 'Rörliga kostnader',
       budget: budgetItems.variable,
       spent: spentByType['Variable'] || 0,
-      color: 'bg-stacka-blue',
+      color: 'bg-hb-tim',
     },
     {
       label: 'Sparande',

@@ -83,7 +83,7 @@ export default function MonthlyIncomePage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-stacka-olive">Månadens inkomst</h1>
+          <h1 className="text-2xl font-bold text-hb-cognac">Månadens inkomst</h1>
           <p className="text-sm text-muted-foreground">
             {partner ? 'Registrera inkomster för hushållet' : 'Registrera dina inkomster för perioden'}
           </p>
@@ -133,7 +133,7 @@ export default function MonthlyIncomePage() {
                   >
                     <span>{period.displayName}</span>
                     {selectedPeriod === period.period && (
-                      <Check className="w-4 h-4 text-stacka-olive" />
+                      <Check className="w-4 h-4 text-hb-cognac" />
                     )}
                   </button>
                 ))}
@@ -195,7 +195,7 @@ export default function MonthlyIncomePage() {
         {partnerIncomes.length > 0 && (
           <Card className="border-0 shadow-sm overflow-hidden">
             <CardContent className="p-0">
-              <div className="px-4 py-3 bg-stacka-peach/20 border-b border-border">
+              <div className="px-4 py-3 bg-hb-sand-deep/20 border-b border-border">
                 <p className="text-sm font-medium text-muted-foreground">
                   {partnerIncomes[0]?.owner_name}s inkomster
                 </p>
@@ -218,8 +218,8 @@ export default function MonthlyIncomePage() {
         {!isLoading && incomes.length === 0 && (
           <Card className="border-0 shadow-sm">
             <CardContent className="py-12 text-center">
-              <div className="w-16 h-16 rounded-full bg-stacka-sage/30 flex items-center justify-center mx-auto mb-4">
-                <Banknote className="w-8 h-8 text-stacka-olive" />
+              <div className="w-16 h-16 rounded-full bg-hb-sage/30 flex items-center justify-center mx-auto mb-4">
+                <Banknote className="w-8 h-8 text-hb-cognac" />
               </div>
               <h3 className="font-semibold mb-2">Inga inkomster registrerade</h3>
               <p className="text-sm text-muted-foreground mb-4">
@@ -231,11 +231,11 @@ export default function MonthlyIncomePage() {
 
         {/* Total */}
         {incomes.length > 0 && (
-          <Card className="border-0 shadow-sm bg-stacka-sage/20">
+          <Card className="border-0 shadow-sm bg-hb-sage/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <span className="font-medium">Total hushållsinkomst</span>
-                <span className="text-xl font-bold text-stacka-olive">
+                <span className="text-xl font-bold text-hb-cognac">
                   {formatCurrency(totals?.total_income || 0)}
                 </span>
               </div>
@@ -284,8 +284,8 @@ function IncomeRow({ income, isLast, readonly, onEdit, onDelete, isDeleting }: I
       )}
     >
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-stacka-sage/20 flex items-center justify-center">
-          <Banknote className="w-5 h-5 text-stacka-olive" />
+        <div className="w-10 h-10 rounded-full bg-hb-sage/20 flex items-center justify-center">
+          <Banknote className="w-5 h-5 text-hb-cognac" />
         </div>
         <div>
           <p className="font-medium">{income.name}</p>
@@ -301,7 +301,7 @@ function IncomeRow({ income, isLast, readonly, onEdit, onDelete, isDeleting }: I
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-stacka-olive"
+              className="h-8 w-8 text-muted-foreground hover:text-hb-cognac"
               onClick={onEdit}
             >
               <Pencil className="h-4 w-4" />

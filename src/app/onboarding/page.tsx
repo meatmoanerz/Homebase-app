@@ -21,7 +21,7 @@ const STEPS = [
   { id: 'salary', title: 'När får du lön?', description: 'Vi anpassar din budget efter din löneperiod' },
   { id: 'income', title: 'Vad är din inkomst?', description: 'Du kan lägga till fler inkomster senare' },
   { id: 'partner', title: 'Har du en partner?', description: 'Ni kan dela budget och utgifter' },
-  { id: 'complete', title: 'Allt klart!', description: 'Du är redo att börja använda Stacka' },
+  { id: 'complete', title: 'Allt klart!', description: 'Du är redo att börja använda Homebase' },
 ]
 
 export default function OnboardingPage() {
@@ -198,7 +198,7 @@ export default function OnboardingPage() {
       // Wait a bit for Supabase to sync
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      toast.success('Välkommen till Stacka! 🎉')
+      toast.success('Välkommen till Homebase! 🎉')
       
       // Use replace instead of push to prevent going back
       router.replace('/dashboard')
@@ -225,14 +225,14 @@ export default function OnboardingPage() {
 
   if (initialLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-stacka-mint via-stacka-peach/30 to-stacka-sage/50">
-        <Loader2 className="w-8 h-8 animate-spin text-stacka-olive" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-hb-sand via-hb-sand-deep/30 to-hb-sage/50">
+        <Loader2 className="w-8 h-8 animate-spin text-hb-cognac" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-stacka-mint via-stacka-peach/30 to-stacka-sage/50">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-hb-sand via-hb-sand-deep/30 to-hb-sage/50">
       <div className="w-full max-w-md">
         {/* Progress */}
         <div className="mb-8">
@@ -240,7 +240,7 @@ export default function OnboardingPage() {
             <span className="text-sm text-muted-foreground">
               Steg {step + 1} av {STEPS.length}
             </span>
-            <span className="text-sm font-medium text-stacka-olive">
+            <span className="text-sm font-medium text-hb-cognac">
               {Math.round(progress)}%
             </span>
           </div>
@@ -257,12 +257,12 @@ export default function OnboardingPage() {
           >
             <Card className="border-0 shadow-xl bg-white/90 dark:bg-card/90 backdrop-blur">
               <CardHeader className="text-center">
-                <div className="mx-auto w-12 h-12 rounded-full bg-stacka-sage/30 flex items-center justify-center mb-4">
-                  {step === 0 && <User className="w-6 h-6 text-stacka-olive" />}
-                  {step === 1 && <Calendar className="w-6 h-6 text-stacka-olive" />}
-                  {step === 2 && <Wallet className="w-6 h-6 text-stacka-olive" />}
-                  {step === 3 && <Users className="w-6 h-6 text-stacka-olive" />}
-                  {step === 4 && <Sparkles className="w-6 h-6 text-stacka-olive" />}
+                <div className="mx-auto w-12 h-12 rounded-full bg-hb-sage/30 flex items-center justify-center mb-4">
+                  {step === 0 && <User className="w-6 h-6 text-hb-cognac" />}
+                  {step === 1 && <Calendar className="w-6 h-6 text-hb-cognac" />}
+                  {step === 2 && <Wallet className="w-6 h-6 text-hb-cognac" />}
+                  {step === 3 && <Users className="w-6 h-6 text-hb-cognac" />}
+                  {step === 4 && <Sparkles className="w-6 h-6 text-hb-cognac" />}
                 </div>
                 <CardTitle className="text-xl">{STEPS[step].title}</CardTitle>
                 <CardDescription>{STEPS[step].description}</CardDescription>
@@ -398,10 +398,10 @@ export default function OnboardingPage() {
                             Generera inbjudningskod
                           </Button>
                         ) : (
-                          <div className="p-4 bg-stacka-sage/20 rounded-xl text-center">
+                          <div className="p-4 bg-hb-sage/20 rounded-xl text-center">
                             <p className="text-sm text-muted-foreground mb-2">Din inbjudningskod:</p>
                             <div className="flex items-center justify-center gap-2">
-                              <span className="text-2xl font-bold tracking-widest text-stacka-olive">
+                              <span className="text-2xl font-bold tracking-widest text-hb-cognac">
                                 {generatedCode}
                               </span>
                               <Button

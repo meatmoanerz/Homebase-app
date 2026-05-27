@@ -13,7 +13,7 @@ export function ShowMyMonthCard() {
       transition={{ delay: 0.3 }}
     >
       <Link href="/report">
-        <Card className="border-0 shadow-sm bg-gradient-to-r from-stacka-olive to-stacka-olive/80 text-white cursor-pointer hover:shadow-md transition-shadow">
+        <Card className="border-0 shadow-sm bg-gradient-to-r from-hb-cognac to-hb-cognac/80 text-white cursor-pointer hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">

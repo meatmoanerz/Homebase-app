@@ -218,7 +218,7 @@ export function LoanForm({ loan, onSuccess }: LoanFormProps) {
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       {/* Original Loan Amount - Large centered input */}
-      <div className="rounded-xl bg-stacka-sage/20 py-5 px-6">
+      <div className="rounded-xl bg-hb-sage/20 py-5 px-6">
         <p className="text-muted-foreground text-xs text-center mb-2">Lånebelopp</p>
         <div className="flex items-baseline justify-center gap-1">
           <input
@@ -229,7 +229,7 @@ export function LoanForm({ loan, onSuccess }: LoanFormProps) {
             placeholder="0"
             value={amountDisplay}
             onChange={handleAmountChange(setAmountDisplay, 'original_amount')}
-            className="text-4xl font-bold bg-transparent placeholder:text-muted-foreground/30 caret-stacka-olive tabular-nums text-right"
+            className="text-4xl font-bold bg-transparent placeholder:text-muted-foreground/30 caret-hb-cognac tabular-nums text-right"
             style={{
               outline: 'none',
               boxShadow: 'none',
@@ -309,7 +309,7 @@ export function LoanForm({ loan, onSuccess }: LoanFormProps) {
               >
                 <span className="text-muted-foreground">Ingen typ</span>
                 {!form.watch('group_id') && (
-                  <Check className="w-4 h-4 text-stacka-olive" />
+                  <Check className="w-4 h-4 text-hb-cognac" />
                 )}
               </button>
 
@@ -334,7 +334,7 @@ export function LoanForm({ loan, onSuccess }: LoanFormProps) {
                     </div>
                   </div>
                   {form.watch('group_id') === group.id && (
-                    <Check className="w-4 h-4 text-stacka-olive" />
+                    <Check className="w-4 h-4 text-hb-cognac" />
                   )}
                 </button>
               ))}
@@ -344,7 +344,7 @@ export function LoanForm({ loan, onSuccess }: LoanFormProps) {
                 <button
                   type="button"
                   onClick={() => setShowNewGroup(true)}
-                  className="w-full px-4 py-3 text-left hover:bg-muted/50 flex items-center gap-2 text-stacka-olive transition-colors border-t"
+                  className="w-full px-4 py-3 text-left hover:bg-muted/50 flex items-center gap-2 text-hb-cognac transition-colors border-t"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Ny typ</span>
@@ -512,10 +512,10 @@ export function LoanForm({ loan, onSuccess }: LoanFormProps) {
       </div>
 
       {/* Auto-add to Budget */}
-      <div className="flex items-center justify-between p-4 rounded-xl bg-stacka-peach/10">
+      <div className="flex items-center justify-between p-4 rounded-xl bg-hb-sand-deep/10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-stacka-gold/20 flex items-center justify-center">
-            <Calendar className="w-5 h-5 text-stacka-gold" />
+          <div className="w-10 h-10 rounded-full bg-hb-cognac/20 flex items-center justify-center">
+            <Calendar className="w-5 h-5 text-hb-cognac" />
           </div>
           <div>
             <p className="font-medium text-sm">Lägg till i budget</p>
@@ -532,10 +532,10 @@ export function LoanForm({ loan, onSuccess }: LoanFormProps) {
 
       {/* Share with Partner */}
       {hasPartner && (
-        <div className="flex items-center justify-between p-4 rounded-xl bg-stacka-sage/10">
+        <div className="flex items-center justify-between p-4 rounded-xl bg-hb-sage/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-stacka-blue/20 flex items-center justify-center">
-              <Users className="w-5 h-5 text-stacka-blue" />
+            <div className="w-10 h-10 rounded-full bg-hb-tim/20 flex items-center justify-center">
+              <Users className="w-5 h-5 text-hb-tim" />
             </div>
             <div>
               <p className="font-medium text-sm">Dela med {partner?.first_name || 'partner'}</p>

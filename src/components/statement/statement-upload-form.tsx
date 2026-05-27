@@ -71,7 +71,7 @@ export function StatementUploadForm({ onAnalyze }: Props) {
           {...getRootProps()}
           className={cn(
             "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors",
-            isDragActive ? "border-stacka-olive bg-stacka-sage/20" : "border-border hover:border-stacka-sage",
+            isDragActive ? "border-hb-cognac bg-hb-sage/20" : "border-border hover:border-hb-sage",
             file && "border-success bg-success/10"
           )}
         >
@@ -99,7 +99,7 @@ export function StatementUploadForm({ onAnalyze }: Props) {
         <Button
           onClick={handleSubmit}
           disabled={!file || !selectedBank}
-          className="w-full bg-stacka-olive hover:bg-stacka-olive/90"
+          className="w-full bg-hb-cognac hover:bg-hb-cognac/90"
         >
           Analysera kontoutdrag
         </Button>

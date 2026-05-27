@@ -18,7 +18,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-11 w-full items-center justify-between rounded-lg border-2 border-input bg-white dark:bg-input px-4 py-2 text-base text-foreground ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:border-stacka-blue focus:ring-2 focus:ring-stacka-blue/20 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+      "flex h-11 w-full items-center justify-between rounded-lg border-2 border-input bg-white dark:bg-input px-4 py-2 text-base text-foreground ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:border-hb-tim focus:ring-2 focus:ring-hb-tim/20 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
       className
     )}
     {...props}
@@ -104,7 +104,7 @@ const SelectLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Label
     ref={ref}
-    className={cn("py-1.5 pl-8 pr-2 text-sm font-semibold text-stacka-olive", className)}
+    className={cn("py-1.5 pl-8 pr-2 text-sm font-semibold text-hb-cognac", className)}
     {...props}
   />
 ))
@@ -117,14 +117,14 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-lg py-2 pl-8 pr-2 text-sm outline-none focus:bg-stacka-sage/30 focus:text-stacka-olive data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex w-full cursor-default select-none items-center rounded-lg py-2 pl-8 pr-2 text-sm outline-none focus:bg-hb-sage/30 focus:text-hb-cognac data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
     {...props}
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
-        <Check className="h-4 w-4 text-stacka-olive" />
+        <Check className="h-4 w-4 text-hb-cognac" />
       </SelectPrimitive.ItemIndicator>
     </span>
 

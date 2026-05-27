@@ -43,7 +43,7 @@ export function ReportPartnerSpending({
     <Card className="border-0 shadow-sm">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-stacka-olive" />
+          <Users className="w-4 h-4 text-hb-cognac" />
           <CardTitle className="text-base">Utgifter per person</CardTitle>
         </div>
       </CardHeader>
@@ -51,7 +51,7 @@ export function ReportPartnerSpending({
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-muted/50 rounded-xl p-3 text-center space-y-1">
             <p className="text-xs text-muted-foreground">{userName}</p>
-            <p className="text-lg font-bold text-stacka-olive">{formatCurrency(userTotal)}</p>
+            <p className="text-lg font-bold text-hb-cognac">{formatCurrency(userTotal)}</p>
             {userIncome > 0 && (
               <p className="text-xs text-muted-foreground">
                 {formatPercentage(userPct)} av inkomst
@@ -60,7 +60,7 @@ export function ReportPartnerSpending({
           </div>
           <div className="bg-muted/50 rounded-xl p-3 text-center space-y-1">
             <p className="text-xs text-muted-foreground">{partnerName}</p>
-            <p className="text-lg font-bold text-stacka-olive">{formatCurrency(partnerTotal)}</p>
+            <p className="text-lg font-bold text-hb-cognac">{formatCurrency(partnerTotal)}</p>
             {partnerIncome > 0 && (
               <p className="text-xs text-muted-foreground">
                 {formatPercentage(partnerPct)} av inkomst

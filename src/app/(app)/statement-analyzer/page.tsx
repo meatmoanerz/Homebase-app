@@ -52,7 +52,7 @@ export default function StatementAnalyzerPage() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-2xl font-bold text-stacka-olive">
+        <h1 className="text-2xl font-bold text-hb-cognac">
           Importera kontoutdrag
         </h1>
         <p className="text-sm text-muted-foreground">

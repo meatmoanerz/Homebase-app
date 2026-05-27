@@ -1,18 +1,16 @@
 {
-  "name": "Stacka",
-  "short_name": "Stacka",
-  "description": "Din personliga ekonomi - budget, utgifter och sparande",
+  "name": "Homebase",
+  "short_name": "Homebase",
+  "description": "Håll koll på din budget, utgifter och sparande",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FAFBF9",
-  "theme_color": "#657166",
-  "orientation": "portrait",
+  "background_color": "#f4ede3",
+  "theme_color": "#c08850",
   "icons": [
     {
       "src": "/favicon.svg",
-      "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "sizes": "any"
     }
   ]
 }

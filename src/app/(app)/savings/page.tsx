@@ -55,7 +55,7 @@ export default function SavingsPage() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-2xl font-bold text-stacka-olive">Sparmål</h1>
+        <h1 className="text-2xl font-bold text-hb-cognac">Sparmål</h1>
         <p className="text-sm text-muted-foreground">{subtitles[activeTab]}</p>
       </motion.div>
 
@@ -67,22 +67,22 @@ export default function SavingsPage() {
           transition={{ delay: 0.05 }}
           className="grid grid-cols-2 gap-3"
         >
-          <Card className="border-0 shadow-sm bg-stacka-sage/20">
+          <Card className="border-0 shadow-sm bg-hb-sage/20">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
-                <PiggyBank className="w-4 h-4 text-stacka-olive" />
+                <PiggyBank className="w-4 h-4 text-hb-cognac" />
                 <span className="text-xs text-muted-foreground">Totalt sparat</span>
               </div>
-              <p className="text-xl font-bold text-stacka-olive">{formatCurrency(totalSaved)}</p>
+              <p className="text-xl font-bold text-hb-cognac">{formatCurrency(totalSaved)}</p>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm bg-stacka-peach/20">
+          <Card className="border-0 shadow-sm bg-hb-sand-deep/20">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
-                <TrendingUp className="w-4 h-4 text-stacka-coral" />
+                <TrendingUp className="w-4 h-4 text-hb-terracotta" />
                 <span className="text-xs text-muted-foreground">Månadssparande</span>
               </div>
-              <p className="text-xl font-bold text-stacka-coral">{formatCurrency(totalMonthlySavings)}/mån</p>
+              <p className="text-xl font-bold text-hb-terracotta">{formatCurrency(totalMonthlySavings)}/mån</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -105,7 +105,7 @@ export default function SavingsPage() {
               className={cn(
                 "flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200",
                 activeTab === tab.id
-                  ? "bg-white dark:bg-card shadow-sm text-stacka-olive"
+                  ? "bg-white dark:bg-card shadow-sm text-hb-cognac"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -114,7 +114,7 @@ export default function SavingsPage() {
               {count !== null && count > 0 && (
                 <span className={cn(
                   "text-xs px-1.5 py-0.5 rounded-full",
-                  activeTab === tab.id ? "bg-stacka-sage/20" : "bg-muted"
+                  activeTab === tab.id ? "bg-hb-sage/20" : "bg-muted"
                 )}>
                   {count}
                 </span>
@@ -196,7 +196,7 @@ export default function SavingsPage() {
 
             {/* Overall progress if there are goals */}
             {activeGoals.length > 0 && totalTarget > 0 && (
-              <Card className="border-0 shadow-sm bg-gradient-to-r from-stacka-sage/10 to-stacka-olive/10">
+              <Card className="border-0 shadow-sm bg-gradient-to-r from-hb-sage/10 to-hb-cognac/10">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium">Total progress</span>
@@ -206,7 +206,7 @@ export default function SavingsPage() {
                   </div>
                   <div className="h-2 bg-white/50 dark:bg-card/50 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-stacka-olive rounded-full transition-all"
+                      className="h-full bg-hb-cognac rounded-full transition-all"
                       style={{ width: `${Math.min((totalSaved / totalTarget) * 100, 100)}%` }}
                     />
                   </div>

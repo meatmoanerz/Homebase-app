@@ -286,7 +286,7 @@ export function TemporaryBudgetForm({ existingBudget }: TemporaryBudgetFormProps
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="text-xl font-bold text-stacka-olive">
+        <h1 className="text-xl font-bold text-hb-cognac">
           {isEditing ? 'Redigera projektbudget' : 'Ny projektbudget'}
         </h1>
       </div>
@@ -360,7 +360,7 @@ export function TemporaryBudgetForm({ existingBudget }: TemporaryBudgetFormProps
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4 space-y-3">
             {/* Total Budget */}
-            <div className="rounded-xl bg-stacka-mint/20 py-5 px-6">
+            <div className="rounded-xl bg-hb-sand/20 py-5 px-6">
               <p className="text-muted-foreground text-xs text-center mb-2">Total budget</p>
               <div className="flex items-baseline justify-center gap-1">
                 <input
@@ -370,7 +370,7 @@ export function TemporaryBudgetForm({ existingBudget }: TemporaryBudgetFormProps
                   placeholder="0"
                   value={budgetDisplay}
                   onChange={handleBudgetChange}
-                  className="text-4xl font-bold bg-transparent placeholder:text-muted-foreground/30 caret-stacka-olive tabular-nums text-right"
+                  className="text-4xl font-bold bg-transparent placeholder:text-muted-foreground/30 caret-hb-cognac tabular-nums text-right"
                   style={{
                     outline: 'none',
                     boxShadow: 'none',
@@ -436,7 +436,7 @@ export function TemporaryBudgetForm({ existingBudget }: TemporaryBudgetFormProps
                             {c.symbol} {c.code} — {c.name}
                           </span>
                           {watchCurrency === c.code && (
-                            <Check className="w-4 h-4 text-stacka-olive" />
+                            <Check className="w-4 h-4 text-hb-cognac" />
                           )}
                         </button>
                       ))}
@@ -498,7 +498,7 @@ export function TemporaryBudgetForm({ existingBudget }: TemporaryBudgetFormProps
                       key={qc.name}
                       type="button"
                       onClick={() => handleAddCategory(qc.name)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stacka-mint/20 text-stacka-olive text-xs font-medium hover:bg-stacka-mint/30 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-hb-sand/20 text-hb-cognac text-xs font-medium hover:bg-hb-sand/30 transition-colors"
                     >
                       <Icon className="w-3.5 h-3.5" />
                       {qc.name}
@@ -704,7 +704,7 @@ export function TemporaryBudgetForm({ existingBudget }: TemporaryBudgetFormProps
                           >
                             <span>{cat.name}</span>
                             {watchLinkedCategoryId === cat.id && (
-                              <Check className="w-4 h-4 text-stacka-olive" />
+                              <Check className="w-4 h-4 text-hb-cognac" />
                             )}
                           </button>
                         ))}
@@ -742,7 +742,7 @@ export function TemporaryBudgetForm({ existingBudget }: TemporaryBudgetFormProps
                         <Button
                           type="submit"
                           size="sm"
-                          className="bg-stacka-olive hover:bg-stacka-olive/90"
+                          className="bg-hb-cognac hover:bg-hb-cognac/90"
                         >
                           Skapa ändå
                         </Button>
@@ -767,7 +767,7 @@ export function TemporaryBudgetForm({ existingBudget }: TemporaryBudgetFormProps
         {!showNoLinkWarning && (
           <Button
             type="submit"
-            className="w-full h-12 bg-stacka-olive hover:bg-stacka-olive/90 text-white font-medium rounded-xl"
+            className="w-full h-12 bg-hb-cognac hover:bg-hb-cognac/90 text-white font-medium rounded-xl"
             disabled={createBudget.isPending || updateBudget.isPending}
           >
             {createBudget.isPending || updateBudget.isPending ? (

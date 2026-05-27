@@ -95,12 +95,12 @@ function InvoicePeriodCard({ period, expenses, invoice, user, partner, onDelete,
               {formatInvoicePeriod(period)}
             </CardTitle>
             {status === 'current' && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-stacka-coral/20 text-stacka-coral font-medium">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-hb-terracotta/20 text-hb-terracotta font-medium">
                 Pågående
               </span>
             )}
             {status === 'upcoming' && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-stacka-blue/20 text-stacka-blue font-medium">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-hb-tim/20 text-hb-tim font-medium">
                 Kommande
               </span>
             )}
@@ -109,7 +109,7 @@ function InvoicePeriodCard({ period, expenses, invoice, user, partner, onDelete,
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-stacka-coral">
+            <span className="text-sm font-bold text-hb-terracotta">
               {formatCurrency(periodTotal)}
             </span>
             {expanded ? (
@@ -131,10 +131,10 @@ function InvoicePeriodCard({ period, expenses, invoice, user, partner, onDelete,
           >
             <CardContent className="p-0">
               {/* Invoice Amount Input */}
-              <div className="p-4 bg-stacka-peach/10 border-b">
+              <div className="p-4 bg-hb-sand-deep/10 border-b">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Receipt className="w-4 h-4 text-stacka-coral" />
+                    <Receipt className="w-4 h-4 text-hb-terracotta" />
                     <span className="text-sm font-medium">Faktiskt fakturabelopp</span>
                   </div>
                   {!editingAmount && actualAmount > 0 && (
@@ -178,7 +178,7 @@ function InvoicePeriodCard({ period, expenses, invoice, user, partner, onDelete,
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-lg font-bold text-stacka-coral">{formatCurrency(actualAmount)}</p>
+                  <p className="text-lg font-bold text-hb-terracotta">{formatCurrency(actualAmount)}</p>
                 )}
 
                 {/* Warning if registered > actual */}
@@ -195,16 +195,16 @@ function InvoicePeriodCard({ period, expenses, invoice, user, partner, onDelete,
 
               {/* Payment Split */}
               {partner && actualAmount > 0 && (
-                <div className="p-4 bg-stacka-blue/5 border-b">
+                <div className="p-4 bg-hb-tim/5 border-b">
                   <p className="text-xs font-medium text-muted-foreground mb-3">Betalningsfördelning</p>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-3 rounded-lg bg-white dark:bg-card shadow-sm">
                       <p className="text-xs text-muted-foreground">{user.first_name || 'Du'}</p>
-                      <p className="text-lg font-bold text-stacka-olive">{formatCurrency(paymentSplit.userAmount)}</p>
+                      <p className="text-lg font-bold text-hb-cognac">{formatCurrency(paymentSplit.userAmount)}</p>
                     </div>
                     <div className="p-3 rounded-lg bg-white dark:bg-card shadow-sm">
                       <p className="text-xs text-muted-foreground">{partner.first_name || 'Partner'}</p>
-                      <p className="text-lg font-bold text-stacka-olive">{formatCurrency(paymentSplit.partnerAmount)}</p>
+                      <p className="text-lg font-bold text-hb-cognac">{formatCurrency(paymentSplit.partnerAmount)}</p>
                     </div>
                   </div>
                   {paymentSplit.unregisteredDifference > 0 && (
@@ -235,7 +235,7 @@ function InvoicePeriodCard({ period, expenses, invoice, user, partner, onDelete,
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-stacka-coral/10 flex items-center justify-center text-lg">
+                      <div className="w-10 h-10 rounded-full bg-hb-terracotta/10 flex items-center justify-center text-lg">
                         {categoryIcons[expense.category?.name || ''] || '💳'}
                       </div>
                       <div>
@@ -247,21 +247,21 @@ function InvoicePeriodCard({ period, expenses, invoice, user, partner, onDelete,
                     </div>
                     <div className="flex items-center gap-2">
                       {expense.is_group_purchase && (
-                        <div className="w-5 h-5 rounded-full bg-stacka-mint/30 flex items-center justify-center" title="Gruppköp">
-                          <Users className="w-3 h-3 text-stacka-olive" />
+                        <div className="w-5 h-5 rounded-full bg-hb-sand/30 flex items-center justify-center" title="Gruppköp">
+                          <Users className="w-3 h-3 text-hb-cognac" />
                         </div>
                       )}
                       {expense.cost_assignment === 'shared' && !expense.is_group_purchase && (
-                        <div className="w-5 h-5 rounded-full bg-stacka-blue/20 flex items-center justify-center" title="Delad utgift">
-                          <Users className="w-3 h-3 text-stacka-blue" />
+                        <div className="w-5 h-5 rounded-full bg-hb-tim/20 flex items-center justify-center" title="Delad utgift">
+                          <Users className="w-3 h-3 text-hb-tim" />
                         </div>
                       )}
                       {expense.cost_assignment === 'partner' && (
-                        <div className="w-5 h-5 rounded-full bg-stacka-coral/20 flex items-center justify-center" title="Partnerns utgift">
-                          <UserCheck className="w-3 h-3 text-stacka-coral" />
+                        <div className="w-5 h-5 rounded-full bg-hb-terracotta/20 flex items-center justify-center" title="Partnerns utgift">
+                          <UserCheck className="w-3 h-3 text-hb-terracotta" />
                         </div>
                       )}
-                      <span className="font-semibold text-stacka-coral">
+                      <span className="font-semibold text-hb-terracotta">
                         -{formatCurrency(expense.is_group_purchase ? (expense.group_purchase_total || expense.amount) : expense.amount)}
                       </span>
                       <Button
@@ -356,7 +356,7 @@ export default function CCMDashboardPage() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-stacka-olive">Kreditkortshanterare</h1>
+            <h1 className="text-xl font-bold text-hb-cognac">Kreditkortshanterare</h1>
             <p className="text-sm text-muted-foreground">CCM</p>
           </div>
         </motion.div>
@@ -398,7 +398,7 @@ export default function CCMDashboardPage() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-stacka-olive">Kreditkortshanterare</h1>
+            <h1 className="text-xl font-bold text-hb-cognac">Kreditkortshanterare</h1>
             <p className="text-sm text-muted-foreground">CCM-översikt</p>
           </div>
         </div>
@@ -415,18 +415,18 @@ export default function CCMDashboardPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
       >
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-stacka-coral/10 to-stacka-peach/20">
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-hb-terracotta/10 to-hb-sand-deep/20">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Totalt på kreditkort</p>
-                <p className="text-2xl font-bold text-stacka-coral">{formatCurrency(totalCCM)}</p>
+                <p className="text-2xl font-bold text-hb-terracotta">{formatCurrency(totalCCM)}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {ccmExpenses.length} {ccmExpenses.length === 1 ? 'utgift' : 'utgifter'}
                 </p>
               </div>
-              <div className="p-3 rounded-full bg-stacka-coral/20">
-                <CreditCard className="w-6 h-6 text-stacka-coral" />
+              <div className="p-3 rounded-full bg-hb-terracotta/20">
+                <CreditCard className="w-6 h-6 text-hb-terracotta" />
               </div>
             </div>
           </CardContent>
@@ -442,7 +442,7 @@ export default function CCMDashboardPage() {
         <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
           <Calendar className="w-3.5 h-3.5" />
           <span>Brytdatum: den {invoiceBreakDate}:e varje månad</span>
-          <Link href="/settings/ccm/settings" className="text-stacka-coral hover:underline ml-auto">
+          <Link href="/settings/ccm/settings" className="text-hb-terracotta hover:underline ml-auto">
             Ändra
           </Link>
         </div>
@@ -456,7 +456,7 @@ export default function CCMDashboardPage() {
         <Button
           variant="outline"
           onClick={() => setGroupPurchaseOpen(true)}
-          className="w-full text-stacka-olive border-stacka-olive/30 hover:bg-stacka-olive/10"
+          className="w-full text-hb-cognac border-hb-cognac/30 hover:bg-hb-cognac/10"
         >
           <Plus className="w-4 h-4 mr-2" />
           Gruppköp

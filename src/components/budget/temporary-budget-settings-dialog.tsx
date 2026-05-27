@@ -170,7 +170,7 @@ export function TemporaryBudgetSettingsDialog({
                           <span>
                             {c.symbol} {c.code}
                           </span>
-                          {currency === c.code && <Check className="w-4 h-4 text-stacka-olive" />}
+                          {currency === c.code && <Check className="w-4 h-4 text-hb-cognac" />}
                         </button>
                       ))}
                     </motion.div>
@@ -263,7 +263,7 @@ export function TemporaryBudgetSettingsDialog({
                             >
                               <span>{cat.name}</span>
                               {linkedCategoryId === cat.id && (
-                                <Check className="w-4 h-4 text-stacka-olive" />
+                                <Check className="w-4 h-4 text-hb-cognac" />
                               )}
                             </button>
                           ))}
@@ -314,7 +314,7 @@ export function TemporaryBudgetSettingsDialog({
           <DialogFooter>
             <Button
               onClick={handleSave}
-              className="w-full bg-stacka-olive hover:bg-stacka-olive/90"
+              className="w-full bg-hb-cognac hover:bg-hb-cognac/90"
               disabled={updateBudget.isPending}
             >
               {updateBudget.isPending ? (

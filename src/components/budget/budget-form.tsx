@@ -929,7 +929,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
   if (categoriesLoading || incomesLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-stacka-olive" />
+        <Loader2 className="w-8 h-8 animate-spin text-hb-cognac" />
       </div>
     )
   }
@@ -950,7 +950,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-stacka-olive">
+          <h1 className="text-xl font-bold text-hb-cognac">
             {existingBudget ? 'Redigera budget' : 'Ny budget'}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -1001,7 +1001,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
                           className={cn(
                             "p-3 rounded-lg text-sm text-left transition-all",
                             period === p.period
-                              ? "bg-stacka-olive text-white"
+                              ? "bg-hb-cognac text-white"
                               : "bg-muted hover:bg-muted/80"
                           )}
                         >
@@ -1104,14 +1104,14 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <Card className="border-0 shadow-sm overflow-hidden bg-gradient-to-br from-stacka-sage/20 to-stacka-mint/20">
+        <Card className="border-0 shadow-sm overflow-hidden bg-gradient-to-br from-hb-sage/20 to-hb-sand/20">
           <button
             onClick={() => toggleSection('income')}
             className="w-full p-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-stacka-olive/10 flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-stacka-olive" />
+              <div className="w-10 h-10 rounded-full bg-hb-cognac/10 flex items-center justify-center">
+                <Wallet className="w-5 h-5 text-hb-cognac" />
               </div>
               <div className="text-left">
                 <p className="font-medium text-sm">Inkomster</p>
@@ -1121,7 +1121,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="font-bold text-stacka-olive">
+              <span className="font-bold text-hb-cognac">
                 {formatCurrency(totalIncome)}
               </span>
               {expandedSections.income ? (
@@ -1171,7 +1171,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
                                     updateIncome(inc.id, value)
                                   }}
                                   placeholder="0"
-                                  className="w-full h-9 px-3 pr-8 text-right text-sm rounded-lg bg-muted focus:outline-none focus:ring-1 focus:ring-stacka-olive"
+                                  className="w-full h-9 px-3 pr-8 text-right text-sm rounded-lg bg-muted focus:outline-none focus:ring-1 focus:ring-hb-cognac"
                                 />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                                   kr
@@ -1212,7 +1212,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
                                     updateIncome(inc.id, value)
                                   }}
                                   placeholder="0"
-                                  className="w-full h-9 px-3 pr-8 text-right text-sm rounded-lg bg-muted focus:outline-none focus:ring-1 focus:ring-stacka-olive"
+                                  className="w-full h-9 px-3 pr-8 text-right text-sm rounded-lg bg-muted focus:outline-none focus:ring-1 focus:ring-hb-cognac"
                                 />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                                   kr
@@ -1374,12 +1374,12 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
 
               {/* CCM row - only show if CCM is enabled and has CCM expenses */}
               {user?.ccm_enabled && totalCCM > 0 && (
-                <div className="p-3 rounded-lg bg-stacka-peach/10 border border-stacka-coral/20">
+                <div className="p-3 rounded-lg bg-hb-sand-deep/10 border border-hb-terracotta/20">
                   <div className="flex items-center gap-2 mb-1">
-                    <CreditCard className="w-4 h-4 text-stacka-coral" />
+                    <CreditCard className="w-4 h-4 text-hb-terracotta" />
                     <p className="text-muted-foreground text-xs">CCM (betalas nästa månad)</p>
                   </div>
-                  <p className="font-semibold text-stacka-coral">{formatCurrency(totalCCM)}</p>
+                  <p className="font-semibold text-hb-terracotta">{formatCurrency(totalCCM)}</p>
                   <p className="text-xs text-muted-foreground mt-1">Påverkar ej denna månads kassaflöde</p>
                 </div>
               )}
@@ -1387,12 +1387,12 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
               {/* Kvar totalt - full width */}
               <div className={cn(
                 "p-4 rounded-lg",
-                remaining >= 0 ? "bg-stacka-blue/10" : "bg-destructive/10"
+                remaining >= 0 ? "bg-hb-tim/10" : "bg-destructive/10"
               )}>
                 <p className="text-muted-foreground text-xs">Kvar totalt</p>
                 <p className={cn(
                   "text-2xl font-bold",
-                  remaining >= 0 ? "text-stacka-blue" : "text-destructive"
+                  remaining >= 0 ? "text-hb-tim" : "text-destructive"
                 )}>
                   {formatCurrency(remaining)}
                 </p>
@@ -1407,28 +1407,28 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
               <div className="grid grid-cols-2 gap-3 text-sm pt-2 border-t">
                 <div className={cn(
                   "p-3 rounded-lg",
-                  userRemaining >= 0 ? "bg-stacka-sage/20" : "bg-destructive/10"
+                  userRemaining >= 0 ? "bg-hb-sage/20" : "bg-destructive/10"
                 )}>
                   <p className="text-muted-foreground text-xs flex items-center gap-1">
                     <User className="w-3 h-3" /> {userName} kvar
                   </p>
                   <p className={cn(
                     "font-semibold",
-                    userRemaining >= 0 ? "text-stacka-olive" : "text-destructive"
+                    userRemaining >= 0 ? "text-hb-cognac" : "text-destructive"
                   )}>
                     {formatCurrency(userRemaining)}
                   </p>
                 </div>
                 <div className={cn(
                   "p-3 rounded-lg",
-                  partnerRemaining >= 0 ? "bg-stacka-sage/20" : "bg-destructive/10"
+                  partnerRemaining >= 0 ? "bg-hb-sage/20" : "bg-destructive/10"
                 )}>
                   <p className="text-muted-foreground text-xs flex items-center gap-1">
                     <User className="w-3 h-3" /> {partnerName} kvar
                   </p>
                   <p className={cn(
                     "font-semibold",
-                    partnerRemaining >= 0 ? "text-stacka-olive" : "text-destructive"
+                    partnerRemaining >= 0 ? "text-hb-cognac" : "text-destructive"
                   )}>
                     {formatCurrency(partnerRemaining)}
                   </p>
@@ -1627,7 +1627,7 @@ function CategorySection({
           <div className="flex items-center gap-3">
             <div className={cn(
               "w-8 h-8 rounded-full flex items-center justify-center",
-              accentColor === 'success' ? "bg-success/10 text-success" : "bg-stacka-olive/10 text-stacka-olive"
+              accentColor === 'success' ? "bg-success/10 text-success" : "bg-hb-cognac/10 text-hb-cognac"
             )}>
               {icon}
             </div>
@@ -1695,7 +1695,7 @@ function CategorySection({
                             className={cn(
                               "p-1.5 rounded-md transition-colors shrink-0",
                               item.is_ccm
-                                ? "bg-stacka-coral text-white"
+                                ? "bg-hb-terracotta text-white"
                                 : "bg-muted hover:bg-muted/80 text-muted-foreground"
                             )}
                             title={item.is_ccm ? "Kassaflöde" : "CCM (kreditkort)"}
@@ -1711,7 +1711,7 @@ function CategorySection({
                             className={cn(
                               "p-1.5 rounded-md transition-colors shrink-0",
                               item.isSplit || amountsDiffer
-                                ? "bg-stacka-olive text-white"
+                                ? "bg-hb-cognac text-white"
                                 : "bg-muted hover:bg-muted/80 text-muted-foreground"
                             )}
                             title={item.isSplit ? "Slå ihop" : "Dela upp per person"}
@@ -1735,9 +1735,9 @@ function CategorySection({
                               // If amounts differ, clicking opens split view instead of editing
                               <button
                                 onClick={() => onToggleSplit(cat.id)}
-                                className="w-full h-9 px-3 pr-8 text-right text-sm rounded-lg bg-muted/50 border border-stacka-olive/30 cursor-pointer hover:bg-muted"
+                                className="w-full h-9 px-3 pr-8 text-right text-sm rounded-lg bg-muted/50 border border-hb-cognac/30 cursor-pointer hover:bg-muted"
                               >
-                                <span className="text-stacka-olive font-medium">{item.total}</span>
+                                <span className="text-hb-cognac font-medium">{item.total}</span>
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                                   kr
                                 </span>
@@ -1754,7 +1754,7 @@ function CategorySection({
                                     onUpdateItem(cat.id, value)
                                   }}
                                   placeholder="0"
-                                  className="w-full h-9 px-3 pr-8 text-right text-sm rounded-lg bg-muted focus:outline-none focus:ring-1 focus:ring-stacka-olive"
+                                  className="w-full h-9 px-3 pr-8 text-right text-sm rounded-lg bg-muted focus:outline-none focus:ring-1 focus:ring-hb-cognac"
                                 />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                                   kr
@@ -1781,7 +1781,7 @@ function CategorySection({
                             exit={{ height: 0, opacity: 0 }}
                             className="overflow-hidden"
                           >
-                            <div className="ml-4 pl-3 border-l-2 border-stacka-olive/30 space-y-1.5 py-1">
+                            <div className="ml-4 pl-3 border-l-2 border-hb-cognac/30 space-y-1.5 py-1">
                               {/* User amount */}
                               <div className="flex items-center justify-end gap-2">
                                 <span className="text-xs text-muted-foreground">{userName}</span>
@@ -1795,7 +1795,7 @@ function CategorySection({
                                       onUpdateSplit(cat.id, value, item.partnerAmount || 0)
                                     }}
                                     placeholder="0"
-                                    className="w-full h-8 px-3 pr-7 text-right text-sm rounded-md bg-muted/70 focus:outline-none focus:ring-1 focus:ring-stacka-olive"
+                                    className="w-full h-8 px-3 pr-7 text-right text-sm rounded-md bg-muted/70 focus:outline-none focus:ring-1 focus:ring-hb-cognac"
                                   />
                                   <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
                                     kr
@@ -1816,7 +1816,7 @@ function CategorySection({
                                       onUpdateSplit(cat.id, item.userAmount || 0, value)
                                     }}
                                     placeholder="0"
-                                    className="w-full h-8 px-3 pr-7 text-right text-sm rounded-md bg-muted/70 focus:outline-none focus:ring-1 focus:ring-stacka-olive"
+                                    className="w-full h-8 px-3 pr-7 text-right text-sm rounded-md bg-muted/70 focus:outline-none focus:ring-1 focus:ring-hb-cognac"
                                   />
                                   <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
                                     kr

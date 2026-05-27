@@ -26,8 +26,8 @@ export function StatementLoading() {
           ease: 'easeInOut',
         }}
       >
-        <div className="w-24 h-24 rounded-full bg-stacka-sage/20 flex items-center justify-center">
-          <FileSearch className="w-12 h-12 text-stacka-olive" />
+        <div className="w-24 h-24 rounded-full bg-hb-sage/20 flex items-center justify-center">
+          <FileSearch className="w-12 h-12 text-hb-cognac" />
         </div>
 
         {/* Orbiting sparkle */}
@@ -43,14 +43,14 @@ export function StatementLoading() {
           }}
           style={{ transformOrigin: '50% 60px' }}
         >
-          <Sparkles className="w-5 h-5 text-stacka-coral" />
+          <Sparkles className="w-5 h-5 text-hb-terracotta" />
         </motion.div>
       </motion.div>
 
       {/* Progress bar */}
       <div className="w-64 h-1.5 bg-muted rounded-full mt-8 overflow-hidden">
         <motion.div
-          className="h-full bg-stacka-olive rounded-full"
+          className="h-full bg-hb-cognac rounded-full"
           initial={{ width: '0%' }}
           animate={{ width: '100%' }}
           transition={{

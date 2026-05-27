@@ -160,7 +160,7 @@ export function BottomNav({ className }: BottomNavProps) {
               >
                 <motion.div
                   whileTap={{ scale: 0.9 }}
-                  className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-stacka-olive to-[#5a7360] text-white shadow-lg shadow-stacka-olive/30"
+                  className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-hb-cognac to-[#5a7360] text-white shadow-lg shadow-hb-cognac/30"
                 >
                   <Icon className="w-7 h-7" aria-hidden="true" />
                 </motion.div>
@@ -174,7 +174,7 @@ export function BottomNav({ className }: BottomNavProps) {
               href={item.href}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 py-2 px-4 transition-colors relative min-w-[60px]",
-                isActive ? "text-stacka-olive" : "text-muted-foreground"
+                isActive ? "text-hb-cognac" : "text-muted-foreground"
               )}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
@@ -186,7 +186,7 @@ export function BottomNav({ className }: BottomNavProps) {
               {isActive && (
                 <motion.div
                   layoutId="navDot"
-                  className="absolute -bottom-1 w-1 h-1 rounded-full bg-stacka-olive"
+                  className="absolute -bottom-1 w-1 h-1 rounded-full bg-hb-cognac"
                   transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
                 />
               )}

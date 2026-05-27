@@ -152,7 +152,7 @@ export default function DashboardPage() {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-1"
       >
-        <h1 className="text-2xl font-bold text-stacka-olive">
+        <h1 className="text-2xl font-bold text-hb-cognac">
           Hej, {user?.first_name}! 👋
         </h1>
         <p className="text-sm text-muted-foreground">

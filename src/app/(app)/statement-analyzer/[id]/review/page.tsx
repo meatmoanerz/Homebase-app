@@ -247,7 +247,7 @@ export default function ReviewPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center p-8">
-        <Loader2 className="w-8 h-8 animate-spin text-stacka-olive" />
+        <Loader2 className="w-8 h-8 animate-spin text-hb-cognac" />
       </div>
     )
   }
@@ -268,7 +268,7 @@ export default function ReviewPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-stacka-olive">
+          <h1 className="text-xl font-bold text-hb-cognac">
             Granska transaktioner
           </h1>
           <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -497,7 +497,7 @@ export default function ReviewPage() {
             <Button
               onClick={handleImport}
               disabled={!allSelectedHaveCategories || importTransactions.isPending}
-              className="w-full bg-stacka-olive hover:bg-stacka-olive/90"
+              className="w-full bg-hb-cognac hover:bg-hb-cognac/90"
             >
               {importTransactions.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -588,7 +588,7 @@ function TransactionRow({
         isHandled && "border-l-2 border-l-emerald-500 bg-emerald-50/50",
         hasUnresolvedMatch && !isHandled && "border-l-2 border-l-amber-400 bg-amber-50/50",
         isReturn && !isHandled && !hasUnresolvedMatch && "bg-emerald-50/30",
-        !isHandled && !hasUnresolvedMatch && !isReturn && isSelected && "bg-stacka-sage/10"
+        !isHandled && !hasUnresolvedMatch && !isReturn && isSelected && "bg-hb-sage/10"
       )}
     >
       {/* Row 1: Checkbox, Description, Amount */}
@@ -692,7 +692,7 @@ function TransactionRow({
               className={cn(
                 "font-semibold tabular-nums whitespace-nowrap flex items-center gap-1 group",
                 isReturn ? "text-emerald-600" : "",
-                (isHandled || hasUnresolvedMatch) ? "text-muted-foreground" : "hover:text-stacka-olive"
+                (isHandled || hasUnresolvedMatch) ? "text-muted-foreground" : "hover:text-hb-cognac"
               )}
             >
               {formatCurrency(transaction.amount)}
@@ -719,7 +719,7 @@ function TransactionRow({
                 className={cn(
                   "py-0.5 px-2 rounded text-[11px] font-medium transition-all",
                   costAssignment === 'personal'
-                    ? "bg-stacka-olive text-white"
+                    ? "bg-hb-cognac text-white"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 )}
               >
@@ -731,7 +731,7 @@ function TransactionRow({
                 className={cn(
                   "py-0.5 px-2 rounded text-[11px] font-medium transition-all",
                   costAssignment === 'partner'
-                    ? "bg-stacka-olive text-white"
+                    ? "bg-hb-cognac text-white"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 )}
               >

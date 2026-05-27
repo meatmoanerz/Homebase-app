@@ -75,7 +75,7 @@ export default function CCMSettingsPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-stacka-olive">CCM-inställningar</h1>
+          <h1 className="text-xl font-bold text-hb-cognac">CCM-inställningar</h1>
           <p className="text-sm text-muted-foreground">Konfigurera kreditkortshanteraren</p>
         </div>
       </motion.div>
@@ -86,12 +86,12 @@ export default function CCMSettingsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <Card className="border-0 shadow-sm bg-stacka-peach/30">
+        <Card className="border-0 shadow-sm bg-hb-sand-deep/30">
           <CardContent className="p-4">
             <div className="flex gap-3">
-              <Info className="w-5 h-5 text-stacka-coral shrink-0 mt-0.5" />
+              <Info className="w-5 h-5 text-hb-terracotta shrink-0 mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium text-stacka-olive mb-1">Vad är CCM?</p>
+                <p className="font-medium text-hb-cognac mb-1">Vad är CCM?</p>
                 <p className="text-muted-foreground">
                   Credit Card Manager (CCM) hjälper dig separera utgifter som betalas med
                   kreditkort från direkta betalningar. Detta ger bättre överblick över
@@ -170,7 +170,7 @@ export default function CCMSettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-stacka-blue/20 flex items-center justify-center text-sm font-bold text-stacka-olive">
+                <div className="w-8 h-8 rounded-full bg-hb-tim/20 flex items-center justify-center text-sm font-bold text-hb-cognac">
                   1
                 </div>
                 <div>
@@ -181,7 +181,7 @@ export default function CCMSettingsPage() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-stacka-blue/20 flex items-center justify-center text-sm font-bold text-stacka-olive">
+                <div className="w-8 h-8 rounded-full bg-hb-tim/20 flex items-center justify-center text-sm font-bold text-hb-cognac">
                   2
                 </div>
                 <div>
@@ -192,7 +192,7 @@ export default function CCMSettingsPage() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-stacka-blue/20 flex items-center justify-center text-sm font-bold text-stacka-olive">
+                <div className="w-8 h-8 rounded-full bg-hb-tim/20 flex items-center justify-center text-sm font-bold text-hb-cognac">
                   3
                 </div>
                 <div>

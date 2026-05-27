@@ -94,7 +94,7 @@ export default function ExpenseListPage() {
           <ChevronLeft className="w-5 h-5" />
         </Button>
         <div className="text-center">
-          <h1 className="text-lg font-bold text-stacka-olive capitalize">
+          <h1 className="text-lg font-bold text-hb-cognac capitalize">
             {formatPeriodDisplay(selectedPeriod)}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -169,7 +169,7 @@ export default function ExpenseListPage() {
                           className="flex items-center justify-between p-4 hover:bg-muted/30 active:bg-muted/50 active:scale-[0.99] transition-all w-full text-left"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-stacka-sage/20 flex items-center justify-center text-lg">
+                            <div className="w-10 h-10 rounded-full bg-hb-sage/20 flex items-center justify-center text-lg">
                               {categoryIcons[expense.category?.name ?? ''] || '💰'}
                             </div>
                             <div>
@@ -181,7 +181,7 @@ export default function ExpenseListPage() {
                           </div>
                           <span className={cn(
                             "font-semibold",
-                            expense.is_ccm ? "text-stacka-blue" : ""
+                            expense.is_ccm ? "text-hb-tim" : ""
                           )}>
                             -{formatCurrency(expense.amount)}
                           </span>

@@ -63,7 +63,7 @@ export function ReportCategoryRanking({ expenses }: ReportCategoryRankingProps) 
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-stacka-blue rounded-full transition-all duration-500"
+                  className="h-full bg-hb-tim rounded-full transition-all duration-500"
                   style={{ width: `${barWidth}%` }}
                 />
               </div>

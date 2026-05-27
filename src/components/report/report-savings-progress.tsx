@@ -25,7 +25,7 @@ export function ReportSavingsProgress({ expenses = [], selectedPeriod }: ReportS
     <Card className="border-0 shadow-sm">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
-          <Target className="w-4 h-4 text-stacka-olive" />
+          <Target className="w-4 h-4 text-hb-cognac" />
           <CardTitle className="text-base">Sparmål</CardTitle>
         </div>
       </CardHeader>
@@ -73,7 +73,7 @@ export function ReportSavingsProgress({ expenses = [], selectedPeriod }: ReportS
               {(periodSavings > 0 || monthlyNeeded !== null) && (
                 <div className="flex justify-between text-xs pt-0.5">
                   {periodSavings > 0 && (
-                    <span className="text-stacka-olive font-medium">
+                    <span className="text-hb-cognac font-medium">
                       Sparat denna period: {formatCurrency(periodSavings)}
                     </span>
                   )}

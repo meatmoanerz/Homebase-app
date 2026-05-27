@@ -33,10 +33,10 @@ function PersonBudgetBreakdownContent({
       </CardHeader>
       <CardContent className="space-y-3">
         {/* User */}
-        <div className="flex items-center justify-between p-3 rounded-xl bg-stacka-sage/10">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-hb-sage/10">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-stacka-olive/20 flex items-center justify-center">
-              <User className="w-4 h-4 text-stacka-olive" />
+            <div className="w-8 h-8 rounded-full bg-hb-cognac/20 flex items-center justify-center">
+              <User className="w-4 h-4 text-hb-cognac" />
             </div>
             <div>
               <p className="font-medium text-sm">{userName}</p>
@@ -57,10 +57,10 @@ function PersonBudgetBreakdownContent({
         </div>
 
         {/* Partner */}
-        <div className="flex items-center justify-between p-3 rounded-xl bg-stacka-blue/10">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-hb-tim/10">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-stacka-blue/20 flex items-center justify-center">
-              <UserCheck className="w-4 h-4 text-stacka-blue" />
+            <div className="w-8 h-8 rounded-full bg-hb-tim/20 flex items-center justify-center">
+              <UserCheck className="w-4 h-4 text-hb-tim" />
             </div>
             <div>
               <p className="font-medium text-sm">{partnerName}</p>

@@ -300,11 +300,11 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-stacka-olive capitalize">
+          <h1 className="text-xl font-bold text-hb-cognac capitalize">
             {formatPeriodDisplay(budget.period)}
           </h1>
           {isCurrent && (
-            <span className="text-xs text-stacka-olive bg-stacka-sage/30 px-2 py-0.5 rounded-full">
+            <span className="text-xs text-hb-cognac bg-hb-sage/30 px-2 py-0.5 rounded-full">
               Aktuell period
             </span>
           )}
@@ -360,7 +360,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all",
                 viewMode === 'total'
-                  ? "bg-white dark:bg-card text-stacka-olive shadow-sm"
+                  ? "bg-white dark:bg-card text-hb-cognac shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -372,7 +372,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all",
                 viewMode === 'mine'
-                  ? "bg-white dark:bg-card text-stacka-olive shadow-sm"
+                  ? "bg-white dark:bg-card text-hb-cognac shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -384,7 +384,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all",
                 viewMode === 'partner'
-                  ? "bg-white dark:bg-card text-stacka-olive shadow-sm"
+                  ? "bg-white dark:bg-card text-hb-cognac shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -401,14 +401,14 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
       >
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-stacka-olive to-stacka-olive/80 text-white">
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-hb-cognac to-hb-cognac/80 text-white">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-white/70 text-sm">Kvar att spendera</p>
                 <p className={cn(
                   "text-3xl font-bold",
-                  remaining < 0 && "text-stacka-coral"
+                  remaining < 0 && "text-hb-terracotta"
                 )}>
                   {formatCurrency(remaining)}
                 </p>
@@ -472,8 +472,8 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-stacka-sage/20 flex items-center justify-center">
-                  <Banknote className="w-4 h-4 text-stacka-olive" />
+                <div className="w-8 h-8 rounded-full bg-hb-sage/20 flex items-center justify-center">
+                  <Banknote className="w-4 h-4 text-hb-cognac" />
                 </div>
                 <CardTitle className="text-sm font-medium">Inkomst</CardTitle>
               </div>
@@ -516,12 +516,12 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
                               <div className="flex items-center gap-2">
                                 <div className={cn(
                                   "w-6 h-6 rounded-full flex items-center justify-center",
-                                  isOwn ? "bg-stacka-olive/20" : "bg-stacka-blue/20"
+                                  isOwn ? "bg-hb-cognac/20" : "bg-hb-tim/20"
                                 )}>
                                   {isOwn ? (
-                                    <User className="w-3 h-3 text-stacka-olive" />
+                                    <User className="w-3 h-3 text-hb-cognac" />
                                   ) : (
-                                    <UserCheck className="w-3 h-3 text-stacka-blue" />
+                                    <UserCheck className="w-3 h-3 text-hb-tim" />
                                   )}
                                 </div>
                                 <span className="text-sm font-medium">{name}</span>
@@ -726,7 +726,7 @@ function BudgetSection({
             <div className="flex items-center gap-2">
               <div className={cn(
                 "w-8 h-8 rounded-full flex items-center justify-center",
-                accentColor === 'success' ? "bg-success/10 text-success" : "bg-stacka-olive/10 text-stacka-olive"
+                accentColor === 'success' ? "bg-success/10 text-success" : "bg-hb-cognac/10 text-hb-cognac"
               )}>
                 {icon}
               </div>

@@ -135,7 +135,7 @@ export function TemporaryBudgetDetail({ id }: TemporaryBudgetDetailProps) {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold text-stacka-olive truncate">{budget.name}</h1>
+          <h1 className="text-xl font-bold text-hb-cognac truncate">{budget.name}</h1>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Calendar className="w-3 h-3" />
             <span>
@@ -164,11 +164,11 @@ export function TemporaryBudgetDetail({ id }: TemporaryBudgetDetailProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
       >
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-stacka-mint/80 to-stacka-mint/50 text-stacka-olive">
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-hb-sand/80 to-hb-sand/50 text-hb-cognac">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-stacka-olive/60 text-sm">Spenderat</p>
+                <p className="text-hb-cognac/60 text-sm">Spenderat</p>
                 <p className={cn('text-3xl font-bold', isOverBudget && 'text-destructive')}>
                   {isNonSEK
                     ? formatCurrencyAmount(
@@ -178,13 +178,13 @@ export function TemporaryBudgetDetail({ id }: TemporaryBudgetDetailProps) {
                     : formatCurrency(totalSpent)}
                 </p>
                 {isNonSEK && (
-                  <p className="text-xs text-stacka-olive/50 mt-0.5">
+                  <p className="text-xs text-hb-cognac/50 mt-0.5">
                     {formatCurrency(totalSpent)}
                   </p>
                 )}
               </div>
               <div className="text-right">
-                <p className="text-stacka-olive/60 text-sm">Budget</p>
+                <p className="text-hb-cognac/60 text-sm">Budget</p>
                 <p className="text-xl font-semibold">
                   {isNonSEK
                     ? formatCurrencyAmount(
@@ -201,7 +201,7 @@ export function TemporaryBudgetDetail({ id }: TemporaryBudgetDetailProps) {
                 value={Math.min(spentRatio, 100)}
                 className={cn('h-2.5 bg-white/40', isOverBudget && '[&>div]:bg-destructive')}
               />
-              <div className="flex justify-between text-xs text-stacka-olive/60">
+              <div className="flex justify-between text-xs text-hb-cognac/60">
                 <span>{Math.round(spentRatio)}% förbrukat</span>
                 <span>
                   {isNonSEK
@@ -286,8 +286,8 @@ export function TemporaryBudgetDetail({ id }: TemporaryBudgetDetailProps) {
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-stacka-mint/20 flex items-center justify-center">
-                  <Target className="w-4 h-4 text-stacka-olive" />
+                <div className="w-8 h-8 rounded-full bg-hb-sand/20 flex items-center justify-center">
+                  <Target className="w-4 h-4 text-hb-cognac" />
                 </div>
                 <CardTitle className="text-sm font-medium">Kategorier</CardTitle>
               </div>
@@ -362,8 +362,8 @@ export function TemporaryBudgetDetail({ id }: TemporaryBudgetDetailProps) {
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-stacka-olive/10 flex items-center justify-center">
-                  <TrendingDown className="w-4 h-4 text-stacka-olive" />
+                <div className="w-8 h-8 rounded-full bg-hb-cognac/10 flex items-center justify-center">
+                  <TrendingDown className="w-4 h-4 text-hb-cognac" />
                 </div>
                 <CardTitle className="text-sm font-medium">Senaste utgifter</CardTitle>
               </div>
@@ -426,7 +426,7 @@ export function TemporaryBudgetDetail({ id }: TemporaryBudgetDetailProps) {
         >
           <Button
             onClick={() => setAddExpenseOpen(true)}
-            className="w-14 h-14 rounded-full bg-stacka-olive hover:bg-stacka-olive/90 shadow-lg shadow-stacka-olive/30"
+            className="w-14 h-14 rounded-full bg-hb-cognac hover:bg-hb-cognac/90 shadow-lg shadow-hb-cognac/30"
             size="icon"
           >
             <Plus className="w-6 h-6" />

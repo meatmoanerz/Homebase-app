@@ -179,7 +179,7 @@ export function TemporaryBudgetExpenseForm({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Amount */}
-          <div className="rounded-xl bg-stacka-mint/20 py-5 px-6">
+          <div className="rounded-xl bg-hb-sand/20 py-5 px-6">
             <p className="text-muted-foreground text-xs text-center mb-2">Belopp</p>
             <div className="flex items-baseline justify-center gap-1">
               <input
@@ -190,7 +190,7 @@ export function TemporaryBudgetExpenseForm({
                 value={amountDisplay}
                 onChange={handleAmountChange}
                 autoFocus
-                className="text-4xl font-bold bg-transparent placeholder:text-muted-foreground/30 caret-stacka-olive tabular-nums text-right"
+                className="text-4xl font-bold bg-transparent placeholder:text-muted-foreground/30 caret-hb-cognac tabular-nums text-right"
                 style={{
                   outline: 'none',
                   boxShadow: 'none',
@@ -259,7 +259,7 @@ export function TemporaryBudgetExpenseForm({
                       className="w-full px-4 py-3 text-left hover:bg-muted/50 flex items-center justify-between transition-colors text-sm text-muted-foreground"
                     >
                       <span>Ingen</span>
-                      {!selectedProjectCategoryId && <Check className="w-4 h-4 text-stacka-olive" />}
+                      {!selectedProjectCategoryId && <Check className="w-4 h-4 text-hb-cognac" />}
                     </button>
                     {budget.temporary_budget_categories
                       .sort((a, b) => a.sort_order - b.sort_order)
@@ -275,7 +275,7 @@ export function TemporaryBudgetExpenseForm({
                         >
                           <span>{cat.name}</span>
                           {selectedProjectCategoryId === cat.id && (
-                            <Check className="w-4 h-4 text-stacka-olive" />
+                            <Check className="w-4 h-4 text-hb-cognac" />
                           )}
                         </button>
                       ))}
@@ -345,7 +345,7 @@ export function TemporaryBudgetExpenseForm({
                             >
                               <span>{cat.name}</span>
                               {selectedRegularCategoryId === cat.id && (
-                                <Check className="w-4 h-4 text-stacka-olive" />
+                                <Check className="w-4 h-4 text-hb-cognac" />
                               )}
                             </button>
                           ))}
@@ -369,7 +369,7 @@ export function TemporaryBudgetExpenseForm({
                             >
                               <span>{cat.name}</span>
                               {selectedRegularCategoryId === cat.id && (
-                                <Check className="w-4 h-4 text-stacka-olive" />
+                                <Check className="w-4 h-4 text-hb-cognac" />
                               )}
                             </button>
                           ))}
@@ -393,7 +393,7 @@ export function TemporaryBudgetExpenseForm({
                             >
                               <span>{cat.name}</span>
                               {selectedRegularCategoryId === cat.id && (
-                                <Check className="w-4 h-4 text-stacka-olive" />
+                                <Check className="w-4 h-4 text-hb-cognac" />
                               )}
                             </button>
                           ))}
@@ -443,7 +443,7 @@ export function TemporaryBudgetExpenseForm({
                   className={cn(
                     'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all',
                     costAssignment === 'personal'
-                      ? 'bg-stacka-olive text-white'
+                      ? 'bg-hb-cognac text-white'
                       : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   )}
                 >
@@ -457,7 +457,7 @@ export function TemporaryBudgetExpenseForm({
                   className={cn(
                     'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all',
                     costAssignment === 'partner'
-                      ? 'bg-stacka-olive text-white'
+                      ? 'bg-hb-cognac text-white'
                       : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   )}
                 >
@@ -469,9 +469,9 @@ export function TemporaryBudgetExpenseForm({
 
           {/* CCM Toggle */}
           {isCCMEnabled && (
-            <div className="flex items-center justify-between p-4 rounded-xl bg-stacka-peach/20">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-hb-sand-deep/20">
               <div className="flex items-center gap-3">
-                <CreditCard className="w-5 h-5 text-stacka-coral" />
+                <CreditCard className="w-5 h-5 text-hb-terracotta" />
                 <div>
                   <Label htmlFor="project-is_ccm" className="text-sm font-medium">
                     Betald med kreditkort
@@ -490,7 +490,7 @@ export function TemporaryBudgetExpenseForm({
           <DialogFooter>
             <Button
               type="submit"
-              className="w-full bg-stacka-olive hover:bg-stacka-olive/90"
+              className="w-full bg-hb-cognac hover:bg-hb-cognac/90"
               disabled={createExpense.isPending}
             >
               {createExpense.isPending ? (

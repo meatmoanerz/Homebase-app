@@ -34,12 +34,12 @@ export function IncomeOverviewCard({ period }: IncomeOverviewCardProps) {
         <CardContent className="p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-stacka-sage/30 flex items-center justify-center">
-                <Banknote className="w-5 h-5 text-stacka-olive" />
+              <div className="w-10 h-10 rounded-full bg-hb-sage/30 flex items-center justify-center">
+                <Banknote className="w-5 h-5 text-hb-cognac" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Månadens inkomst</p>
-                <p className="text-xl font-bold text-stacka-olive">
+                <p className="text-xl font-bold text-hb-cognac">
                   {formatCurrency(totals?.total_income || 0)}
                 </p>
               </div>
@@ -71,7 +71,7 @@ export function IncomeOverviewCard({ period }: IncomeOverviewCardProps) {
                   <span className="text-muted-foreground">
                     {income.name}
                     {!income.is_own && (
-                      <span className="ml-1 text-xs text-stacka-coral">
+                      <span className="ml-1 text-xs text-hb-terracotta">
                         ({income.owner_name})
                       </span>
                     )}

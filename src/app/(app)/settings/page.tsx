@@ -87,12 +87,12 @@ export default function SettingsPage() {
             <div className="flex items-center gap-4">
               <Avatar className="w-16 h-16">
                 <AvatarImage src={user?.avatar_url || undefined} />
-                <AvatarFallback className="text-lg bg-stacka-sage text-stacka-olive">
+                <AvatarFallback className="text-lg bg-hb-sage text-hb-cognac">
                   {getInitials(user?.first_name || '', user?.last_name)}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-xl font-bold text-stacka-olive">
+                <h1 className="text-xl font-bold text-hb-cognac">
                   {user?.first_name} {user?.last_name}
                 </h1>
                 <p className="text-sm text-muted-foreground">{user?.email}</p>
@@ -114,8 +114,8 @@ export default function SettingsPage() {
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-stacka-sage/20 flex items-center justify-center">
-                <Palette className="w-5 h-5 text-stacka-olive" aria-hidden="true" />
+              <div className="w-10 h-10 rounded-xl bg-hb-sage/20 flex items-center justify-center">
+                <Palette className="w-5 h-5 text-hb-cognac" aria-hidden="true" />
               </div>
               <div>
                 <p className="font-medium text-sm">Tema</p>
@@ -147,8 +147,8 @@ export default function SettingsPage() {
                   className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-stacka-sage/20 flex items-center justify-center">
-                      <item.icon className="w-5 h-5 text-stacka-olive" />
+                    <div className="w-10 h-10 rounded-xl bg-hb-sage/20 flex items-center justify-center">
+                      <item.icon className="w-5 h-5 text-hb-cognac" />
                     </div>
                     <div>
                       <p className="font-medium text-sm">{item.label}</p>
@@ -213,7 +213,7 @@ export default function SettingsPage() {
 
       {/* Version */}
       <p className="text-center text-xs text-muted-foreground">
-        Stacka v2.0.0
+        Homebase v2.0.0
       </p>
     </div>
   )

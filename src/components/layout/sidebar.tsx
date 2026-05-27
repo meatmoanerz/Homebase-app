@@ -24,10 +24,10 @@ export function Sidebar() {
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-6 border-b border-border">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-stacka-olive to-stacka-sage flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-hb-cognac to-hb-sage flex items-center justify-center">
             <span className="text-white font-bold text-sm">S</span>
           </div>
-          <span className="text-xl font-bold text-stacka-olive">Stacka</span>
+          <span className="text-xl font-bold text-hb-cognac">Homebase</span>
         </Link>
         <ThemeToggleCompact />
       </div>
@@ -46,8 +46,8 @@ export function Sidebar() {
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
                 isActive
-                  ? 'bg-stacka-olive text-white shadow-sm'
-                  : 'text-muted-foreground hover:bg-stacka-sage/30 hover:text-foreground'
+                  ? 'bg-hb-cognac text-white shadow-sm'
+                  : 'text-muted-foreground hover:bg-hb-sage/30 hover:text-foreground'
               )}
               aria-current={isActive ? 'page' : undefined}
             >

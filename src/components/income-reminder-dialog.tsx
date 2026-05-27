@@ -102,8 +102,8 @@ export function IncomeReminderDialog() {
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleDismiss()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="text-center sm:text-center">
-          <div className="w-16 h-16 rounded-full bg-stacka-sage/30 flex items-center justify-center mx-auto mb-4">
-            <Banknote className="w-8 h-8 text-stacka-olive" />
+          <div className="w-16 h-16 rounded-full bg-hb-sage/30 flex items-center justify-center mx-auto mb-4">
+            <Banknote className="w-8 h-8 text-hb-cognac" />
           </div>
           <DialogTitle className="text-xl">Lägg till månadens inkomst</DialogTitle>
           <DialogDescription className="text-base">

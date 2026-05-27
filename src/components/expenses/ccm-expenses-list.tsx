@@ -128,18 +128,18 @@ export function CCMExpensesList() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-stacka-coral/10 to-stacka-peach/20">
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-hb-terracotta/10 to-hb-sand-deep/20">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Totalt på kreditkort</p>
-                <p className="text-2xl font-bold text-stacka-coral">{formatCurrency(totalCCM)}</p>
+                <p className="text-2xl font-bold text-hb-terracotta">{formatCurrency(totalCCM)}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {ccmExpenses.length} {ccmExpenses.length === 1 ? 'utgift' : 'utgifter'}
                 </p>
               </div>
-              <div className="p-3 rounded-full bg-stacka-coral/20">
-                <CreditCard className="w-6 h-6 text-stacka-coral" />
+              <div className="p-3 rounded-full bg-hb-terracotta/20">
+                <CreditCard className="w-6 h-6 text-hb-terracotta" />
               </div>
             </div>
           </CardContent>
@@ -155,7 +155,7 @@ export function CCMExpensesList() {
         <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
           <Calendar className="w-3.5 h-3.5" />
           <span>Brytdatum: den {invoiceBreakDate}:e varje månad</span>
-          <Link href="/settings/ccm" className="text-stacka-coral hover:underline ml-auto">
+          <Link href="/settings/ccm" className="text-hb-terracotta hover:underline ml-auto">
             Ändra
           </Link>
         </div>
@@ -181,17 +181,17 @@ export function CCMExpensesList() {
                       {formatInvoicePeriod(period)}
                     </CardTitle>
                     {status === 'current' && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-stacka-coral/20 text-stacka-coral font-medium">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-hb-terracotta/20 text-hb-terracotta font-medium">
                         Pågående
                       </span>
                     )}
                     {status === 'upcoming' && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-stacka-blue/20 text-stacka-blue font-medium">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-hb-tim/20 text-hb-tim font-medium">
                         Kommande
                       </span>
                     )}
                   </div>
-                  <span className="text-sm font-bold text-stacka-coral">
+                  <span className="text-sm font-bold text-hb-terracotta">
                     {formatCurrency(periodTotal)}
                   </span>
                 </div>
@@ -208,7 +208,7 @@ export function CCMExpensesList() {
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-stacka-coral/10 flex items-center justify-center text-lg">
+                      <div className="w-10 h-10 rounded-full bg-hb-terracotta/10 flex items-center justify-center text-lg">
                         {categoryIcons[expense.category?.name || ''] || '💳'}
                       </div>
                       <div>
@@ -220,16 +220,16 @@ export function CCMExpensesList() {
                     </div>
                     <div className="flex items-center gap-2">
                       {expense.cost_assignment === 'shared' && (
-                        <div className="w-5 h-5 rounded-full bg-stacka-blue/20 flex items-center justify-center" title="Delad utgift">
-                          <Users className="w-3 h-3 text-stacka-blue" />
+                        <div className="w-5 h-5 rounded-full bg-hb-tim/20 flex items-center justify-center" title="Delad utgift">
+                          <Users className="w-3 h-3 text-hb-tim" />
                         </div>
                       )}
                       {expense.cost_assignment === 'partner' && (
-                        <div className="w-5 h-5 rounded-full bg-stacka-coral/20 flex items-center justify-center" title="Partnerns utgift">
-                          <UserCheck className="w-3 h-3 text-stacka-coral" />
+                        <div className="w-5 h-5 rounded-full bg-hb-terracotta/20 flex items-center justify-center" title="Partnerns utgift">
+                          <UserCheck className="w-3 h-3 text-hb-terracotta" />
                         </div>
                       )}
-                      <span className="font-semibold text-stacka-coral">
+                      <span className="font-semibold text-hb-terracotta">
                         -{formatCurrency(expense.amount)}
                       </span>
                       <Button

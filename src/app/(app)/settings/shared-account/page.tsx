@@ -168,7 +168,7 @@ export default function SharedAccountPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-stacka-olive">Gemensamt konto</h1>
+          <h1 className="text-xl font-bold text-hb-cognac">Gemensamt konto</h1>
           <p className="text-sm text-muted-foreground">Beräkna överföring till gemensamt konto</p>
         </div>
       </motion.div>
@@ -188,7 +188,7 @@ export default function SharedAccountPage() {
               <SelectItem key={period.period} value={period.period}>
                 <span className="capitalize">{formatPeriodDisplay(period.period)}</span>
                 {period.period === currentPeriod.period && (
-                  <span className="ml-2 text-xs text-stacka-olive">(Aktuell)</span>
+                  <span className="ml-2 text-xs text-hb-cognac">(Aktuell)</span>
                 )}
               </SelectItem>
             ))}
@@ -202,7 +202,7 @@ export default function SharedAccountPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-stacka-olive to-stacka-olive/80 text-white">
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-hb-cognac to-hb-cognac/80 text-white">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -241,9 +241,9 @@ export default function SharedAccountPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
         >
-          <Card className="border-0 shadow-sm bg-stacka-sage/20">
+          <Card className="border-0 shadow-sm bg-hb-sage/20">
             <CardContent className="p-4 flex items-start gap-3">
-              <Info className="w-5 h-5 text-stacka-olive shrink-0 mt-0.5" />
+              <Info className="w-5 h-5 text-hb-cognac shrink-0 mt-0.5" />
               <p className="text-sm text-muted-foreground">
                 Koppla en partner för att automatiskt beräkna uppdelning av gemensamma kostnader baserat på budgetens fördelning.
               </p>
@@ -286,7 +286,7 @@ export default function SharedAccountPage() {
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <Wallet className="w-4 h-4 text-stacka-olive" />
+                <Wallet className="w-4 h-4 text-hb-cognac" />
                 Kategorier
               </CardTitle>
               <CardDescription className="text-xs">
@@ -336,7 +336,7 @@ export default function SharedAccountPage() {
                       className={cn(
                         "flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer",
                         selectedCategories.has(item.category_id || '')
-                          ? "bg-stacka-sage/30"
+                          ? "bg-hb-sage/30"
                           : "bg-muted/50 hover:bg-muted"
                       )}
                       onClick={() => toggleCategory(item.category_id || '')}
@@ -364,7 +364,7 @@ export default function SharedAccountPage() {
                       className={cn(
                         "flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer",
                         selectedCategories.has(item.category_id || '')
-                          ? "bg-stacka-sage/30"
+                          ? "bg-hb-sage/30"
                           : "bg-muted/50 hover:bg-muted"
                       )}
                       onClick={() => toggleCategory(item.category_id || '')}
@@ -392,7 +392,7 @@ export default function SharedAccountPage() {
                       className={cn(
                         "flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer",
                         selectedCategories.has(item.category_id || '')
-                          ? "bg-stacka-sage/30"
+                          ? "bg-hb-sage/30"
                           : "bg-muted/50 hover:bg-muted"
                       )}
                       onClick={() => toggleCategory(item.category_id || '')}
@@ -438,11 +438,11 @@ export default function SharedAccountPage() {
               </div>
               {hasPartner && (
                 <>
-                  <div className="flex items-center justify-between text-sm text-stacka-olive">
+                  <div className="flex items-center justify-between text-sm text-hb-cognac">
                     <span>Du betalar</span>
                     <span className="font-semibold">{formatCurrency(totals.userTotal)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-sm text-stacka-olive">
+                  <div className="flex items-center justify-between text-sm text-hb-cognac">
                     <span>{partner?.first_name || 'Partner'} betalar</span>
                     <span className="font-semibold">{formatCurrency(totals.partnerTotal)}</span>
                   </div>
@@ -459,7 +459,7 @@ export default function SharedAccountPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <Card className="border-0 shadow-sm bg-stacka-sage/10">
+        <Card className="border-0 shadow-sm bg-hb-sage/10">
           <CardContent className="p-4">
             <h4 className="font-medium text-sm mb-2">Tips</h4>
             <ul className="text-xs text-muted-foreground space-y-1">

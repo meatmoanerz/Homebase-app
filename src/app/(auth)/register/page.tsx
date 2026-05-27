@@ -76,7 +76,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-stacka-mint via-stacka-peach/30 to-stacka-sage/50">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-hb-sand via-hb-sand-deep/30 to-hb-sage/50">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -89,11 +89,11 @@ export default function RegisterPage() {
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-stacka-olive text-white mb-4 shadow-lg"
+            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-hb-cognac text-white mb-4 shadow-lg"
           >
             <span className="text-2xl font-bold">S</span>
           </motion.div>
-          <h1 className="text-3xl font-bold text-stacka-olive">Stacka</h1>
+          <h1 className="text-3xl font-bold text-hb-cognac">Homebase</h1>
           <p className="text-muted-foreground mt-1">Din personliga ekonomi</p>
         </div>
 
@@ -231,7 +231,7 @@ export default function RegisterPage() {
 
             <p className="text-center text-sm text-muted-foreground">
               Har du redan ett konto?{' '}
-              <Link href="/login" className="text-stacka-olive font-medium hover:underline">
+              <Link href="/login" className="text-hb-cognac font-medium hover:underline">
                 Logga in
               </Link>
             </p>

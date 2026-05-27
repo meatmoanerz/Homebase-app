@@ -50,7 +50,7 @@ export function KPICards({
       icon: remaining >= 0 || noBudget ? TrendingUp : TrendingDown,
       color: noBudget ? 'text-muted-foreground' : remaining >= 0 ? 'text-success' : 'text-destructive',
       bgColor: noBudget ? 'bg-muted/50' : remaining >= 0 ? 'bg-success/10' : 'bg-destructive/10',
-      cardBg: 'bg-gradient-to-br from-stacka-mint/30 to-white dark:from-stacka-mint/10 dark:to-card',
+      cardBg: 'bg-gradient-to-br from-hb-sand/30 to-white dark:from-hb-sand/10 dark:to-card',
     },
     {
       label: 'Förbrukat',
@@ -59,20 +59,20 @@ export function KPICards({
         ? '–'
         : `${formatPercentage(spentPercentage)} av budget`,
       icon: TrendingDown,
-      color: noBudget ? 'text-stacka-olive' : isOverBudget ? 'text-warning' : 'text-stacka-olive',
-      bgColor: noBudget ? 'bg-stacka-sage/20' : isOverBudget ? 'bg-warning/10' : 'bg-stacka-sage/20',
-      cardBg: 'bg-gradient-to-br from-stacka-peach/30 to-white dark:from-stacka-coral/10 dark:to-card',
+      color: noBudget ? 'text-hb-cognac' : isOverBudget ? 'text-warning' : 'text-hb-cognac',
+      bgColor: noBudget ? 'bg-hb-sage/20' : isOverBudget ? 'bg-warning/10' : 'bg-hb-sage/20',
+      cardBg: 'bg-gradient-to-br from-hb-sand-deep/30 to-white dark:from-hb-terracotta/10 dark:to-card',
     },
     {
       label: 'Dagar till lön',
       value: daysUntilSalary === 0 ? 'Löning! 🥳' : daysUntilSalary.toString(),
       subtext: daysUntilSalary === 0 ? '' : daysUntilSalary === 1 ? 'dag kvar' : 'dagar kvar',
       icon: Calendar,
-      color: daysUntilSalary === 0 ? 'text-success' : 'text-stacka-blue',
-      bgColor: daysUntilSalary === 0 ? 'bg-success/10' : 'bg-stacka-blue/10',
+      color: daysUntilSalary === 0 ? 'text-success' : 'text-hb-tim',
+      bgColor: daysUntilSalary === 0 ? 'bg-success/10' : 'bg-hb-tim/10',
       cardBg: daysUntilSalary === 0
         ? 'bg-gradient-to-br from-success/20 to-white dark:from-success/10 dark:to-card'
-        : 'bg-gradient-to-br from-stacka-blue/20 to-white dark:from-stacka-blue/10 dark:to-card',
+        : 'bg-gradient-to-br from-hb-tim/20 to-white dark:from-hb-tim/10 dark:to-card',
     },
     {
       label: 'Sparkvot',
@@ -83,7 +83,7 @@ export function KPICards({
       icon: PiggyBank,
       color: actualSavingsRate >= 10 ? 'text-success' : actualSavingsRate >= 0 ? 'text-muted-foreground' : 'text-destructive',
       bgColor: actualSavingsRate >= 10 ? 'bg-success/10' : actualSavingsRate >= 0 ? 'bg-muted/50' : 'bg-destructive/10',
-      cardBg: 'bg-gradient-to-br from-stacka-sage/30 to-white dark:from-stacka-sage/10 dark:to-card',
+      cardBg: 'bg-gradient-to-br from-hb-sage/30 to-white dark:from-hb-sage/10 dark:to-card',
     },
   ]
 

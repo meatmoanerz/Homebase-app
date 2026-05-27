@@ -131,7 +131,7 @@ export default function CategoriesSettingsPage() {
                   {category.default_value > 0 && (
                     <>
                       <span className="text-muted-foreground/50">•</span>
-                      <span className="flex items-center gap-0.5 text-stacka-olive">
+                      <span className="flex items-center gap-0.5 text-hb-cognac">
                         <Coins className="w-3 h-3" />
                         {formatCurrency(category.default_value)}
                       </span>
@@ -186,7 +186,7 @@ export default function CategoriesSettingsPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-stacka-olive">Kategorier</h1>
+          <h1 className="text-xl font-bold text-hb-cognac">Kategorier</h1>
           <p className="text-sm text-muted-foreground">Hantera dina utgiftskategorier</p>
         </div>
       </motion.div>

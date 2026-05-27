@@ -56,7 +56,7 @@ export function ExpenseListSkeleton() {
       </div>
 
       {/* Summary Card */}
-      <Card className="border-0 shadow-sm bg-stacka-mint/30">
+      <Card className="border-0 shadow-sm bg-hb-sand/30">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <Skeleton className="h-4 w-24" />

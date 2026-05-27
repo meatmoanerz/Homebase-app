@@ -19,8 +19,8 @@ interface ReportKpiInsightsProps {
 }
 
 const DONUT_COLORS = {
-  Fixed: '#F3C3B2',    // stacka-coral
-  Variable: '#99CDD8', // stacka-blue
+  Fixed: '#F3C3B2',    // hb-terracotta
+  Variable: '#99CDD8', // hb-tim
 }
 
 export function ReportKpiInsights({
@@ -77,7 +77,7 @@ export function ReportKpiInsights({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-base font-bold text-stacka-olive px-1">Insikter</h2>
+      <h2 className="text-base font-bold text-hb-cognac px-1">Insikter</h2>
 
       {/* Row 1: Velocity + MoM */}
       <div className="grid grid-cols-2 gap-3">
@@ -97,7 +97,7 @@ export function ReportKpiInsights({
         <Card className="border-0 shadow-sm">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-4 h-4 text-stacka-olive" />
+              <TrendingUp className="w-4 h-4 text-hb-cognac" />
               <span className="text-xs text-muted-foreground">vs förra månaden</span>
             </div>
             {momChange !== null ? (
@@ -124,7 +124,7 @@ export function ReportKpiInsights({
         <Card className="border-0 shadow-sm">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 mb-1">
-              <Receipt className="w-4 h-4 text-stacka-olive" />
+              <Receipt className="w-4 h-4 text-hb-cognac" />
               <span className="text-xs text-muted-foreground">Största enskilda utgift</span>
             </div>
             <div className="flex items-center justify-between">
@@ -134,7 +134,7 @@ export function ReportKpiInsights({
                   {largestExpense.category?.name} - {formatDate(largestExpense.date, 'medium')}
                 </p>
               </div>
-              <p className="text-lg font-bold text-stacka-olive">{formatCurrency(largestExpense.amount)}</p>
+              <p className="text-lg font-bold text-hb-cognac">{formatCurrency(largestExpense.amount)}</p>
             </div>
           </CardContent>
         </Card>
@@ -145,7 +145,7 @@ export function ReportKpiInsights({
         <Card className="border-0 shadow-sm">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 mb-1">
-              <PieIcon className="w-4 h-4 text-stacka-olive" />
+              <PieIcon className="w-4 h-4 text-hb-cognac" />
               <span className="text-xs text-muted-foreground">Fast vs Rörligt</span>
             </div>
             {donutData.length > 0 ? (
@@ -187,12 +187,12 @@ export function ReportKpiInsights({
         <Card className="border-0 shadow-sm">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 mb-2">
-              <Shield className="w-4 h-4 text-stacka-olive" />
+              <Shield className="w-4 h-4 text-hb-cognac" />
               <span className="text-xs text-muted-foreground">Budgetföljsamhet</span>
             </div>
             {budgetItems.length > 0 ? (
               <>
-                <p className="text-2xl font-bold text-stacka-olive">
+                <p className="text-2xl font-bold text-hb-cognac">
                   {withinBudgetCount}/{budgetItems.length}
                 </p>
                 <p className="text-xs text-muted-foreground">

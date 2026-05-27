@@ -21,7 +21,7 @@ export default function PrivacyPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-stacka-olive">Integritetspolicy</h1>
+          <h1 className="text-xl font-bold text-hb-cognac">Integritetspolicy</h1>
           <p className="text-sm text-muted-foreground">Hur vi hanterar din data</p>
         </div>
       </motion.div>
@@ -36,8 +36,8 @@ export default function PrivacyPage() {
         <Card className="border-0 shadow-sm">
           <CardContent className="p-5 space-y-4">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-stacka-sage/20 flex items-center justify-center">
-                <Shield className="w-6 h-6 text-stacka-olive" />
+              <div className="w-12 h-12 rounded-full bg-hb-sage/20 flex items-center justify-center">
+                <Shield className="w-6 h-6 text-hb-cognac" />
               </div>
               <div>
                 <h2 className="font-semibold">Din data, ditt ansvar</h2>
@@ -46,9 +46,9 @@ export default function PrivacyPage() {
             </div>
 
             <section className="space-y-2">
-              <h3 className="font-medium text-stacka-olive">1. Vilken data samlar vi in?</h3>
+              <h3 className="font-medium text-hb-cognac">1. Vilken data samlar vi in?</h3>
               <p className="text-sm text-muted-foreground">
-                Stacka samlar in den information du frivilligt anger, inklusive:
+                Homebase samlar in den information du frivilligt anger, inklusive:
               </p>
               <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 ml-2">
                 <li>Kontoinformation (e-post, namn)</li>
@@ -58,9 +58,9 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-2">
-              <h3 className="font-medium text-stacka-olive">2. Hur använder vi din data?</h3>
+              <h3 className="font-medium text-hb-cognac">2. Hur använder vi din data?</h3>
               <p className="text-sm text-muted-foreground">
-                Din data används uteslutande för att tillhandahålla Stacka-tjänsten:
+                Din data används uteslutande för att tillhandahålla Homebase-tjänsten:
               </p>
               <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 ml-2">
                 <li>Visa dina utgifter och budgetar</li>
@@ -70,7 +70,7 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-2">
-              <h3 className="font-medium text-stacka-olive">3. Datadelning</h3>
+              <h3 className="font-medium text-hb-cognac">3. Datadelning</h3>
               <p className="text-sm text-muted-foreground">
                 Vi delar aldrig din ekonomiska data med tredje part. Din data stannar hos dig.
                 Om du kopplar ett partnerkonto delas endast den data du explicit markerar som delad.
@@ -78,7 +78,7 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-2">
-              <h3 className="font-medium text-stacka-olive">4. Säkerhet</h3>
+              <h3 className="font-medium text-hb-cognac">4. Säkerhet</h3>
               <p className="text-sm text-muted-foreground">
                 All data överförs krypterad (HTTPS) och lagras säkert hos Supabase med
                 Row Level Security (RLS) som säkerställer att du endast kan se din egen data.
@@ -86,14 +86,14 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-2">
-              <h3 className="font-medium text-stacka-olive">5. Radering av data</h3>
+              <h3 className="font-medium text-hb-cognac">5. Radering av data</h3>
               <p className="text-sm text-muted-foreground">
                 Du kan när som helst kontakta oss för att radera ditt konto och all tillhörande data.
               </p>
             </section>
 
             <section className="space-y-2">
-              <h3 className="font-medium text-stacka-olive">6. Kontakt</h3>
+              <h3 className="font-medium text-hb-cognac">6. Kontakt</h3>
               <p className="text-sm text-muted-foreground">
                 Har du frågor om hur vi hanterar din data? Kontakta oss via appen eller e-post.
               </p>

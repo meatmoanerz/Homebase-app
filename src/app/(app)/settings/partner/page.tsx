@@ -197,7 +197,7 @@ export default function PartnerSettingsPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-stacka-olive">Partner</h1>
+          <h1 className="text-xl font-bold text-hb-cognac">Partner</h1>
           <p className="text-sm text-muted-foreground">Dela budget med din partner</p>
         </div>
       </motion.div>
@@ -233,7 +233,7 @@ export default function PartnerSettingsPage() {
               <div className="flex items-center gap-4 p-4 rounded-xl bg-success/10">
                 <Avatar className="w-16 h-16">
                   <AvatarImage src={partner.avatar_url || undefined} />
-                  <AvatarFallback className="bg-stacka-sage text-stacka-olive text-xl">
+                  <AvatarFallback className="bg-hb-sage text-hb-cognac text-xl">
                     {getInitials(partner.first_name, partner.last_name)}
                   </AvatarFallback>
                 </Avatar>
@@ -310,10 +310,10 @@ export default function PartnerSettingsPage() {
                     Generera inbjudningskod
                   </Button>
                 ) : (
-                  <div className="p-4 bg-stacka-sage/20 rounded-xl text-center">
+                  <div className="p-4 bg-hb-sage/20 rounded-xl text-center">
                     <p className="text-sm text-muted-foreground mb-2">Din inbjudningskod:</p>
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-2xl font-bold tracking-widest text-stacka-olive">
+                      <span className="text-2xl font-bold tracking-widest text-hb-cognac">
                         {generatedCode}
                       </span>
                       <Button
@@ -380,12 +380,12 @@ export default function PartnerSettingsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <Card className="border-0 shadow-sm bg-stacka-blue/10">
+            <Card className="border-0 shadow-sm bg-hb-tim/10">
               <CardContent className="p-4">
                 <div className="flex gap-3">
-                  <Users className="w-5 h-5 text-stacka-blue shrink-0 mt-0.5" />
+                  <Users className="w-5 h-5 text-hb-tim shrink-0 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-medium text-stacka-olive mb-1">Vad händer när ni är kopplade?</p>
+                    <p className="font-medium text-hb-cognac mb-1">Vad händer när ni är kopplade?</p>
                     <ul className="text-muted-foreground space-y-1">
                       <li>• Ni ser varandras utgifter</li>
                       <li>• Dela gemensamma budgetar</li>

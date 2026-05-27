@@ -122,7 +122,7 @@ export function SavingsGoalCard({ goal, onEdit }: SavingsGoalCardProps) {
       <Card
         className={cn(
           "border-0 shadow-sm overflow-hidden transition-all cursor-pointer hover:shadow-md active:scale-[0.99]",
-          isCompleted && "bg-stacka-sage/10 ring-2 ring-stacka-sage/30"
+          isCompleted && "bg-hb-sage/10 ring-2 ring-hb-sage/30"
         )}
         onClick={handleCardClick}
       >
@@ -130,18 +130,18 @@ export function SavingsGoalCard({ goal, onEdit }: SavingsGoalCardProps) {
           {/* Header */}
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-stacka-peach/20 flex items-center justify-center text-lg">
+              <div className="w-10 h-10 rounded-full bg-hb-sand-deep/20 flex items-center justify-center text-lg">
                 {goalIcon}
               </div>
               <div>
                 <h3 className="font-semibold text-sm flex items-center gap-2">
                   {goal.name}
-                  {isCompleted && <CheckCircle2 className="w-4 h-4 text-stacka-olive" />}
+                  {isCompleted && <CheckCircle2 className="w-4 h-4 text-hb-cognac" />}
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   {goal.custom_goal_type?.name || goal.category?.name}
                   {goal.is_shared && (
-                    <span className="inline-flex items-center gap-1 ml-2 text-stacka-blue">
+                    <span className="inline-flex items-center gap-1 ml-2 text-hb-tim">
                       <Users className="w-3 h-3" />
                       Delat
                     </span>
@@ -191,7 +191,7 @@ export function SavingsGoalCard({ goal, onEdit }: SavingsGoalCardProps) {
             </div>
             <Progress
               value={progressPercent}
-              className={cn("h-2", isCompleted && "[&>div]:bg-stacka-olive")}
+              className={cn("h-2", isCompleted && "[&>div]:bg-hb-cognac")}
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{progressPercent.toFixed(0)}% uppnått</span>
@@ -208,13 +208,13 @@ export function SavingsGoalCard({ goal, onEdit }: SavingsGoalCardProps) {
               </div>
             )}
             {goal.monthly_savings_enabled && goal.monthly_savings_amount > 0 && (
-              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-stacka-sage/20 text-stacka-olive">
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-hb-sage/20 text-hb-cognac">
                 <PiggyBank className="w-3 h-3" />
                 {formatCurrency(goal.monthly_savings_amount)}/mån
               </div>
             )}
             {monthlySavingsNeeded && !isCompleted && (
-              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-stacka-peach/20 text-stacka-coral">
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-hb-sand-deep/20 text-hb-terracotta">
                 Behöver {formatCurrency(monthlySavingsNeeded)}/mån
               </div>
             )}

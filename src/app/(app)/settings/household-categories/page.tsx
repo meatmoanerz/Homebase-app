@@ -58,7 +58,7 @@ export default function HouseholdCategoriesPage() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-stacka-olive">Hushållskostnader</h1>
+            <h1 className="text-xl font-bold text-hb-cognac">Hushållskostnader</h1>
             <p className="text-sm text-muted-foreground">
               Välj vilka kategorier som räknas som hushållskostnader.
             </p>
@@ -72,11 +72,11 @@ export default function HouseholdCategoriesPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
       >
-        <Card className="border-0 shadow-sm bg-stacka-sage/20">
+        <Card className="border-0 shadow-sm bg-hb-sage/20">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-stacka-olive/10 flex items-center justify-center shrink-0">
-                <Home className="w-5 h-5 text-stacka-olive" />
+              <div className="w-10 h-10 rounded-xl bg-hb-cognac/10 flex items-center justify-center shrink-0">
+                <Home className="w-5 h-5 text-hb-cognac" />
               </div>
               <p className="text-sm text-muted-foreground">
                 Hushållskostnader summeras i din månadsrapport. Om du har en partner visas även fördelningen per person.
@@ -105,7 +105,7 @@ export default function HouseholdCategoriesPage() {
                   className={cn(
                     'flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer',
                     householdCategoryIds.has(category.id)
-                      ? 'bg-stacka-sage/30'
+                      ? 'bg-hb-sage/30'
                       : 'bg-muted/50 hover:bg-muted'
                   )}
                   onClick={() => toggleCategory(category.id)}

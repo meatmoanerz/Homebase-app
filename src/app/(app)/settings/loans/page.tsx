@@ -150,7 +150,7 @@ export default function LoansSettingsPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-stacka-olive">Lån</h1>
+          <h1 className="text-xl font-bold text-hb-cognac">Lån</h1>
           <p className="text-sm text-muted-foreground">Hantera dina lån och skulder</p>
         </div>
       </motion.div>
@@ -168,20 +168,20 @@ export default function LoansSettingsPage() {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-2 gap-3"
         >
-          <Card className="border-0 shadow-sm bg-gradient-to-br from-stacka-sage/20 to-stacka-sage/5">
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-hb-sage/20 to-hb-sage/5">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Wallet className="w-4 h-4 text-stacka-olive" />
+                <Wallet className="w-4 h-4 text-hb-cognac" />
                 <span className="text-xs text-muted-foreground">Total skuld</span>
               </div>
-              <p className="text-xl font-bold text-stacka-olive">{formatCurrency(totalDebt)}</p>
+              <p className="text-xl font-bold text-hb-cognac">{formatCurrency(totalDebt)}</p>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm bg-gradient-to-br from-stacka-peach/20 to-stacka-peach/5">
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-hb-sand-deep/20 to-hb-sand-deep/5">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <TrendingDown className="w-4 h-4 text-stacka-coral" />
+                <TrendingDown className="w-4 h-4 text-hb-terracotta" />
                 <span className="text-xs text-muted-foreground">Månadskostnad</span>
               </div>
               <p className="text-xl font-bold">{formatCurrency(totalMonthlyCost)}</p>
@@ -203,15 +203,15 @@ export default function LoansSettingsPage() {
           <Card className="border-0 shadow-sm">
             <CardContent className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-stacka-sage/20 flex items-center justify-center">
-                  <Percent className="w-5 h-5 text-stacka-olive" />
+                <div className="w-10 h-10 rounded-full bg-hb-sage/20 flex items-center justify-center">
+                  <Percent className="w-5 h-5 text-hb-cognac" />
                 </div>
                 <div>
                   <p className="font-medium">Snittränta</p>
                   <p className="text-xs text-muted-foreground">Viktad mot skuldbelopp</p>
                 </div>
               </div>
-              <p className="text-2xl font-bold text-stacka-olive">{avgInterestRate.toFixed(2)}%</p>
+              <p className="text-2xl font-bold text-hb-cognac">{avgInterestRate.toFixed(2)}%</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -226,10 +226,10 @@ export default function LoansSettingsPage() {
         >
           <Button
             variant="outline"
-            className="w-full h-12 gap-2 border-stacka-olive/30 hover:bg-stacka-sage/20"
+            className="w-full h-12 gap-2 border-hb-cognac/30 hover:bg-hb-sage/20"
             onClick={() => setCreateExpensesOpen(true)}
           >
-            <Receipt className="w-5 h-5 text-stacka-olive" />
+            <Receipt className="w-5 h-5 text-hb-cognac" />
             Registrera månadskostnader som utgifter
           </Button>
         </motion.div>
@@ -278,7 +278,7 @@ export default function LoansSettingsPage() {
                       style={{ backgroundColor: group.color }}
                     />
                     <div className="text-left min-w-0">
-                      <h2 className="font-semibold text-stacka-olive">{group.name}</h2>
+                      <h2 className="font-semibold text-hb-cognac">{group.name}</h2>
                       <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                         <span>{groupLoans.length} lån</span>
                         <span>{groupAvgRate.toFixed(2)}% snittränta</span>
@@ -291,7 +291,7 @@ export default function LoansSettingsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-2">
-                    <span className="font-bold text-stacka-olive text-right">
+                    <span className="font-bold text-hb-cognac text-right">
                       {formatCurrency(groupTotal)}
                     </span>
                     <ChevronDown className={cn(
@@ -400,8 +400,8 @@ export default function LoansSettingsPage() {
         >
           <Card className="border-0 shadow-sm">
             <CardContent className="py-12 text-center">
-              <div className="w-16 h-16 rounded-full bg-stacka-sage/30 flex items-center justify-center mx-auto mb-4">
-                <Landmark className="w-8 h-8 text-stacka-olive" />
+              <div className="w-16 h-16 rounded-full bg-hb-sage/30 flex items-center justify-center mx-auto mb-4">
+                <Landmark className="w-8 h-8 text-hb-cognac" />
               </div>
               <h3 className="font-semibold mb-2">Inga lån registrerade</h3>
               <p className="text-sm text-muted-foreground mb-4">
@@ -453,7 +453,7 @@ export default function LoansSettingsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
       >
-        <Card className="border-0 shadow-sm bg-stacka-sage/10">
+        <Card className="border-0 shadow-sm bg-hb-sage/10">
           <CardContent className="p-4">
             <h4 className="font-medium text-sm mb-2">Tips för lånhantering</h4>
             <ul className="text-xs text-muted-foreground space-y-1">
@@ -471,7 +471,7 @@ export default function LoansSettingsPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <Receipt className="w-5 h-5 text-stacka-olive" />
+              <Receipt className="w-5 h-5 text-hb-cognac" />
               Skapa utgifter från lån?
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -508,7 +508,7 @@ export default function LoansSettingsPage() {
             <AlertDialogAction
               onClick={handleCreateExpenses}
               disabled={createExpensesFromLoans.isPending}
-              className="bg-stacka-olive hover:bg-stacka-olive/90"
+              className="bg-hb-cognac hover:bg-hb-cognac/90"
             >
               {createExpensesFromLoans.isPending ? (
                 <>

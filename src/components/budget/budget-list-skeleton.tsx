@@ -51,7 +51,7 @@ export function BudgetListSkeleton() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-stacka-olive to-stacka-olive/80 text-white">
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-hb-cognac to-hb-cognac/80 text-white">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="space-y-2">

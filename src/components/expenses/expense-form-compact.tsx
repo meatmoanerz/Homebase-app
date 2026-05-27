@@ -138,7 +138,7 @@ export function ExpenseFormCompact({ onSuccess }: ExpenseFormCompactProps) {
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       {/* Row 1: Amount - larger and more prominent */}
-      <div className="rounded-2xl bg-gradient-to-br from-stacka-sage/30 to-stacka-mint/20 p-4">
+      <div className="rounded-2xl bg-gradient-to-br from-hb-sage/30 to-hb-sand/20 p-4">
         <div className="flex items-center justify-center gap-2">
           <input
             ref={amountInputRef}
@@ -148,7 +148,7 @@ export function ExpenseFormCompact({ onSuccess }: ExpenseFormCompactProps) {
             placeholder="0"
             value={amountDisplay}
             onChange={handleAmountChange}
-            className="text-4xl font-bold bg-transparent placeholder:text-muted-foreground/30 caret-stacka-olive tabular-nums text-center w-full max-w-[200px]"
+            className="text-4xl font-bold bg-transparent placeholder:text-muted-foreground/30 caret-hb-cognac tabular-nums text-center w-full max-w-[200px]"
             style={{ outline: 'none', boxShadow: 'none', border: 'none' }}
             autoFocus
           />
@@ -181,7 +181,7 @@ export function ExpenseFormCompact({ onSuccess }: ExpenseFormCompactProps) {
               className={cn(
                 "px-4 py-2 rounded-xl text-sm font-medium transition-all",
                 form.watch('category_id') === cat.id
-                  ? "bg-stacka-olive text-white shadow-md"
+                  ? "bg-hb-cognac text-white shadow-md"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               )}
             >
@@ -193,7 +193,7 @@ export function ExpenseFormCompact({ onSuccess }: ExpenseFormCompactProps) {
             onClick={() => setCategoryOpen(!categoryOpen)}
             className={cn(
               "px-4 py-2 rounded-xl text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80 flex items-center gap-1.5",
-              selectedCategory && !quickCategories.find(c => c.id === selectedCategory.id) && "bg-stacka-olive text-white"
+              selectedCategory && !quickCategories.find(c => c.id === selectedCategory.id) && "bg-hb-cognac text-white"
             )}
           >
             {selectedCategory && !quickCategories.find(c => c.id === selectedCategory.id)
@@ -220,12 +220,12 @@ export function ExpenseFormCompact({ onSuccess }: ExpenseFormCompactProps) {
                         onClick={() => handleCategorySelect(cat)}
                         className={cn(
                           "px-3 py-2 text-left text-sm rounded-lg hover:bg-muted/50 flex items-center justify-between",
-                          form.watch('category_id') === cat.id && "bg-stacka-sage/30"
+                          form.watch('category_id') === cat.id && "bg-hb-sage/30"
                         )}
                       >
                         <span>{cat.name}</span>
                         {form.watch('category_id') === cat.id && (
-                          <Check className="w-4 h-4 text-stacka-olive" />
+                          <Check className="w-4 h-4 text-hb-cognac" />
                         )}
                       </button>
                     ))}
@@ -268,7 +268,7 @@ export function ExpenseFormCompact({ onSuccess }: ExpenseFormCompactProps) {
               className={cn(
                 "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
                 form.watch('cost_assignment') === 'personal'
-                  ? "bg-white dark:bg-card shadow-sm text-stacka-olive"
+                  ? "bg-white dark:bg-card shadow-sm text-hb-cognac"
                   : "text-muted-foreground"
               )}
             >
@@ -280,7 +280,7 @@ export function ExpenseFormCompact({ onSuccess }: ExpenseFormCompactProps) {
               className={cn(
                 "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
                 form.watch('cost_assignment') === 'shared'
-                  ? "bg-white dark:bg-card shadow-sm text-stacka-olive"
+                  ? "bg-white dark:bg-card shadow-sm text-hb-cognac"
                   : "text-muted-foreground"
               )}
             >
@@ -292,7 +292,7 @@ export function ExpenseFormCompact({ onSuccess }: ExpenseFormCompactProps) {
               className={cn(
                 "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
                 form.watch('cost_assignment') === 'partner'
-                  ? "bg-white dark:bg-card shadow-sm text-stacka-olive"
+                  ? "bg-white dark:bg-card shadow-sm text-hb-cognac"
                   : "text-muted-foreground"
               )}
             >
@@ -309,7 +309,7 @@ export function ExpenseFormCompact({ onSuccess }: ExpenseFormCompactProps) {
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all",
               form.watch('is_ccm')
-                ? "bg-stacka-coral/20 text-stacka-coral"
+                ? "bg-hb-terracotta/20 text-hb-terracotta"
                 : "bg-muted text-muted-foreground"
             )}
           >

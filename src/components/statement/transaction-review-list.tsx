@@ -119,7 +119,7 @@ export function TransactionReviewList({ analysisId }: Props) {
                 key={transaction.id}
                 className={cn(
                   "p-4",
-                  selectedIds.has(transaction.id) && "bg-stacka-sage/10"
+                  selectedIds.has(transaction.id) && "bg-hb-sage/10"
                 )}
               >
                 {/* Top row: checkbox, description, amount */}

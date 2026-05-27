@@ -22,7 +22,7 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="flex gap-1 p-1 bg-stacka-sage/20 rounded-lg">
+      <div className="flex gap-1 p-1 bg-hb-sage/20 rounded-lg">
         {themes.map((t) => (
           <div
             key={t.value}
@@ -38,7 +38,7 @@ export function ThemeToggle() {
 
   return (
     <div
-      className="flex gap-1 p-1 bg-stacka-sage/20 rounded-lg"
+      className="flex gap-1 p-1 bg-hb-sage/20 rounded-lg"
       role="radiogroup"
       aria-label="Välj tema"
     >
@@ -55,7 +55,7 @@ export function ThemeToggle() {
             className={cn(
               'flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-200',
               isActive
-                ? 'bg-white dark:bg-card text-stacka-olive shadow-sm'
+                ? 'bg-white dark:bg-card text-hb-cognac shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >
@@ -79,7 +79,7 @@ export function ThemeToggleCompact() {
   if (!mounted) {
     return (
       <button
-        className="p-2 rounded-lg bg-stacka-sage/20"
+        className="p-2 rounded-lg bg-hb-sage/20"
         aria-label="Byt tema"
       >
         <Sun className="w-5 h-5" />
@@ -104,10 +104,10 @@ export function ThemeToggleCompact() {
   return (
     <button
       onClick={cycleTheme}
-      className="p-2 rounded-lg bg-stacka-sage/20 hover:bg-stacka-sage/30 transition-colors"
+      className="p-2 rounded-lg bg-hb-sage/20 hover:bg-hb-sage/30 transition-colors"
       aria-label={label}
     >
-      <Icon className="w-5 h-5 text-stacka-olive" aria-hidden="true" />
+      <Icon className="w-5 h-5 text-hb-cognac" aria-hidden="true" />
     </button>
   )
 }

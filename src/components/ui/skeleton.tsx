@@ -6,13 +6,13 @@ interface SkeletonProps {
 
 /**
  * Base Skeleton component with pulse animation
- * Uses Stacka color palette (sage/20 for subtle loading effect)
+ * Uses Homebase color palette (sage/20 for subtle loading effect)
  */
 export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
       className={cn(
-        'animate-pulse rounded-md bg-stacka-sage/20',
+        'animate-pulse rounded-md bg-hb-sage/20',
         className
       )}
     />

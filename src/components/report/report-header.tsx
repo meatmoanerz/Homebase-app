@@ -18,7 +18,7 @@ export function ReportHeader({ period, onPrev, onNext, isCurrentPeriod }: Report
         <ChevronLeft className="w-5 h-5" />
       </Button>
       <div className="text-center">
-        <h1 className="text-xl font-bold text-stacka-olive capitalize">
+        <h1 className="text-xl font-bold text-hb-cognac capitalize">
           {formatPeriodDisplay(period)}
         </h1>
         <p className="text-xs text-muted-foreground">

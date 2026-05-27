@@ -63,8 +63,8 @@ export default function HelpPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-stacka-olive">Hjälp & Support</h1>
-          <p className="text-sm text-muted-foreground">Lär dig använda Stacka</p>
+          <h1 className="text-xl font-bold text-hb-cognac">Hjälp & Support</h1>
+          <p className="text-sm text-muted-foreground">Lär dig använda Homebase</p>
         </div>
       </motion.div>
 
@@ -74,16 +74,16 @@ export default function HelpPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
       >
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-stacka-sage/20 to-stacka-sage/5">
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-hb-sage/20 to-hb-sage/5">
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-stacka-olive/10 flex items-center justify-center">
-                <HelpCircle className="w-6 h-6 text-stacka-olive" />
+              <div className="w-12 h-12 rounded-full bg-hb-cognac/10 flex items-center justify-center">
+                <HelpCircle className="w-6 h-6 text-hb-cognac" />
               </div>
               <div>
-                <h2 className="font-semibold text-stacka-olive">Välkommen till Stacka!</h2>
+                <h2 className="font-semibold text-hb-cognac">Välkommen till Homebase!</h2>
                 <p className="text-sm text-muted-foreground">
-                  Stacka hjälper dig hålla koll på din ekonomi enkelt och smart.
+                  Homebase hjälper dig hålla koll på din ekonomi enkelt och smart.
                 </p>
               </div>
             </div>
@@ -109,8 +109,8 @@ export default function HelpPage() {
             <Card className="border-0 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-stacka-sage/20 flex items-center justify-center shrink-0">
-                    <topic.icon className="w-5 h-5 text-stacka-olive" />
+                  <div className="w-10 h-10 rounded-xl bg-hb-sage/20 flex items-center justify-center shrink-0">
+                    <topic.icon className="w-5 h-5 text-hb-cognac" />
                   </div>
                   <div>
                     <h3 className="font-medium text-sm">{topic.title}</h3>
@@ -149,7 +149,7 @@ export default function HelpPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.45 }}
       >
-        <Card className="border-0 shadow-sm bg-stacka-peach/10">
+        <Card className="border-0 shadow-sm bg-hb-sand-deep/10">
           <CardContent className="p-4 text-center">
             <h3 className="font-medium text-sm mb-1">Behöver du mer hjälp?</h3>
             <p className="text-xs text-muted-foreground">

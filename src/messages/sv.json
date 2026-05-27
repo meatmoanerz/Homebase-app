@@ -151,7 +151,7 @@
     "salaryDay": "Löndag",
     "currency": "Valuta",
     "notifications": "Notifikationer",
-    "about": "Om Stacka",
+    "about": "Om Homebase",
     "help": "Hjälp",
     "privacy": "Integritetspolicy",
     "terms": "Användarvillkor"
@@ -169,7 +169,7 @@
     "shareDescription": "Dela din budget och utgifter med din partner"
   },
   "onboarding": {
-    "welcome": "Välkommen till Stacka!",
+    "welcome": "Välkommen till Homebase!",
     "subtitle": "Låt oss komma igång med din ekonomi",
     "step1Title": "Vad heter du?",
     "step2Title": "När får du lön?",
@@ -179,7 +179,7 @@
     "step4Title": "Har du en partner?",
     "step4Description": "Ni kan dela budget och utgifter",
     "step5Title": "Klart!",
-    "step5Description": "Du är redo att börja använda Stacka",
+    "step5Description": "Du är redo att börja använda Homebase",
     "getStarted": "Kom igång"
   },
   "loans": {

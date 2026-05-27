@@ -7,9 +7,9 @@ import type { InsertTables, UpdateTables } from '@/types/database'
 
 // Default loan group colors
 export const LOAN_GROUP_COLORS = [
-  '#8B7355', // Stacka olive
-  '#A8C5A8', // Stacka sage
-  '#E8DED0', // Stacka cream
+  '#8B7355', // Homebase olive
+  '#A8C5A8', // Homebase sage
+  '#E8DED0', // Homebase cream
   '#D4A574', // Gold/tan
   '#7BA3A8', // Teal
   '#9E8B7D', // Taupe

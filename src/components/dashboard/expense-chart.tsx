@@ -11,8 +11,8 @@ interface ExpenseChartProps {
 }
 
 const COLORS = {
-  Fixed: '#F3C3B2',    // stacka-coral
-  Variable: '#99CDD8', // stacka-blue
+  Fixed: '#F3C3B2',    // hb-terracotta
+  Variable: '#99CDD8', // hb-tim
   Savings: '#4CAF50',  // success
 }
 

@@ -1,11 +1,11 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'se.stacka.app',
-  appName: 'Stacka',
+  appId: 'se.homebase.app',
+  appName: 'Homebase',
   webDir: 'out',
   server: {
-    // TODO: Replace with your deployed URL (e.g. https://your-app.vercel.app)
+    // TODO: Replace with your deployed Vercel URL
     url: 'https://YOUR_DEPLOYED_URL',
     cleartext: false,
   },
@@ -15,7 +15,7 @@ const config: CapacitorConfig = {
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
-      backgroundColor: '#FAFBF9',
+      backgroundColor: '#f4ede3',
       showSpinner: false,
     },
     Keyboard: {

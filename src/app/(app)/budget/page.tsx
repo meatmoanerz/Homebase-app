@@ -46,7 +46,7 @@ export default function BudgetListPage() {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-2xl font-bold text-stacka-olive">Budgetar</h1>
+          <h1 className="text-2xl font-bold text-hb-cognac">Budgetar</h1>
           <p className="text-sm text-muted-foreground">Hantera dina budgetar</p>
         </div>
         <Button asChild>
@@ -63,7 +63,7 @@ export default function BudgetListPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-stacka-olive to-stacka-olive/80 text-white">
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-hb-cognac to-hb-cognac/80 text-white">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -109,8 +109,8 @@ export default function BudgetListPage() {
         >
           <Card className="border-0 shadow-sm">
             <CardContent className="py-12 text-center">
-              <div className="w-16 h-16 rounded-full bg-stacka-sage/30 flex items-center justify-center mx-auto mb-4">
-                <Wallet className="w-8 h-8 text-stacka-olive" />
+              <div className="w-16 h-16 rounded-full bg-hb-sage/30 flex items-center justify-center mx-auto mb-4">
+                <Wallet className="w-8 h-8 text-hb-cognac" />
               </div>
               <h3 className="font-semibold mb-2">Inga budgetar ännu</h3>
               <p className="text-sm text-muted-foreground mb-4">
@@ -146,8 +146,8 @@ export default function BudgetListPage() {
       >
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-2">
-            <FolderOpen className="w-5 h-5 text-stacka-olive" />
-            <h2 className="text-lg font-semibold text-stacka-olive">Projektbudgetar</h2>
+            <FolderOpen className="w-5 h-5 text-hb-cognac" />
+            <h2 className="text-lg font-semibold text-hb-cognac">Projektbudgetar</h2>
           </div>
           <Button variant="outline" size="sm" asChild>
             <Link href="/budget/project/new">
@@ -160,8 +160,8 @@ export default function BudgetListPage() {
         {!tempBudgets || tempBudgets.length === 0 ? (
           <Card className="border-0 shadow-sm">
             <CardContent className="py-8 text-center">
-              <div className="w-12 h-12 rounded-full bg-stacka-mint/30 flex items-center justify-center mx-auto mb-3">
-                <Target className="w-6 h-6 text-stacka-olive" />
+              <div className="w-12 h-12 rounded-full bg-hb-sand/30 flex items-center justify-center mx-auto mb-3">
+                <Target className="w-6 h-6 text-hb-cognac" />
               </div>
               <h3 className="font-semibold text-sm mb-1">Inga projektbudgetar</h3>
               <p className="text-xs text-muted-foreground mb-3">
@@ -190,7 +190,7 @@ export default function BudgetListPage() {
       >
         <Link
           href="/budget/archive"
-          className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-stacka-olive transition-colors py-3"
+          className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-hb-cognac transition-colors py-3"
         >
           <Archive className="w-4 h-4" />
           Visa arkiv
@@ -241,7 +241,7 @@ function BudgetCard({ budget, index, isCurrent, salaryDay, hasPartner }: { budge
       <Link href={`/budget/${budget.id}`}>
         <Card className={cn(
           "border-0 shadow-sm transition-all hover:shadow-md",
-          isCurrent && "ring-2 ring-stacka-olive"
+          isCurrent && "ring-2 ring-hb-cognac"
         )}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
@@ -250,7 +250,7 @@ function BudgetCard({ budget, index, isCurrent, salaryDay, hasPartner }: { budge
                   {formatPeriodDisplay(budget.period)}
                 </p>
                 {isCurrent && (
-                  <span className="text-xs text-stacka-olive font-medium">Aktuell</span>
+                  <span className="text-xs text-hb-cognac font-medium">Aktuell</span>
                 )}
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
@@ -260,7 +260,7 @@ function BudgetCard({ budget, index, isCurrent, salaryDay, hasPartner }: { budge
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground flex items-center gap-1">
                   Förbrukat
-                  {hasPartner && <Users className="w-3 h-3 text-stacka-blue" />}
+                  {hasPartner && <Users className="w-3 h-3 text-hb-tim" />}
                 </span>
                 <span className="font-medium">
                   {formatCurrency(actualSpent)} / {formatCurrency(budgetedExpenses)}
@@ -307,7 +307,7 @@ function TemporaryBudgetCard({ budget, index }: { budget: TemporaryBudgetWithCat
     >
       <Link href={`/budget/project/${budget.id}`}>
         <Card className={cn(
-          "border-0 shadow-sm transition-all hover:shadow-md border-l-4 border-l-stacka-mint",
+          "border-0 shadow-sm transition-all hover:shadow-md border-l-4 border-l-hb-sand",
           isCompleted && "opacity-75"
         )}>
           <CardContent className="p-4">

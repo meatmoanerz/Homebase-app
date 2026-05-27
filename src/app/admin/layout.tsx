@@ -1,8 +1,8 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Admin Panel - Stacka',
-  description: 'Stacka Administration Panel',
+  title: 'Admin Panel - Homebase',
+  description: 'Homebase Administration Panel',
   robots: 'noindex, nofollow',
 }
 

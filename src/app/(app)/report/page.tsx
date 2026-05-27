@@ -61,7 +61,7 @@ export default function ReportPage() {
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="text-xl font-bold text-stacka-olive">Månadsrapport</h1>
+        <h1 className="text-xl font-bold text-hb-cognac">Månadsrapport</h1>
       </motion.div>
 
       {/* Period navigation */}

@@ -97,13 +97,13 @@ export function LoanCard({ loan, index = 0 }: LoanCardProps) {
                   )}
                   {/* Shared indicator */}
                   {(loan.is_shared || loan.is_partner_loan) && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-stacka-blue/20 text-stacka-blue flex items-center gap-1">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-hb-tim/20 text-hb-tim flex items-center gap-1">
                       <Users className="w-3 h-3" />
                       {loan.is_partner_loan ? loan.owner_name : 'Delat'}
                     </span>
                   )}
                 </div>
-                <h3 className="font-semibold text-stacka-olive truncate">{loan.name}</h3>
+                <h3 className="font-semibold text-hb-cognac truncate">{loan.name}</h3>
               </div>
 
               <div className="flex items-center gap-1">
@@ -162,12 +162,12 @@ export function LoanCard({ loan, index = 0 }: LoanCardProps) {
             </div>
 
             {/* Monthly Cost Summary */}
-            <div className="flex items-center justify-between p-3 rounded-lg bg-stacka-sage/10 mb-3">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-hb-sage/10 mb-3">
               <div>
                 <p className="text-sm font-medium">Månadskostnad</p>
                 <p className="text-xs text-muted-foreground">Amortering + ränta</p>
               </div>
-              <p className="text-lg font-bold text-stacka-olive">
+              <p className="text-lg font-bold text-hb-cognac">
                 {formatCurrency(summary.totalMonthlyCost)}
               </p>
             </div>
@@ -175,7 +175,7 @@ export function LoanCard({ loan, index = 0 }: LoanCardProps) {
             {/* View Amortization Plan Button */}
             <Button
               variant="ghost"
-              className="w-full justify-between text-stacka-olive hover:text-stacka-olive"
+              className="w-full justify-between text-hb-cognac hover:text-hb-cognac"
               onClick={() => setAmortizationOpen(true)}
             >
               <span>Visa amorteringsplan</span>

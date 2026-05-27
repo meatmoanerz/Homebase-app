@@ -178,7 +178,7 @@ export function MonthlyIncomeForm({
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       {/* Amount */}
-      <div className="rounded-xl bg-stacka-sage/20 py-5 px-6">
+      <div className="rounded-xl bg-hb-sage/20 py-5 px-6">
         <p className="text-muted-foreground text-xs text-center mb-2">Belopp</p>
         <div className="flex items-baseline justify-center gap-1">
           <input
@@ -190,7 +190,7 @@ export function MonthlyIncomeForm({
             value={amountDisplay}
             onChange={handleAmountChange}
             onFocus={handleAmountFocus}
-            className="text-4xl font-bold bg-transparent placeholder:text-muted-foreground/30 caret-stacka-olive tabular-nums text-right"
+            className="text-4xl font-bold bg-transparent placeholder:text-muted-foreground/30 caret-hb-cognac tabular-nums text-right"
             style={{
               outline: 'none',
               boxShadow: 'none',
@@ -256,7 +256,7 @@ export function MonthlyIncomeForm({
                   >
                     <span>{type}</span>
                     {selectedType === type && (
-                      <Check className="w-4 h-4 text-stacka-olive" />
+                      <Check className="w-4 h-4 text-hb-cognac" />
                     )}
                   </button>
                 ))
@@ -282,7 +282,7 @@ export function MonthlyIncomeForm({
               className={cn(
                 "h-11 rounded-xl text-sm font-medium transition-colors",
                 !forPartner
-                  ? "bg-stacka-olive text-white"
+                  ? "bg-hb-cognac text-white"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               )}
             >
@@ -294,7 +294,7 @@ export function MonthlyIncomeForm({
               className={cn(
                 "h-11 rounded-xl text-sm font-medium transition-colors",
                 forPartner
-                  ? "bg-stacka-olive text-white"
+                  ? "bg-hb-cognac text-white"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               )}
             >

@@ -290,12 +290,12 @@ export function RecurringExpensesList() {
       <div className="space-y-3">
         {/* Register All Button */}
         {activeExpenses.length > 0 && (
-          <Card className="border-0 shadow-sm bg-stacka-sage/10">
+          <Card className="border-0 shadow-sm bg-hb-sage/10">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-stacka-olive/20 flex items-center justify-center">
-                    <PlayCircle className="w-5 h-5 text-stacka-olive" />
+                  <div className="w-10 h-10 rounded-full bg-hb-cognac/20 flex items-center justify-center">
+                    <PlayCircle className="w-5 h-5 text-hb-cognac" />
                   </div>
                   <div>
                     <p className="font-medium text-sm">Registrera återkommande utgifter</p>
@@ -307,7 +307,7 @@ export function RecurringExpensesList() {
                 <Button
                   size="sm"
                   onClick={() => setRegisterDialogOpen(true)}
-                  className="bg-stacka-olive hover:bg-stacka-olive/90"
+                  className="bg-hb-cognac hover:bg-hb-cognac/90"
                 >
                   Registrera alla
                 </Button>
@@ -362,7 +362,7 @@ export function RecurringExpensesList() {
                       )}
                     >
                       <div className="flex items-center gap-3 flex-1">
-                        <div className="w-10 h-10 rounded-full bg-stacka-sage/20 flex items-center justify-center text-lg shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-hb-sage/20 flex items-center justify-center text-lg shrink-0">
                           {categoryIcons[expense.category?.name || ''] || '💰'}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -380,24 +380,24 @@ export function RecurringExpensesList() {
                         {/* Cost assignment indicator */}
                         {expense.cost_assignment === 'shared' && (
                           <div
-                            className="w-5 h-5 rounded-full bg-stacka-blue/20 flex items-center justify-center"
+                            className="w-5 h-5 rounded-full bg-hb-tim/20 flex items-center justify-center"
                             title="Delad utgift"
                           >
-                            <Users className="w-3 h-3 text-stacka-blue" />
+                            <Users className="w-3 h-3 text-hb-tim" />
                           </div>
                         )}
                         {expense.cost_assignment === 'partner' && (
                           <div
-                            className="w-5 h-5 rounded-full bg-stacka-coral/20 flex items-center justify-center"
+                            className="w-5 h-5 rounded-full bg-hb-terracotta/20 flex items-center justify-center"
                             title="Partnerns utgift"
                           >
-                            <UserCheck className="w-3 h-3 text-stacka-coral" />
+                            <UserCheck className="w-3 h-3 text-hb-terracotta" />
                           </div>
                         )}
                         <span
                           className={cn(
                             'font-semibold min-w-[70px] text-right',
-                            expense.is_ccm ? 'text-stacka-blue' : ''
+                            expense.is_ccm ? 'text-hb-tim' : ''
                           )}
                         >
                           {formatCurrency(expense.amount)}
@@ -410,7 +410,7 @@ export function RecurringExpensesList() {
                           className={cn(
                             'h-11 w-11 rounded-full flex items-center justify-center transition-all active:scale-95',
                             expense.is_active
-                              ? 'bg-stacka-olive/20 text-stacka-olive shadow-[0_0_12px_rgba(108,119,84,0.4)] hover:shadow-[0_0_16px_rgba(108,119,84,0.6)]'
+                              ? 'bg-hb-cognac/20 text-hb-cognac shadow-[0_0_12px_rgba(108,119,84,0.4)] hover:shadow-[0_0_16px_rgba(108,119,84,0.6)]'
                               : 'bg-muted/50 text-muted-foreground hover:bg-muted'
                           )}
                           title={expense.is_active ? 'Inaktivera' : 'Aktivera'}
@@ -484,7 +484,7 @@ export function RecurringExpensesList() {
                             className="w-full px-4 py-3 min-h-[44px] text-left hover:bg-muted/50 active:bg-muted flex items-center justify-between"
                           >
                             <span>{cat.name}</span>
-                            {editCategoryId === cat.id && <Check className="w-4 h-4 text-stacka-olive" />}
+                            {editCategoryId === cat.id && <Check className="w-4 h-4 text-hb-cognac" />}
                           </button>
                         ))}
                       </div>
@@ -502,7 +502,7 @@ export function RecurringExpensesList() {
                             className="w-full px-4 py-3 min-h-[44px] text-left hover:bg-muted/50 active:bg-muted flex items-center justify-between"
                           >
                             <span>{cat.name}</span>
-                            {editCategoryId === cat.id && <Check className="w-4 h-4 text-stacka-olive" />}
+                            {editCategoryId === cat.id && <Check className="w-4 h-4 text-hb-cognac" />}
                           </button>
                         ))}
                       </div>
@@ -540,7 +540,7 @@ export function RecurringExpensesList() {
                           className={cn(
                             'py-2 px-3 text-sm rounded-lg transition-colors',
                             editDayOfMonth === day
-                              ? 'bg-stacka-olive text-white font-medium'
+                              ? 'bg-hb-cognac text-white font-medium'
                               : 'hover:bg-muted/50'
                           )}
                         >
@@ -563,7 +563,7 @@ export function RecurringExpensesList() {
                     className={cn(
                       'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all',
                       editCostAssignment === 'personal'
-                        ? 'bg-stacka-olive text-white'
+                        ? 'bg-hb-cognac text-white'
                         : 'bg-muted text-muted-foreground'
                     )}
                   >
@@ -574,7 +574,7 @@ export function RecurringExpensesList() {
                     className={cn(
                       'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all',
                       editCostAssignment === 'partner'
-                        ? 'bg-stacka-olive text-white'
+                        ? 'bg-hb-cognac text-white'
                         : 'bg-muted text-muted-foreground'
                     )}
                   >
@@ -586,9 +586,9 @@ export function RecurringExpensesList() {
 
             {/* CCM Toggle */}
             {isCCMEnabled && (
-              <div className="flex items-center justify-between p-4 rounded-xl bg-stacka-peach/20">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-hb-sand-deep/20">
                 <div className="flex items-center gap-3">
-                  <CreditCard className="w-5 h-5 text-stacka-coral" />
+                  <CreditCard className="w-5 h-5 text-hb-terracotta" />
                   <Label htmlFor="edit_is_ccm">Betald med kreditkort</Label>
                 </div>
                 <Switch
@@ -622,7 +622,7 @@ export function RecurringExpensesList() {
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
               Avbryt
             </Button>
-            <Button onClick={handleSaveEdit} className="bg-stacka-olive hover:bg-stacka-olive/90">
+            <Button onClick={handleSaveEdit} className="bg-hb-cognac hover:bg-hb-cognac/90">
               Spara
             </Button>
           </DialogFooter>
@@ -652,7 +652,7 @@ export function RecurringExpensesList() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-stacka-olive" />
+              <AlertCircle className="w-5 h-5 text-hb-cognac" />
               Registrera återkommande utgifter?
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -665,7 +665,7 @@ export function RecurringExpensesList() {
             <AlertDialogAction
               onClick={handleRegisterAll}
               disabled={isRegistering}
-              className="bg-stacka-olive hover:bg-stacka-olive/90"
+              className="bg-hb-cognac hover:bg-hb-cognac/90"
             >
               {isRegistering ? 'Registrerar...' : 'Registrera alla'}
             </AlertDialogAction>

@@ -122,7 +122,7 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{goalIcon}</span>
-            <h1 className="text-xl font-bold text-stacka-olive">{goal.name}</h1>
+            <h1 className="text-xl font-bold text-hb-cognac">{goal.name}</h1>
           </div>
           <p className="text-sm text-muted-foreground">{goalTypeLabel}</p>
         </div>
@@ -135,10 +135,10 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
         transition={{ delay: 0.05 }}
       >
         <Card className="border-0 shadow-sm overflow-hidden">
-          <div className="bg-gradient-to-br from-stacka-sage/30 to-stacka-olive/20 p-6">
+          <div className="bg-gradient-to-br from-hb-sage/30 to-hb-cognac/20 p-6">
             <div className="text-center mb-4">
               <p className="text-sm text-muted-foreground mb-1">Sparat</p>
-              <p className="text-4xl font-bold text-stacka-olive">{formatCurrency(totalSaved)}</p>
+              <p className="text-4xl font-bold text-hb-cognac">{formatCurrency(totalSaved)}</p>
               {targetAmount > 0 && (
                 <p className="text-sm text-muted-foreground mt-1">
                   av {formatCurrency(targetAmount)}
@@ -158,7 +158,7 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
                     initial={{ width: 0 }}
                     animate={{ width: `${progress}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut' }}
-                    className="h-full bg-stacka-olive rounded-full"
+                    className="h-full bg-hb-cognac rounded-full"
                   />
                 </div>
               </div>
@@ -169,8 +169,8 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
             <div className="grid grid-cols-2 gap-4">
               {/* Remaining */}
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-stacka-peach/20 flex items-center justify-center">
-                  <Target className="w-5 h-5 text-stacka-coral" />
+                <div className="w-10 h-10 rounded-full bg-hb-sand-deep/20 flex items-center justify-center">
+                  <Target className="w-5 h-5 text-hb-terracotta" />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Kvar att spara</p>
@@ -181,8 +181,8 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
               {/* Time remaining */}
               {targetDate && (
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-stacka-blue/10 flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-stacka-blue" />
+                  <div className="w-10 h-10 rounded-full bg-hb-tim/10 flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-hb-tim" />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Tid kvar</p>
@@ -200,8 +200,8 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
               {/* Monthly savings */}
               {goal.monthly_savings_enabled && (
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-stacka-sage/20 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-stacka-olive" />
+                  <div className="w-10 h-10 rounded-full bg-hb-sage/20 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-hb-cognac" />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Månadssparande</p>
@@ -242,18 +242,18 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-stacka-sage/10">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-hb-sage/10">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-stacka-olive text-white flex items-center justify-center text-sm font-medium">
+                  <div className="w-8 h-8 rounded-full bg-hb-cognac text-white flex items-center justify-center text-sm font-medium">
                     <User className="w-4 h-4" />
                   </div>
                   <span className="font-medium">Du</span>
                 </div>
                 <span className="font-semibold">{formatCurrency(goal.starting_balance_user1)}</span>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-stacka-peach/10">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-hb-sand-deep/10">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-stacka-coral text-white flex items-center justify-center text-sm font-medium">
+                  <div className="w-8 h-8 rounded-full bg-hb-terracotta text-white flex items-center justify-center text-sm font-medium">
                     <User className="w-4 h-4" />
                   </div>
                   <span className="font-medium">Partner</span>

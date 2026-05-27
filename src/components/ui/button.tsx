@@ -9,15 +9,15 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-gradient-to-r from-stacka-olive to-[#5a7360] text-white shadow-sm hover:from-stacka-olive/90 hover:to-[#5a7360]/90",
+          "bg-gradient-to-r from-hb-cognac to-[#5a7360] text-white shadow-sm hover:from-hb-cognac/90 hover:to-[#5a7360]/90",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm",
         outline:
-          "border-2 border-stacka-sage bg-transparent hover:bg-stacka-sage/20 text-stacka-olive",
+          "border-2 border-hb-sage bg-transparent hover:bg-hb-sage/20 text-hb-cognac",
         secondary:
-          "bg-stacka-blue text-stacka-olive hover:bg-stacka-blue/80 shadow-sm",
-        ghost: "hover:bg-stacka-sage/30 text-stacka-olive",
-        link: "text-stacka-olive underline-offset-4 hover:underline",
+          "bg-hb-tim text-hb-cognac hover:bg-hb-tim/80 shadow-sm",
+        ghost: "hover:bg-hb-sage/30 text-hb-cognac",
+        link: "text-hb-cognac underline-offset-4 hover:underline",
         success:
           "bg-success text-white hover:bg-success/90 shadow-sm",
       },

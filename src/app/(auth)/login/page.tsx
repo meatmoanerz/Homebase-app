@@ -59,7 +59,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-stacka-mint via-stacka-peach/30 to-stacka-sage/50">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-hb-sand via-hb-sand-deep/30 to-hb-sage/50">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -76,7 +76,7 @@ export default function LoginPage() {
           >
             <Image
               src="/logo-full.svg"
-              alt="Stacka"
+              alt="Homebase"
               width={240}
               height={80}
               priority
@@ -181,7 +181,7 @@ export default function LoginPage() {
 
             <p className="text-center text-sm text-muted-foreground">
               Har du inget konto?{' '}
-              <Link href="/register" className="text-stacka-olive font-medium hover:underline">
+              <Link href="/register" className="text-hb-cognac font-medium hover:underline">
                 Skapa konto
               </Link>
             </p>

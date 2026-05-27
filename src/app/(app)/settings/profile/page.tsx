@@ -139,7 +139,7 @@ export default function ProfileSettingsPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-stacka-olive">Profil</h1>
+          <h1 className="text-xl font-bold text-hb-cognac">Profil</h1>
           <p className="text-sm text-muted-foreground">Personuppgifter och inställningar</p>
         </div>
       </motion.div>
@@ -214,7 +214,7 @@ export default function ProfileSettingsPage() {
         <Card className="border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-stacka-coral" />
+              <CreditCard className="w-5 h-5 text-hb-terracotta" />
               Credit Card Manager (CCM)
             </CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -241,7 +241,7 @@ export default function ProfileSettingsPage() {
 
             {/* Billing Day Picker (only if CCM enabled) */}
             {ccmEnabled && (
-              <div className="p-4 bg-stacka-peach/10 rounded-lg border border-stacka-coral/20 space-y-3">
+              <div className="p-4 bg-hb-sand-deep/10 rounded-lg border border-hb-terracotta/20 space-y-3">
                 <Label htmlFor="ccm_break_date">Fakturabrytdag</Label>
                 <p className="text-xs text-muted-foreground">
                   Välj vilken dag kreditkortsfakturan stänger varje månad
