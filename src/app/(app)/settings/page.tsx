@@ -40,7 +40,7 @@ const menuItems = [
   {
     title: 'Ekonomi',
     items: [
-      { href: '/statement-analyzer', label: 'Statement Analyzer', icon: FileSearch, description: 'Importera från kontoutdrag' },
+      { href: '/import', label: 'Importera CSV', icon: FileSearch, description: 'Ladda upp transaktioner från CSV' },
       { href: '/settings/loans', label: 'Lån', icon: Landmark, description: 'Lån och skulder' },
       { href: '/settings/ccm', label: 'Kreditkortshanterare', icon: CreditCard, description: 'CCM-inställningar' },
       { href: '/savings', label: 'Sparmål', icon: Target, description: 'Dina besparingsmål' },
