@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
 import { useCategories } from '@/hooks/use-categories'
 import { useCreateExpense } from '@/hooks/use-expenses'
-import { useCategoryMappings, findMatchingMapping, incrementMappingHit } from '@/hooks/use-category-mappings'
+import { useCategoryMappings, findMatchingMapping, incrementMappingHit, useCreateMapping, suggestPatternFromDescription } from '@/hooks/use-category-mappings'
 import { parseHomebaseCsv, getCsvTemplate, type CsvParseResult } from '@/lib/import/csv-parser'
 import { parseBankCsv, detectBank, decodeCsvBuffer, type BankParseResult } from '@/lib/import/bank-parsers'
 import { formatCurrency } from '@/lib/utils/formatters'
@@ -41,6 +41,7 @@ export default function ImportPage() {
   const { data: categories = [] } = useCategories()
   const { data: mappings = [] } = useCategoryMappings()
   const createExpense = useCreateExpense()
+  const createMapping = useCreateMapping()
 
   const [mode, setMode] = useState<ImportMode>('homebase')
   const [step, setStep] = useState<Step>('choose')
@@ -51,6 +52,7 @@ export default function ImportPage() {
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([])
   const [importProgress, setImportProgress] = useState(0)
   const [importedCount, setImportedCount] = useState(0)
+  const [savedRuleRows, setSavedRuleRows] = useState<Set<number>>(new Set())
 
   const categoryByName = new Map(categories.map((c) => [c.name.toLowerCase(), c]))
   const categoryById = new Map(categories.map((c) => [c.id, c]))
@@ -148,6 +150,29 @@ export default function ImportPage() {
 
   function updateRow(index: number, updates: Partial<PreviewRow>) {
     setPreviewRows((rows) => rows.map((r, i) => (i === index ? { ...r, ...updates } : r)))
+  }
+
+  async function handleSaveRule(index: number) {
+    const row = previewRows[index]
+    if (!row || !row.selectedCategoryId) return
+
+    const pattern = suggestPatternFromDescription(row.description)
+    try {
+      await createMapping.mutateAsync({
+        pattern,
+        category_id: row.selectedCategoryId,
+        cost_assignment: row.costAssignment,
+        match_type: 'contains',
+        bank: row.bank,
+        priority: 50,
+        comment: `Skapad vid import från "${row.description}"`,
+      })
+      setSavedRuleRows((prev) => new Set(prev).add(index))
+      toast.success(`Regel sparad: "${pattern}" → kategoriseras automatiskt framöver`)
+    } catch (err) {
+      console.error('Kunde inte spara regel:', err)
+      toast.error('Kunde inte spara regeln')
+    }
   }
 
   async function handleImport() {
@@ -393,6 +418,9 @@ export default function ImportPage() {
                   categories={categories}
                   categoryById={categoryById}
                   onUpdate={(updates) => updateRow(idx, updates)}
+                  onSaveRule={() => handleSaveRule(idx)}
+                  ruleSaved={savedRuleRows.has(idx)}
+                  showSaveRule={mode === 'bank'}
                 />
               ))}
             </div>
@@ -518,6 +546,9 @@ function PreviewRowItem({
   categories,
   categoryById,
   onUpdate,
+  onSaveRule,
+  ruleSaved,
+  showSaveRule,
 }: {
   row: PreviewRow
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -525,8 +556,13 @@ function PreviewRowItem({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categoryById: Map<string, any>
   onUpdate: (updates: Partial<PreviewRow>) => void
+  onSaveRule: () => void
+  ruleSaved: boolean
+  showSaveRule: boolean
 }) {
-  const selectedCat = row.selectedCategoryId ? categoryById.get(row.selectedCategoryId) : null
+  // Show "save as rule" when: bank mode, no auto-match existed, user picked a category
+  const canSaveRule =
+    showSaveRule && !row.suggestedCategoryId && !!row.selectedCategoryId && !ruleSaved
 
   return (
     <div
@@ -595,6 +631,23 @@ function PreviewRowItem({
               {w}
             </span>
           ))}
+        </div>
+      )}
+
+      {canSaveRule && (
+        <button
+          onClick={onSaveRule}
+          className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-hb-cognac-deep bg-hb-cognac/10 hover:bg-hb-cognac/20 transition-colors rounded-full px-2.5 py-1"
+        >
+          <Sparkles className="w-3 h-3" />
+          Spara som regel för framtiden
+        </button>
+      )}
+
+      {ruleSaved && (
+        <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-success">
+          <CheckCircle2 className="w-3 h-3" />
+          Regel sparad
         </div>
       )}
     </div>
