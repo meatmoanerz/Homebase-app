@@ -24,7 +24,8 @@ import {
   Palette,
   FileSearch,
   Wallet,
-  Home
+  Home,
+  Sparkles
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
@@ -41,6 +42,7 @@ const menuItems = [
     title: 'Ekonomi',
     items: [
       { href: '/import', label: 'Importera CSV', icon: FileSearch, description: 'Ladda upp transaktioner från CSV' },
+      { href: '/settings/mappings', label: 'Kategoriregler', icon: Sparkles, description: 'Auto-kategorisering vid import' },
       { href: '/settings/loans', label: 'Lån', icon: Landmark, description: 'Lån och skulder' },
       { href: '/settings/ccm', label: 'Kreditkortshanterare', icon: CreditCard, description: 'CCM-inställningar' },
       { href: '/savings', label: 'Sparmål', icon: Target, description: 'Dina besparingsmål' },
