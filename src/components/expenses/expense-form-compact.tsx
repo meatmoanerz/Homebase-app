@@ -272,7 +272,7 @@ export function ExpenseFormCompact({ onSuccess }: ExpenseFormCompactProps) {
                   : "text-muted-foreground"
               )}
             >
-              {user?.first_name?.slice(0, 4) || 'Jag'}
+              {user?.first_name || 'Jag'}
             </button>
             <button
               type="button"
@@ -284,7 +284,7 @@ export function ExpenseFormCompact({ onSuccess }: ExpenseFormCompactProps) {
                   : "text-muted-foreground"
               )}
             >
-              50/50
+              Delad
             </button>
             <button
               type="button"
@@ -296,7 +296,7 @@ export function ExpenseFormCompact({ onSuccess }: ExpenseFormCompactProps) {
                   : "text-muted-foreground"
               )}
             >
-              {partner?.first_name?.slice(0, 4) || 'P'}
+              {partner?.first_name || 'Partner'}
             </button>
           </div>
         )}

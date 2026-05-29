@@ -3,6 +3,7 @@
 import { use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSavingsGoal, useSavingsGoalContributions } from '@/hooks/use-savings-goals'
+import { useUser, usePartner } from '@/hooks/use-user'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils/formatters'
@@ -48,6 +49,8 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
   const router = useRouter()
   const { data: goal, isLoading: goalLoading } = useSavingsGoal(id)
   const { data: contributions = [], isLoading: contributionsLoading } = useSavingsGoalContributions(id)
+  const { data: user } = useUser()
+  const { data: partner } = usePartner()
 
   if (goalLoading) {
     return (
@@ -247,7 +250,7 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
                   <div className="w-8 h-8 rounded-full bg-hb-cognac text-white flex items-center justify-center text-sm font-medium">
                     <User className="w-4 h-4" />
                   </div>
-                  <span className="font-medium">Du</span>
+                  <span className="font-medium">{user?.first_name || 'Du'}</span>
                 </div>
                 <span className="font-semibold">{formatCurrency(goal.starting_balance_user1)}</span>
               </div>
@@ -256,7 +259,7 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
                   <div className="w-8 h-8 rounded-full bg-hb-terracotta text-white flex items-center justify-center text-sm font-medium">
                     <User className="w-4 h-4" />
                   </div>
-                  <span className="font-medium">Partner</span>
+                  <span className="font-medium">{partner?.first_name || 'Partner'}</span>
                 </div>
                 <span className="font-semibold">{formatCurrency(goal.starting_balance_user2)}</span>
               </div>

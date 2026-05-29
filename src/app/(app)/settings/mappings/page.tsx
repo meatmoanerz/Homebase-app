@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useCategoryMappings, useUpdateMapping, useDeleteMapping, useCreateMapping, type CategoryMapping } from '@/hooks/use-category-mappings'
 import { useCategories } from '@/hooks/use-categories'
+import { useAssignmentOptions } from '@/hooks/use-assignment-options'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Search, Sparkles, Trash2, Plus, X, Check, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -15,6 +16,7 @@ export default function MappingsSettingsPage() {
   const updateMapping = useUpdateMapping()
   const deleteMapping = useDeleteMapping()
   const createMapping = useCreateMapping()
+  const assignmentOptions = useAssignmentOptions()
 
   const [search, setSearch] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -114,6 +116,7 @@ export default function MappingsSettingsPage() {
           >
             <AddMappingForm
               categories={categories}
+              assignmentOptions={assignmentOptions}
               onCancel={() => setShowAddForm(false)}
               onSave={async (data) => {
                 try {
@@ -151,6 +154,7 @@ export default function MappingsSettingsPage() {
               mapping={m}
               categories={categories}
               categoryById={categoryById}
+              assignmentOptions={assignmentOptions}
               isEditing={editingId === m.id}
               confirmDelete={confirmDeleteId === m.id}
               onEdit={() => setEditingId(m.id)}
@@ -180,6 +184,7 @@ function MappingRow({
   mapping,
   categories,
   categoryById,
+  assignmentOptions,
   isEditing,
   confirmDelete,
   onEdit,
@@ -194,6 +199,7 @@ function MappingRow({
   categories: any[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categoryById: Map<string, any>
+  assignmentOptions: { value: string; label: string }[]
   isEditing: boolean
   confirmDelete: boolean
   onEdit: () => void
@@ -236,9 +242,9 @@ function MappingRow({
             className="text-[12px] bg-card border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-hb-cognac"
           >
             <option value="">Ingen default</option>
-            <option value="personal">Personlig</option>
-            <option value="shared">Delad</option>
-            <option value="partner">Partner</option>
+            {assignmentOptions.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </select>
         </div>
         <div className="flex gap-2 justify-end">
@@ -329,11 +335,13 @@ function MappingRow({
 
 function AddMappingForm({
   categories,
+  assignmentOptions,
   onCancel,
   onSave,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categories: any[]
+  assignmentOptions: { value: string; label: string }[]
   onCancel: () => void
   onSave: (data: {
     pattern: string
@@ -375,9 +383,9 @@ function AddMappingForm({
           className="text-[12px] bg-secondary border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-hb-cognac"
         >
           <option value="">Ingen default</option>
-          <option value="personal">Personlig</option>
-          <option value="shared">Delad</option>
-          <option value="partner">Partner</option>
+          {assignmentOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
         </select>
       </div>
       <div className="flex gap-2 justify-end">

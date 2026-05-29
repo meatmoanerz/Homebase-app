@@ -6,6 +6,7 @@ import { useDropzone } from 'react-dropzone'
 import { useCategories } from '@/hooks/use-categories'
 import { useCreateExpense } from '@/hooks/use-expenses'
 import { useCategoryMappings, findMatchingMapping, incrementMappingHit, useCreateMapping, suggestPatternFromDescription } from '@/hooks/use-category-mappings'
+import { useAssignmentOptions } from '@/hooks/use-assignment-options'
 import { parseHomebaseCsv, getCsvTemplate, type CsvParseResult } from '@/lib/import/csv-parser'
 import { parseBankCsv, detectBank, decodeCsvBuffer, type BankParseResult } from '@/lib/import/bank-parsers'
 import { formatCurrency } from '@/lib/utils/formatters'
@@ -42,6 +43,7 @@ export default function ImportPage() {
   const { data: mappings = [] } = useCategoryMappings()
   const createExpense = useCreateExpense()
   const createMapping = useCreateMapping()
+  const assignmentOptions = useAssignmentOptions()
 
   const [mode, setMode] = useState<ImportMode>('homebase')
   const [step, setStep] = useState<Step>('choose')
@@ -421,6 +423,7 @@ export default function ImportPage() {
                   onSaveRule={() => handleSaveRule(idx)}
                   ruleSaved={savedRuleRows.has(idx)}
                   showSaveRule={mode === 'bank'}
+                  assignmentOptions={assignmentOptions}
                 />
               ))}
             </div>
@@ -549,6 +552,7 @@ function PreviewRowItem({
   onSaveRule,
   ruleSaved,
   showSaveRule,
+  assignmentOptions,
 }: {
   row: PreviewRow
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -559,6 +563,7 @@ function PreviewRowItem({
   onSaveRule: () => void
   ruleSaved: boolean
   showSaveRule: boolean
+  assignmentOptions: { value: 'personal' | 'shared' | 'partner'; label: string }[]
 }) {
   // Show "save as rule" when: bank mode, no auto-match existed, user picked a category
   const canSaveRule =
@@ -608,9 +613,9 @@ function PreviewRowItem({
           }
           className="text-[11px] bg-secondary border border-border rounded-full px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-hb-cognac"
         >
-          <option value="personal">Personlig</option>
-          <option value="shared">Delad</option>
-          <option value="partner">Partner</option>
+          {assignmentOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
         </select>
 
         <label className="text-[11px] text-muted-foreground flex items-center gap-1 cursor-pointer ml-auto">
