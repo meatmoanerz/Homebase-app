@@ -34,7 +34,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/expenses') ||
     request.nextUrl.pathname.startsWith('/savings') ||
     request.nextUrl.pathname.startsWith('/settings') ||
-    request.nextUrl.pathname.startsWith('/statement-analyzer') ||
+    request.nextUrl.pathname.startsWith('/import') ||
+    request.nextUrl.pathname.startsWith('/receipts') ||
     request.nextUrl.pathname.startsWith('/onboarding')
 
   if (!user && isProtectedRoute) {

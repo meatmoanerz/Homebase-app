@@ -1,4 +1,4 @@
-# CLAUDE.md - Stacka
+# CLAUDE.md - Homebase
 
 **See main documentation**: `../CLAUDE.md`
 
@@ -7,9 +7,12 @@
 ### Essential Context
 - **Salary-based budget periods**: Budgets run from salary day to salary day (not calendar months)
 - **Budget period utilities**: `src/lib/utils/budget-period.ts`
-- **Partner sharing**: Users can connect and share budgets/expenses
+- **Partner sharing**: Users can connect and share budgets/expenses (Tim & Amanda)
 - **Cost assignment**: `personal`, `shared`, `partner` (affects budget calculations)
 - **CCM**: Credit Card Manager with invoice period tracking (`is_ccm` flag on expenses)
+- **Grocery module**: Receipts + line items + products for price tracking over time
+- **Smart import**: Two-mode CSV import (raw bank file with auto-categorization, or pre-formatted Homebase CSV)
+- **Category mappings**: Living lookup table (`category_mappings`) — substring match, longest-match-wins, learns from manual categorizations
 
 ### Key Tech Stack
 - Next.js 16 App Router + React 19
@@ -35,6 +38,11 @@ pnpm lint             # Run ESLint
 - `src/lib/supabase/server.ts` - Server Supabase client
 - `src/components/realtime-provider.tsx` - Realtime subscriptions
 - `src/stores/` - Zustand stores (filter-store, ui-store)
+- `src/hooks/use-perspective.ts` - All/Me/Partner perspective store
+- `src/hooks/use-receipts.ts` - Grocery receipts, items, price history hooks
+- `src/hooks/use-category-mappings.ts` - Auto-categorization rules + matching
+- `src/lib/import/bank-parsers.ts` - SEB/Swedbank/Amex CSV parsers
+- `src/lib/import/csv-parser.ts` - Homebase standard CSV parser
 
 ### Development Rules
 1. Always use budget period utilities for date filtering (never hardcode)
