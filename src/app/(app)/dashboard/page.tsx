@@ -9,13 +9,14 @@ import { useBudgetByPeriod } from '@/hooks/use-budgets'
 import { useCategories } from '@/hooks/use-categories'
 import { getCurrentBudgetPeriod, formatPeriodDisplay } from '@/lib/utils/budget-period'
 import { KPICards } from '@/components/dashboard/kpi-cards'
-import { CashFlowHero } from '@/components/dashboard/cash-flow-hero'
+import { SpendHero } from '@/components/dashboard/spend-hero'
 import { BudgetOverview } from '@/components/dashboard/budget-overview'
 import { RecentExpenses } from '@/components/dashboard/recent-expenses'
 import { ShowMyMonthCard } from '@/components/dashboard/show-my-month-card'
 import { PersonBudgetBreakdown } from '@/components/dashboard/person-budget-breakdown'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
 import { PeriodStrip } from '@/components/shared/period-strip'
+import { calcTotalSpend, calcCashOut } from '@/lib/utils/spend-calc'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 
@@ -89,11 +90,14 @@ export default function DashboardPage() {
     ? monthlyTotal
     : (householdIncome?.total_income ?? 0)
 
-  // Calculate TOTAL spent (household view - sum of all expenses including savings)
-  // When partners are connected, dashboard shows total household expenses
-  const totalSpent = expenses.reduce((sum, exp) => {
-    return sum + exp.amount
-  }, 0)
+  // SPEND TRACKING (main KPI): all expenses except the Kreditkort invoice
+  // category (excludes_from_expense_total). Underlying Amex purchases still
+  // count toward their own categories.
+  const totalSpent = calcTotalSpend(expenses)
+
+  // CASH FLOW out (secondary): only direct withdrawals — credit-card
+  // purchases are excluded since they hit a future invoice.
+  const cashOut = calcCashOut(expenses)
 
   // Calculate user's portion of expenses (for per-person breakdown)
   // - personal: full amount
@@ -166,10 +170,13 @@ export default function DashboardPage() {
         className="pt-1"
       />
 
-      {/* Hero: Cash Flow this period */}
-      <CashFlowHero
-        income={totalIncome}
+      {/* Hero: Spend tracking (primary) + cash flow (secondary) */}
+      <SpendHero
         spent={totalSpent}
+        budget={availableToSpend}
+        income={totalIncome}
+        cashOut={cashOut}
+        hasBudget={hasBudget}
       />
 
       {/* KPI Cards */}
