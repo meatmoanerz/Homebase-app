@@ -7,7 +7,7 @@ import { useCategories } from '@/hooks/use-categories'
 import { useCreateExpense } from '@/hooks/use-expenses'
 import { useCategoryMappings, findMatchingMapping, incrementMappingHit } from '@/hooks/use-category-mappings'
 import { parseHomebaseCsv, getCsvTemplate, type CsvParseResult } from '@/lib/import/csv-parser'
-import { parseBankCsv, detectBank, type BankParseResult } from '@/lib/import/bank-parsers'
+import { parseBankCsv, detectBank, decodeCsvBuffer, type BankParseResult } from '@/lib/import/bank-parsers'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { useUser } from '@/hooks/use-user'
 import { motion } from 'framer-motion'
@@ -119,11 +119,12 @@ export default function ImportPage() {
       setFileName(file.name)
       const reader = new FileReader()
       reader.onload = (e) => {
-        const text = e.target?.result as string
+        const buffer = e.target?.result as ArrayBuffer
+        const text = decodeCsvBuffer(buffer)
         if (mode === 'homebase') processHomebaseUpload(text)
         else processBankUpload(text)
       }
-      reader.readAsText(file)
+      reader.readAsArrayBuffer(file)
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [mode, categories, mappings, bankChoice]

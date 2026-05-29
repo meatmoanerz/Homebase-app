@@ -1,6 +1,35 @@
 import Papa from 'papaparse'
 
 /**
+ * Decodes a CSV file buffer using the correct character encoding.
+ *
+ * Swedish bank exports vary:
+ *   - SEB: UTF-8 with BOM
+ *   - Amex: UTF-8
+ *   - Swedbank: Windows-1252 (Latin-1) — this is what breaks å/ä/ö
+ *
+ * Strategy: try UTF-8 strictly. If it produces replacement characters (U+FFFD)
+ * or fails, fall back to Windows-1252.
+ */
+export function decodeCsvBuffer(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+
+  // Check for UTF-8 BOM (EF BB BF) → definitely UTF-8
+  if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
+    return new TextDecoder('utf-8').decode(bytes)
+  }
+
+  // Try strict UTF-8 — throws on invalid sequences
+  try {
+    const strict = new TextDecoder('utf-8', { fatal: true })
+    return strict.decode(bytes)
+  } catch {
+    // Invalid UTF-8 → assume Windows-1252 (covers Swedbank)
+    return new TextDecoder('windows-1252').decode(bytes)
+  }
+}
+
+/**
  * Each bank exports transactions in a slightly different CSV format.
  * These parsers normalize them into a common shape so the import flow
  * can apply category mappings and write to expenses.

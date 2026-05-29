@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useReceipts, useProductSummary, useReceiptItems, usePriceHistory } from '@/hooks/use-receipts'
 import { formatCurrency, formatRelativeDate } from '@/lib/utils/formatters'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Receipt, Search, ChevronRight, X, Store, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Receipt, Search, ChevronRight, X, Store } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+
+const PAGE_SIZE = 20
 
 export default function ReceiptsPage() {
   const { data: receipts = [], isLoading: receiptsLoading } = useReceipts()
@@ -14,6 +16,8 @@ export default function ReceiptsPage() {
   const [productSearch, setProductSearch] = useState('')
   const [openReceiptId, setOpenReceiptId] = useState<string | null>(null)
   const [openProductId, setOpenProductId] = useState<string | null>(null)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   const stats = useMemo(() => {
     const count = receipts.length
@@ -22,9 +26,40 @@ export default function ReceiptsPage() {
     return { count, total, avg }
   }, [receipts])
 
-  const filteredProducts = products.filter((p) =>
-    p.product_name?.toLowerCase().includes(productSearch.toLowerCase())
+  // Search filters the FULL product list (everything is already loaded in memory)
+  const filteredProducts = useMemo(
+    () =>
+      products.filter((p) =>
+        p.product_name?.toLowerCase().includes(productSearch.toLowerCase())
+      ),
+    [products, productSearch]
   )
+
+  // Reset pagination whenever the search query changes
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [productSearch])
+
+  // Only render a slice — grows as the user scrolls to the sentinel
+  const visibleProducts = filteredProducts.slice(0, visibleCount)
+  const hasMore = visibleCount < filteredProducts.length
+
+  useEffect(() => {
+    if (!hasMore) return
+    const el = sentinelRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((c) => c + PAGE_SIZE)
+        }
+      },
+      { rootMargin: '200px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, visibleProducts.length])
 
   const isEmpty = !receiptsLoading && receipts.length === 0 && products.length === 0
 
@@ -127,38 +162,63 @@ export default function ReceiptsPage() {
 
             {/* Price analysis */}
             <section>
-              <h2 className="font-serif text-[20px] font-medium tracking-tight pb-3">
-                Prisanalys
-              </h2>
+              <div className="flex items-baseline justify-between pb-3">
+                <h2 className="font-serif text-[20px] font-medium tracking-tight">
+                  Prisanalys
+                </h2>
+                {filteredProducts.length > 0 && (
+                  <span className="text-[11px] text-muted-foreground">
+                    {filteredProducts.length} produkter
+                  </span>
+                )}
+              </div>
 
               <div className="flex items-center gap-2.5 bg-card border border-border rounded-xl px-3.5 py-2.5 mb-3">
                 <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <input
                   type="text"
-                  placeholder="Sök produkt…"
+                  placeholder="Sök bland alla produkter…"
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
                   className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
                 />
+                {productSearch && (
+                  <button
+                    onClick={() => setProductSearch('')}
+                    className="text-muted-foreground hover:text-foreground"
+                    aria-label="Rensa sökning"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
 
               {productsLoading ? (
                 <div className="text-sm text-muted-foreground px-1">Laddar…</div>
               ) : filteredProducts.length === 0 ? (
                 <div className="bg-card border border-border rounded-2xl px-4 py-8 text-center text-sm text-muted-foreground shadow-sm">
-                  Inga produkter spårade ännu
+                  {productSearch ? `Inga träffar för "${productSearch}"` : 'Inga produkter spårade ännu'}
                 </div>
               ) : (
-                <div className="space-y-2.5">
-                  {filteredProducts.map((p) => (
-                    <ProductCard
-                      key={p.product_id}
-                      product={p}
-                      isOpen={openProductId === p.product_id}
-                      onToggle={() => setOpenProductId(openProductId === p.product_id ? null : p.product_id)}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="space-y-2.5">
+                    {visibleProducts.map((p) => (
+                      <ProductCard
+                        key={p.product_id}
+                        product={p}
+                        isOpen={openProductId === p.product_id}
+                        onToggle={() => setOpenProductId(openProductId === p.product_id ? null : p.product_id)}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Infinite scroll sentinel */}
+                  {hasMore && (
+                    <div ref={sentinelRef} className="py-4 text-center">
+                      <span className="text-[11px] text-muted-foreground">Laddar fler…</span>
+                    </div>
+                  )}
+                </>
               )}
             </section>
           </div>
