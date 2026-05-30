@@ -46,17 +46,19 @@ function PersonRow({ name, spent, budget, variant }: PersonRowProps) {
             <span
               className={cn(
                 'font-serif text-[15px] font-medium tracking-tight',
-                isOver ? 'text-destructive' : 'text-foreground'
+                budget > 0 && isOver ? 'text-destructive' : 'text-foreground'
               )}
             >
-              {formatCurrency(remaining)}
+              {budget > 0 ? formatCurrency(remaining) : formatCurrency(spent)}
             </span>
           </div>
           <div className="flex items-baseline justify-between gap-3 mt-0.5">
             <span className="text-[11px] text-muted-foreground">
-              Spenderat {formatCurrency(spent)}
+              {budget > 0 ? `Spenderat ${formatCurrency(spent)}` : 'spenderat'}
             </span>
-            <span className="text-[11px] text-muted-foreground">kvar</span>
+            <span className="text-[11px] text-muted-foreground">
+              {budget > 0 ? 'kvar' : ''}
+            </span>
           </div>
           {budget > 0 && (
             <div className="mt-2 h-1 bg-secondary rounded-full overflow-hidden">

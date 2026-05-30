@@ -1,21 +1,25 @@
 /**
  * Two parallel KPIs in Homebase — kept strictly separate.
  *
- * 1. SPEND TRACKING ("vad har vi köpt") — the MAIN KPI
- *    Sum of all expenses, EXCLUDING those whose category is flagged
- *    excludes_from_expense_total (the "Kreditkort" category, which is just
- *    the Amex invoice payment — counting it would double-count the
- *    underlying purchases). Measured against budget.
+ * 1. SPEND ("vad konsumerar vi denna period") — the MAIN KPI
+ *    Sum of ALL expenses in the period, regardless of payment source.
+ *    Bank purchases, Amex purchases, AND the credit-card invoice line
+ *    (Kreditkort category — last month's Amex purchases being paid now)
+ *    all count. Nothing is excluded. You budget against spend.
  *
- * 2. CASH FLOW ("vad dras från kontot just nu") — secondary
- *    Income minus *direct* withdrawals. Credit-card purchases are
- *    excluded because they hit a future invoice, not the account today.
+ *    No double counting: this month's Amex purchases land on NEXT month's
+ *    invoice, while the invoice paid this month is LAST month's purchases.
+ *    They never overlap.
  *
- *    A purchase counts as a direct withdrawal unless it's on credit:
- *      - is_ccm = true            → on credit, excluded
- *      - bank = 'Amex'            → on credit, excluded
- *      - bank IN (SEB, Swedbank)  → direct, counted
- *      - bank = null & !is_ccm    → assume direct, counted
+ * 2. CASH FLOW ("vad lämnar kontot just nu") — secondary
+ *    Income minus money that actually leaves the account this period.
+ *    This month's Amex purchases are excluded (they hit a future invoice),
+ *    but the credit-card invoice paid this month IS counted (it's drawn now),
+ *    as are all bank purchases.
+ *
+ *    The whole point of tracking both: you set a budget against spend, but
+ *    cash flow warns you if that budget is unaffordable in terms of money
+ *    actually leaving the account this period.
  */
 
 export interface ExpenseForCalc {
@@ -25,56 +29,71 @@ export interface ExpenseForCalc {
   category?: {
     cost_type?: string | null
     excludes_from_expense_total?: boolean | null
+    name?: string | null
   } | null
 }
 
 /**
- * Returns true if an expense should be counted as a direct withdrawal
- * from the bank account this period (i.e. affects cash flow now).
+ * Is this expense an Amex/credit-card PURCHASE made this period?
+ * (Not the invoice payment — an actual purchase that will hit a future invoice.)
+ *
+ * The Kreditkort invoice category is flagged excludes_from_expense_total;
+ * it is NOT a purchase, it's the invoice being paid now, so it does NOT
+ * count as a future-invoice item.
  */
-export function isDirectWithdrawal(expense: ExpenseForCalc): boolean {
-  // On credit → not a direct withdrawal
-  if (expense.is_ccm === true) return false
-  if (expense.bank && expense.bank.toLowerCase() === 'amex') return false
+function isCreditPurchaseThisPeriod(expense: ExpenseForCalc): boolean {
+  // The invoice-payment line is not a credit purchase
+  if (expense.category?.excludes_from_expense_total === true) return false
 
-  // Everything else (SEB, Swedbank, or unknown non-credit) → direct
-  return true
+  if (expense.is_ccm === true) return true
+  if (expense.bank && expense.bank.toLowerCase() === 'amex') return true
+  return false
 }
 
 /**
- * Returns true if an expense should be excluded from spend-tracking totals.
- * (The Kreditkort category — the invoice payment line.)
- */
-export function isExcludedFromSpend(expense: ExpenseForCalc): boolean {
-  return expense.category?.excludes_from_expense_total === true
-}
-
-/**
- * SPEND TRACKING total — all expenses except the credit-card invoice category.
+ * SPEND total — sum of everything. Nothing excluded.
  */
 export function calcTotalSpend(expenses: ExpenseForCalc[]): number {
-  return expenses.reduce((sum, e) => {
-    if (isExcludedFromSpend(e)) return sum
-    return sum + e.amount
-  }, 0)
+  return expenses.reduce((sum, e) => sum + e.amount, 0)
 }
 
 /**
- * CASH FLOW out — only direct withdrawals (excludes credit-card purchases
- * AND the invoice-payment category to avoid double counting).
+ * CASH OUT — money that actually leaves the account this period.
+ * Everything counts EXCEPT this period's credit-card purchases
+ * (they hit a future invoice). The invoice paid this month is included.
  */
 export function calcCashOut(expenses: ExpenseForCalc[]): number {
   return expenses.reduce((sum, e) => {
-    if (isExcludedFromSpend(e)) return sum
-    if (!isDirectWithdrawal(e)) return sum
+    if (isCreditPurchaseThisPeriod(e)) return sum
     return sum + e.amount
   }, 0)
 }
 
 /**
- * Net cash flow this period = income that landed on the account minus
- * direct withdrawals.
+ * Net cash flow = income minus money leaving the account this period.
  */
 export function calcCashFlow(income: number, expenses: ExpenseForCalc[]): number {
   return income - calcCashOut(expenses)
+}
+
+/**
+ * A person's share of total spend.
+ *   - personal → 100% to that person
+ *   - partner  → 100% to the partner
+ *   - shared   → split (default 50/50)
+ *
+ * @param perspective 'user' sums personal + half of shared
+ *                     'partner' sums partner + half of shared
+ */
+export function calcPersonSpend(
+  expenses: Array<ExpenseForCalc & { cost_assignment?: string | null }>,
+  perspective: 'user' | 'partner'
+): number {
+  return expenses.reduce((sum, e) => {
+    const assignment = e.cost_assignment || 'personal'
+    if (assignment === 'shared') return sum + e.amount / 2
+    if (perspective === 'user' && assignment === 'personal') return sum + e.amount
+    if (perspective === 'partner' && assignment === 'partner') return sum + e.amount
+    return sum
+  }, 0)
 }

@@ -58,8 +58,7 @@ export function SpendHero({ spent, budget, income, cashOut, hasBudget }: SpendHe
             overBudget ? 'text-destructive' : 'text-foreground'
           )}
         >
-          {formatCurrency(primaryValue).replace(' kr', '')}
-          <span className="font-serif text-[20px] md:text-[24px] text-muted-foreground ml-1">kr</span>
+          {formatCurrency(primaryValue)}
         </div>
 
         {hasBudget && (
@@ -90,7 +89,7 @@ export function SpendHero({ spent, budget, income, cashOut, hasBudget }: SpendHe
               cashFlow < 0 ? 'text-destructive' : 'text-foreground'
             )}>
               {cashFlow >= 0 && '+'}
-              {formatCurrency(cashFlow).replace(' kr', '')}
+              {formatCurrency(cashFlow)}
             </div>
           </div>
           <div className="text-right">
@@ -98,7 +97,7 @@ export function SpendHero({ spent, budget, income, cashOut, hasBudget }: SpendHe
               Dras från konto
             </div>
             <div className="font-serif text-[18px] md:text-[22px] font-medium tracking-tight mt-0.5">
-              {formatCurrency(cashOut).replace(' kr', '')}
+              {formatCurrency(cashOut)}
             </div>
           </div>
         </div>

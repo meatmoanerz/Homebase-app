@@ -16,7 +16,7 @@ import { ShowMyMonthCard } from '@/components/dashboard/show-my-month-card'
 import { PersonBudgetBreakdown } from '@/components/dashboard/person-budget-breakdown'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
 import { PeriodStrip } from '@/components/shared/period-strip'
-import { calcTotalSpend, calcCashOut } from '@/lib/utils/spend-calc'
+import { calcTotalSpend, calcCashOut, calcPersonSpend } from '@/lib/utils/spend-calc'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 
@@ -99,24 +99,9 @@ export default function DashboardPage() {
   // purchases are excluded since they hit a future invoice.
   const cashOut = calcCashOut(expenses)
 
-  // Calculate user's portion of expenses (for per-person breakdown)
-  // - personal: full amount
-  // - shared: 50% of the amount (split with partner)
-  // - partner: 0 (doesn't count toward user's budget, partner pays)
-  const userSpent = expenses.reduce((sum, exp) => {
-    const assignment = exp.cost_assignment || 'personal'
-    if (assignment === 'partner') return sum // Partner pays, not user
-    if (assignment === 'shared') return sum + (exp.amount / 2) // 50/50 split
-    return sum + exp.amount // personal - full amount
-  }, 0)
-
-  // Calculate partner's portion of expenses
-  const partnerSpent = expenses.reduce((sum, exp) => {
-    const assignment = exp.cost_assignment || 'personal'
-    if (assignment === 'personal') return sum // User pays, not partner
-    if (assignment === 'shared') return sum + (exp.amount / 2) // 50/50 split
-    return sum + exp.amount // partner - full amount
-  }, 0)
+  // Per-person share of total spend (personal 100%, shared 50/50, partner 0 for user)
+  const userSpent = calcPersonSpend(expenses, 'user')
+  const partnerSpent = calcPersonSpend(expenses, 'partner')
 
   // Calculate actual savings from expenses in savings categories
   const actualSavings = expenses.reduce((sum, exp) => {
@@ -142,9 +127,8 @@ export default function DashboardPage() {
   // KPIs are always budget-based, never income-based
   const hasBudget = !!(budget && (budgetItems.fixed + budgetItems.variable + budgetItems.savings) > 0)
   const totalBudgetedExpenses = budgetItems.fixed + budgetItems.variable + budgetItems.savings
-  const availableToSpend = hasBudget
-    ? totalBudgetedExpenses  // Budget amount for expenses
-    : totalIncome            // Full income when no budget
+  // Without a budget, there is no "available to spend" — show spend only
+  const availableToSpend = hasBudget ? totalBudgetedExpenses : 0
 
   const savingsRate = totalIncome > 0 
     ? (budgetItems.savings / totalIncome) * 100 
