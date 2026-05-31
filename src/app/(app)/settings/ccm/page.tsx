@@ -415,7 +415,7 @@ export default function CCMDashboardPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
       >
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-hb-terracotta/10 to-hb-sand-deep/20">
+        <Card className="border-0 shadow-sm bg-secondary/60">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>

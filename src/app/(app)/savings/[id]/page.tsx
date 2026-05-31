@@ -138,7 +138,7 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
         transition={{ delay: 0.05 }}
       >
         <Card className="border-0 shadow-sm overflow-hidden">
-          <div className="bg-gradient-to-br from-hb-sage/30 to-hb-cognac/20 p-6">
+          <div className="bg-secondary p-6">
             <div className="text-center mb-4">
               <p className="text-sm text-muted-foreground mb-1">Sparat</p>
               <p className="text-4xl font-bold text-hb-cognac">{formatCurrency(totalSaved)}</p>

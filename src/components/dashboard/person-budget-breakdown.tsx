@@ -45,7 +45,7 @@ function PersonRow({ name, spent, budget, variant }: PersonRowProps) {
             <span className="font-medium text-sm tracking-tight">{name}</span>
             <span
               className={cn(
-                'font-serif text-[15px] font-medium tracking-tight',
+                'font-serif-kpi text-[15px]',
                 budget > 0 && isOver ? 'text-destructive' : 'text-foreground'
               )}
             >

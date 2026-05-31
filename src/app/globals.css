@@ -191,7 +191,30 @@ body {
   font-feature-settings: "ss01", "ss02";
 }
 
-/* Sans utility (default but explicit for cases where it needs to override serif) */
+/* Hero numbers: lighter weight, tighter tracking (mock: weight 400, -0.025em) */
+.font-serif-hero {
+  font-family: var(--font-serif) !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.025em;
+  font-feature-settings: "ss01";
+}
+
+/* KPI values: medium weight (mock: weight 500, -0.02em) */
+.font-serif-kpi {
+  font-family: var(--font-serif) !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.02em;
+}
+
+/* Small category labels: uppercase caps (mock: uppercase, tracking 0.1em, weight 600) */
+.label-caps {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+/* Sans utility */
 .font-sans {
   font-family: var(--font-sans) !important;
 }

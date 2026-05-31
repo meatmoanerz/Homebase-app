@@ -74,7 +74,7 @@ export default function HelpPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
       >
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-hb-sage/20 to-hb-sage/5">
+        <Card className="border-0 shadow-sm bg-secondary/40">
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-hb-cognac/10 flex items-center justify-center">

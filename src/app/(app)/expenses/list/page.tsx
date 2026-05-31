@@ -183,7 +183,7 @@ export default function ExpenseListPage() {
                             </div>
                           </div>
                         </div>
-                        <span className="font-serif text-[16px] font-medium tracking-tight ml-2 flex-shrink-0">
+                        <span className="font-serif-kpi text-[16px] ml-2 flex-shrink-0">
                           {formatCurrency(expense.amount)}
                         </span>
                       </button>

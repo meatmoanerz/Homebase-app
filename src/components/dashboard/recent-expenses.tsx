@@ -89,7 +89,7 @@ export function RecentExpenses({ expenses }: RecentExpensesProps) {
                 </div>
               </div>
             </div>
-            <div className="font-serif text-[16px] font-medium tracking-tight text-foreground ml-2 flex-shrink-0">
+            <div className="font-serif-kpi text-[16px] ml-2 flex-shrink-0">
               {formatCurrency(expense.amount)}
             </div>
           </motion.div>

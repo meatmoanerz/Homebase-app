@@ -138,7 +138,7 @@ export function ExpenseFormCompact({ onSuccess }: ExpenseFormCompactProps) {
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       {/* Row 1: Amount - larger and more prominent */}
-      <div className="rounded-2xl bg-gradient-to-br from-hb-sage/30 to-hb-sand/20 p-4">
+      <div className="rounded-2xl bg-secondary p-4">
         <div className="flex items-center justify-center gap-2">
           <input
             ref={amountInputRef}

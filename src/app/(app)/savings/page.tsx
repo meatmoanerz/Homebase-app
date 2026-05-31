@@ -196,7 +196,7 @@ export default function SavingsPage() {
 
             {/* Overall progress if there are goals */}
             {activeGoals.length > 0 && totalTarget > 0 && (
-              <Card className="border-0 shadow-sm bg-gradient-to-r from-hb-sage/10 to-hb-cognac/10">
+              <Card className="border-0 shadow-sm bg-secondary/40">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium">Total progress</span>

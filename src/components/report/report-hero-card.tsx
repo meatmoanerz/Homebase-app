@@ -16,7 +16,7 @@ export function ReportHeroCard({ totalIncome, totalSpent }: ReportHeroCardProps)
   const isNeutral = netBalance === 0
 
   return (
-    <Card className="border-0 shadow-sm bg-gradient-to-br from-hb-cognac to-hb-cognac/85 text-white">
+    <Card className="border-0 shadow-sm bg-hb-nav text-hb-nav-foreground">
       <CardContent className="p-5">
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>

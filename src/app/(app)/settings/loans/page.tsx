@@ -168,7 +168,7 @@ export default function LoansSettingsPage() {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-2 gap-3"
         >
-          <Card className="border-0 shadow-sm bg-gradient-to-br from-hb-sage/20 to-hb-sage/5">
+          <Card className="border-0 shadow-sm bg-secondary/40">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Wallet className="w-4 h-4 text-hb-cognac" />
@@ -178,7 +178,7 @@ export default function LoansSettingsPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm bg-gradient-to-br from-hb-sand-deep/20 to-hb-sand-deep/5">
+          <Card className="border-0 shadow-sm bg-secondary/60">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingDown className="w-4 h-4 text-hb-terracotta" />

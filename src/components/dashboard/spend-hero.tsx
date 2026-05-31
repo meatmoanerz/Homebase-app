@@ -49,12 +49,12 @@ export function SpendHero({ spent, budget, income, cashOut, hasBudget }: SpendHe
       />
 
       <div className="relative">
-        <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground font-semibold">
+        <div className="label-caps text-muted-foreground mt-0.5">
           {primaryLabel}
         </div>
         <div
           className={cn(
-            'font-serif text-[40px] md:text-[48px] font-normal tracking-tight leading-[1.05] mt-2',
+            'font-serif-hero text-[40px] md:text-[48px] leading-[1.05] mt-2',
             overBudget ? 'text-destructive' : 'text-foreground'
           )}
         >
@@ -81,11 +81,11 @@ export function SpendHero({ spent, budget, income, cashOut, hasBudget }: SpendHe
         {/* Secondary: cash flow */}
         <div className="mt-4 pt-3.5 border-t border-dashed border-border flex justify-between items-end">
           <div>
-            <div className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-medium">
+            <div className="label-caps text-muted-foreground">
               Kassaflöde
             </div>
             <div className={cn(
-              'font-serif text-[18px] md:text-[22px] font-medium tracking-tight mt-0.5',
+              'font-serif-kpi text-[18px] md:text-[22px] mt-1',
               cashFlow < 0 ? 'text-destructive' : 'text-foreground'
             )}>
               {cashFlow >= 0 && '+'}
@@ -93,10 +93,10 @@ export function SpendHero({ spent, budget, income, cashOut, hasBudget }: SpendHe
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-medium">
+            <div className="label-caps text-muted-foreground">
               Dras från konto
             </div>
-            <div className="font-serif text-[18px] md:text-[22px] font-medium tracking-tight mt-0.5">
+            <div className="font-serif-kpi text-[18px] md:text-[22px] mt-1">
               {formatCurrency(cashOut)}
             </div>
           </div>

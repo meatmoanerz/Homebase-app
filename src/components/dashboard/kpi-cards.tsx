@@ -2,7 +2,6 @@
 
 import { formatCurrency, formatPercentage } from '@/lib/utils/formatters'
 import { getDaysUntilSalary } from '@/lib/utils/budget-period'
-import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils/cn'
 
 interface KPICardsProps {
@@ -79,26 +78,20 @@ export function KPICards({
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
       {cards.map((card, index) => (
-        <motion.div
-          key={card.label}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.05 }}
-          className="bg-card border border-border rounded-2xl p-4 shadow-sm"
-        >
-          <div className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-semibold">
+        <div key={card.label} className="bg-card border border-border rounded-2xl p-4 shadow-sm">
+          <div className="label-caps text-muted-foreground">
             {card.label}
           </div>
           <div
             className={cn(
-              'font-serif text-[26px] font-medium tracking-tight leading-tight mt-1.5',
+              'font-serif-kpi text-[26px] leading-tight mt-1.5',
               card.valueClass
             )}
           >
             {card.value}
           </div>
           <div className="text-[11px] text-muted-foreground mt-1">{card.subtext}</div>
-        </motion.div>
+        </div>
       ))}
     </div>
   )

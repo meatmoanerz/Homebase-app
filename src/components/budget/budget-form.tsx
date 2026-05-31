@@ -1027,7 +1027,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.08 }}
         >
-          <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-l-4 border-l-blue-500">
+          <Card className="border-0 shadow-sm bg-hb-tim-soft border-l-4 border-l-hb-tim">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 mt-0.5">
@@ -1061,7 +1061,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.08 }}
         >
-          <Card className="border-0 shadow-sm bg-gradient-to-r from-amber-50/50 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/20">
+          <Card className="border-0 shadow-sm bg-hb-cognac/8">
             <CardContent className="p-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -1104,7 +1104,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <Card className="border-0 shadow-sm overflow-hidden bg-gradient-to-br from-hb-sage/20 to-hb-sand/20">
+        <Card className="border-0 shadow-sm overflow-hidden bg-secondary">
           <button
             onClick={() => toggleSection('income')}
             className="w-full p-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
@@ -1458,9 +1458,9 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         </Card>
       </motion.div>
 
-      {/* Save Button - hide if viewing an already saved budget */}
+      {/* Save Button - fixed above the nav pill */}
       {!periodAlreadyHasBudget && (
-        <div className="fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent keyboard-adjust">
+        <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+96px)] left-0 right-0 px-4 keyboard-adjust">
           <div className={cn(
             "flex gap-2",
             existingBudget ? "flex-row" : "flex-col"
@@ -1468,7 +1468,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
             <Button
               onClick={handleSubmit}
               disabled={saving || totalIncome === 0}
-              className={cn("h-12", existingBudget ? "flex-1" : "w-full")}
+              className={cn("h-12 shadow-lg", existingBudget ? "flex-1" : "w-full")}
             >
               {saving ? (
                 <>
@@ -1499,7 +1499,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
       
       {/* Link to edit when viewing saved budget */}
       {periodAlreadyHasBudget && existingPeriodBudget && (
-        <div className="fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent keyboard-adjust">
+        <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+96px)] left-0 right-0 px-4 keyboard-adjust">
           <Link href={`/budget/${existingPeriodBudget.id}`} className="block">
             <Button variant="outline" className="w-full h-12 gap-2">
               <ExternalLink className="w-4 h-4" />
