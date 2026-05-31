@@ -55,6 +55,7 @@ export default function ImportPage() {
   const [importProgress, setImportProgress] = useState(0)
   const [importedCount, setImportedCount] = useState(0)
   const [savedRuleRows, setSavedRuleRows] = useState<Set<number>>(new Set())
+  const [parseError, setParseError] = useState<string | null>(null)
 
   const categoryByName = new Map(categories.map((c) => [c.name.toLowerCase(), c]))
   const categoryById = new Map(categories.map((c) => [c.id, c]))
@@ -87,33 +88,44 @@ export default function ImportPage() {
   }
 
   function processBankUpload(text: string) {
-    const result = parseBankCsv(text, bankChoice)
-    setBankResult(result)
-    setParseResult(null)
+    try {
+      const result = parseBankCsv(text, bankChoice)
+      setBankResult(result)
+      setParseResult(null)
 
-    // Apply category mappings to each transaction
-    const rows: PreviewRow[] = result.transactions.map((tx) => {
-      const match = findMatchingMapping(tx.description, mappings, tx.bank)
-      const isAmex = tx.bank === 'Amex'
+      // Apply category mappings to each transaction
+      const rows: PreviewRow[] = result.transactions.map((tx) => {
+        const match = findMatchingMapping(tx.description, mappings, tx.bank)
+        const isAmex = tx.bank === 'Amex'
 
-      return {
-        date: tx.date,
-        description: tx.description,
-        amount: tx.amount,
-        bank: tx.bank,
-        onCreditCard: isAmex,
-        suggestedCategoryId: match?.category_id ?? null,
-        suggestedCategoryName: match?.category?.name ?? null,
-        selectedCategoryId: match?.category_id ?? null,
-        costAssignment: match?.cost_assignment ?? 'shared',
-        mappingId: match?.id ?? null,
-        warnings: !match ? ['Ingen automatisk kategorimatchning'] : [],
-        skip: false,
-      }
-    })
+        return {
+          date: tx.date,
+          description: tx.description,
+          amount: tx.amount,
+          bank: tx.bank,
+          onCreditCard: isAmex,
+          suggestedCategoryId: match?.category_id ?? null,
+          suggestedCategoryName: match?.category?.name ?? null,
+          selectedCategoryId: match?.category_id ?? null,
+          costAssignment: match?.cost_assignment ?? 'shared',
+          mappingId: match?.id ?? null,
+          warnings: !match ? ['Ingen automatisk kategorimatchning'] : [],
+          skip: false,
+        }
+      })
 
-    setPreviewRows(rows)
-    setStep('preview')
+      setPreviewRows(rows)
+      setParseError(
+        rows.length === 0
+          ? `Hittade inga transaktioner i filen. Identifierat format: ${result.detectedBank}. ${result.errors.join(' ')} Kontrollera att rätt bank är vald.`
+          : null
+      )
+      setStep('preview')
+    } catch (err) {
+      console.error('Bank parse error:', err)
+      setParseError(`Kunde inte läsa filen: ${err instanceof Error ? err.message : 'okänt fel'}`)
+      setStep('preview')
+    }
   }
 
   const onDrop = useCallback(
@@ -121,12 +133,23 @@ export default function ImportPage() {
       const file = files[0]
       if (!file) return
       setFileName(file.name)
+      setParseError(null)
       const reader = new FileReader()
       reader.onload = (e) => {
-        const buffer = e.target?.result as ArrayBuffer
-        const text = decodeCsvBuffer(buffer)
-        if (mode === 'homebase') processHomebaseUpload(text)
-        else processBankUpload(text)
+        try {
+          const buffer = e.target?.result as ArrayBuffer
+          const text = decodeCsvBuffer(buffer)
+          if (mode === 'homebase') processHomebaseUpload(text)
+          else processBankUpload(text)
+        } catch (err) {
+          console.error('File read error:', err)
+          setParseError(`Kunde inte läsa filen: ${err instanceof Error ? err.message : 'okänt fel'}`)
+          setStep('preview')
+        }
+      }
+      reader.onerror = () => {
+        setParseError('Filen kunde inte läsas. Försök igen.')
+        setStep('preview')
       }
       reader.readAsArrayBuffer(file)
     },
@@ -136,7 +159,7 @@ export default function ImportPage() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'text/csv': ['.csv'], 'text/plain': ['.csv', '.txt'] },
+    // No MIME restriction — iOS Safari often reports CSV as octet-stream/empty
     maxFiles: 1,
   })
 
@@ -357,6 +380,29 @@ export default function ImportPage() {
       )}
 
       {/* Step: Preview */}
+      {/* Step: Preview — error / empty state */}
+      {step === 'preview' && previewRows.length === 0 && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+          <div className="bg-destructive/10 border border-destructive/30 rounded-2xl p-5 text-center">
+            <AlertTriangle className="w-7 h-7 text-destructive mx-auto mb-3" />
+            <p className="font-medium text-sm mb-1">Inga transaktioner hittades</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {parseError || 'Filen kunde inte tolkas.'}
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setStep('upload')
+              setParseError(null)
+              setPreviewRows([])
+            }}
+            className="w-full py-3 rounded-full bg-hb-nav text-hb-nav-foreground font-medium text-sm hover:opacity-90 transition-opacity"
+          >
+            Försök igen
+          </button>
+        </motion.div>
+      )}
+
       {step === 'preview' && previewRows.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           {/* File summary */}

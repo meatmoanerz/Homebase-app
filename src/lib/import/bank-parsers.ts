@@ -192,12 +192,14 @@ function parseSwedbank(csvText: string): BankParseResult {
 // ----- Amex -----
 
 /**
- * Amex CSV format:
+ * Amex CSV format (Swedish export is a hybrid):
  *   - UTF-8
- *   - Comma-separated
- *   - MM/DD/YYYY dates
- *   - Headers: "Date","Description","Card Member","Account #","Amount"
- *   - Amount sign is flipped (positive = expense)
+ *   - Comma-separated, amounts quoted with comma decimals: "1350,00"
+ *   - MM/DD/YYYY dates (American), even in Swedish exports
+ *   - Headers vary by locale:
+ *       EN: Date, Description, Card Member, Account #, Amount
+ *       SV: Datum, Beskrivning, Kortmedlem, Konto #, Belopp
+ *   - Positive amount = expense (correct sign for our model)
  */
 function parseAmex(csvText: string): BankParseResult {
   const transactions: NormalizedTransaction[] = []
@@ -209,14 +211,31 @@ function parseAmex(csvText: string): BankParseResult {
     skipEmptyLines: true,
   })
 
+  // Resolve column names across EN/SV variants
+  const headers = result.meta.fields || []
+  const find = (...candidates: string[]) =>
+    headers.find((h) => candidates.some((c) => h.trim().toLowerCase() === c.toLowerCase()))
+
+  const dateKey = find('Datum', 'Date')
+  const descKey = find('Beskrivning', 'Description')
+  const amountKey = find('Belopp', 'Amount')
+
+  if (!dateKey || !descKey || !amountKey) {
+    errors.push(
+      `Kunde inte hitta kolumnerna. Hittade: ${headers.join(', ')}. ` +
+      `Förväntar Datum/Date, Beskrivning/Description, Belopp/Amount.`
+    )
+    return { transactions, errors, detectedBank: 'Amex' }
+  }
+
   for (const row of result.data) {
-    const date = parseUSDate(row['Date'] || '')
-    const description = (row['Description'] || '').trim()
-    const rawAmount = parseSwedishAmount(row['Amount'] || '')
+    const date = parseUSDate(row[dateKey] || '')
+    // Collapse multiple spaces in Amex descriptions ("EASYPARK     STOCKHOLM")
+    const description = (row[descKey] || '').replace(/\s{2,}/g, ' ').trim()
+    const rawAmount = parseSwedishAmount(row[amountKey] || '')
 
     if (!date || !description || rawAmount === null) continue
 
-    // Amex: positive = expense (already correct sign)
     transactions.push({
       date,
       description,
@@ -238,9 +257,15 @@ function parseAmex(csvText: string): BankParseResult {
 export function detectBank(csvText: string): 'SEB' | 'Swedbank' | 'Amex' | 'Unknown' {
   const first200 = csvText.slice(0, 1000).toLowerCase()
 
+  // Amex: has Kortmedlem/Card Member or Konto # column, or MM/DD/YYYY dates
+  if (first200.includes('kortmedlem') || first200.includes('card member') || first200.includes('konto #')) return 'Amex'
+
   if (first200.includes('bokföringsdatum') && first200.includes(';')) return 'SEB'
   if (first200.includes('bokföringsdag') || first200.includes('clearingnummer')) return 'Swedbank'
   if (first200.includes('card member') || /^\s*"?date"?,/i.test(csvText)) return 'Amex'
+
+  // Amex Swedish header pattern
+  if (/^datum,beskrivning/i.test(csvText.trim())) return 'Amex'
 
   // Heuristic: semicolon-delimited Swedish format → SEB
   if (csvText.includes(';') && /\d{4}-\d{2}-\d{2}/.test(csvText)) return 'SEB'
