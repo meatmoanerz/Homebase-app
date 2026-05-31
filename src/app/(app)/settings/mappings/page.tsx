@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useCategoryMappings, useUpdateMapping, useDeleteMapping, useCreateMapping, type CategoryMapping } from '@/hooks/use-category-mappings'
 import { useCategories } from '@/hooks/use-categories'
 import { useAssignmentOptions } from '@/hooks/use-assignment-options'
+import { SettingsListPageSkeleton } from '@/components/shared/page-skeletons'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Search, Sparkles, Trash2, Plus, X, Check, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -17,6 +18,8 @@ export default function MappingsSettingsPage() {
   const deleteMapping = useDeleteMapping()
   const createMapping = useCreateMapping()
   const assignmentOptions = useAssignmentOptions()
+
+  if (isLoading) return <SettingsListPageSkeleton />
 
   const [search, setSearch] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)

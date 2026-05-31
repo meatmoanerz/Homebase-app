@@ -6,6 +6,19 @@ import { MobileHeader } from './mobile-header'
 import { RealtimeProvider } from '@/components/realtime-provider'
 import { IncomeReminderDialog } from '@/components/income-reminder-dialog'
 import { cn } from '@/lib/utils/cn'
+import { useUser, usePartner } from '@/hooks/use-user'
+import { useCategories } from '@/hooks/use-categories'
+
+/**
+ * Prefetches critical shared data at app shell mount so it's ready
+ * before the user navigates to any page. Renders nothing.
+ */
+function AppPrefetch() {
+  useUser()
+  usePartner()
+  useCategories()
+  return null
+}
 
 interface AppShellProps {
   children: React.ReactNode
@@ -14,6 +27,8 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   return (
     <RealtimeProvider>
+      {/* Warms the cache for shared data used on every page */}
+      <AppPrefetch />
       {/* Skip to content link for accessibility */}
       <a
         href="#main-content"

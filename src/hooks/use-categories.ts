@@ -10,6 +10,7 @@ export function useCategories(options?: { costType?: CostType }) {
 
   return useQuery({
     queryKey: ['categories', options?.costType],
+    staleTime: 10 * 60 * 1000, // 10 min — categories rarely change during a session
     queryFn: async () => {
       // Fetch categories with their linked savings goal status
       let query = supabase

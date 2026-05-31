@@ -110,7 +110,7 @@ export function usePartner() {
       
       return data.partner as Profile | null
     },
-    staleTime: 30 * 1000,
+    staleTime: 10 * 60 * 1000 // 10 min — sällan ändrad,
   })
 }
 
@@ -132,6 +132,6 @@ export function usePartnerConnection() {
       
       return data.connection || null
     },
-    staleTime: 30 * 1000,
+    staleTime: 10 * 60 * 1000 // 10 min — sällan ändrad,
   })
 }

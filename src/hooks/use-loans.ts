@@ -51,7 +51,7 @@ export function usePartnerLoans() {
         partnerName: data.partnerName as string | null
       }
     },
-    staleTime: 30 * 1000,
+    staleTime: 10 * 60 * 1000 // 10 min — sällan ändrad,
   })
 }
 

@@ -119,6 +119,7 @@ export function BottomNav({ className }: BottomNavProps) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={true}
               className={cn(
                 "flex items-center justify-center rounded-full transition-all duration-200",
                 "min-w-[44px] min-h-[36px] px-3 py-2",

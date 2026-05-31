@@ -23,9 +23,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 60 * 1000, // 1 minute
+        // Keep data fresh for 5 minutes by default.
+        // Sällan-ändrad data (kategorier, user) sätter längre staleTime i hooken.
+        staleTime: 5 * 60 * 1000,
+        // Keep unused cache for 15 min — so navigating back is instant
+        gcTime: 15 * 60 * 1000,
         retry: 1,
         refetchOnWindowFocus: false,
+        // Don't refetch on mount if data is fresh — crucial for tab-switching
+        refetchOnMount: true,
       },
     },
   }))

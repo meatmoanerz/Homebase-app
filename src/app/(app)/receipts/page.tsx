@@ -6,6 +6,7 @@ import { formatCurrency, formatRelativeDate } from '@/lib/utils/formatters'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Receipt, Search, ChevronRight, X, Store } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { ReceiptsPageSkeleton } from '@/components/shared/page-skeletons'
 
 const PAGE_SIZE = 20
 
@@ -62,6 +63,9 @@ export default function ReceiptsPage() {
   }, [hasMore, visibleProducts.length])
 
   const isEmpty = !receiptsLoading && receipts.length === 0 && products.length === 0
+
+  // Show skeleton while primary data loads
+  if (receiptsLoading) return <ReceiptsPageSkeleton />
 
   return (
     <div className="px-4 md:px-8 pt-2 md:pt-4 pb-4 space-y-5">
@@ -194,7 +198,20 @@ export default function ReceiptsPage() {
               </div>
 
               {productsLoading ? (
-                <div className="text-sm text-muted-foreground px-1">Laddar…</div>
+                <div className="space-y-2.5">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="bg-card border border-border rounded-2xl px-4 py-3.5 space-y-2 animate-pulse">
+                      <div className="flex justify-between">
+                        <div className="h-4 w-36 bg-border/60 rounded-lg" />
+                        <div className="h-3 w-10 bg-border/60 rounded" />
+                      </div>
+                      <div className="flex justify-between">
+                        <div className="h-3 w-24 bg-border/60 rounded" />
+                        <div className="h-3 w-20 bg-border/60 rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : filteredProducts.length === 0 ? (
                 <div className="bg-card border border-border rounded-2xl px-4 py-8 text-center text-sm text-muted-foreground shadow-sm">
                   {productSearch ? `Inga träffar för "${productSearch}"` : 'Inga produkter spårade ännu'}

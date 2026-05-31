@@ -38,6 +38,7 @@ export function useCategoryMappings() {
       if (error) throw error
       return (data as CategoryMapping[]) || []
     },
+    staleTime: 10 * 60 * 1000, // 10 min — changes only when user edits rules
   })
 }
 
