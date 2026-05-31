@@ -23,6 +23,8 @@ const TITLES: Record<string, string> = {
   '/settings/partner': 'Partner',
   '/settings/shared-account': 'Gemensamt konto',
   '/settings/household-categories': 'Hushållskostnader',
+  '/settings/mappings': 'Kategoriregler',
+  '/import': 'Importera',
   '/report': 'Månadsrapport',
   '/help': 'Hjälp',
   '/privacy': 'Integritet',

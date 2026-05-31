@@ -15,30 +15,21 @@ function HomeIcon({ className }: { className?: string }) {
   )
 }
 
+function ListIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+      <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+    </svg>
+  )
+}
+
 function WalletIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="5" width="20" height="14" rx="2"/>
       <path d="M2 10h20"/>
       <circle cx="16" cy="14" r="1"/>
-    </svg>
-  )
-}
-
-function ReceiptIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 2v20l3-2 3 2 3-2 3 2 3-2V2z"/>
-      <path d="M8 7h8M8 11h8M8 15h5"/>
-    </svg>
-  )
-}
-
-function ListIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 5H3v14h18z"/>
-      <path d="M3 10h18"/>
     </svg>
   )
 }
@@ -54,7 +45,7 @@ function SettingsIcon({ className }: { className?: string }) {
 
 function PlusIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
       <line x1="12" y1="5" x2="12" y2="19"/>
       <line x1="5" y1="12" x2="19" y2="12"/>
     </svg>
@@ -62,80 +53,75 @@ function PlusIcon({ className }: { className?: string }) {
 }
 
 const navItems = [
-  { href: '/dashboard', label: 'Översikt', Icon: HomeIcon, matchPath: '/dashboard' },
-  { href: '/expenses/list', label: 'Utgifter', Icon: ListIcon, matchPath: '/expenses' },
-  { href: '/budget', label: 'Budget', Icon: WalletIcon, matchPath: '/budget' },
-  { href: '/receipts', label: 'Kvitton', Icon: ReceiptIcon, matchPath: '/receipts' },
-  { href: '/settings', label: 'Mer', Icon: SettingsIcon, matchPath: '/settings' },
+  { href: '/dashboard',    Icon: HomeIcon,     label: 'Översikt',  matchPath: '/dashboard' },
+  { href: '/expenses/list', Icon: ListIcon,    label: 'Utgifter',  matchPath: '/expenses'  },
+  { href: '/expenses',     Icon: PlusIcon,     label: 'Ny utgift', matchPath: null, isAdd: true },
+  { href: '/budget',       Icon: WalletIcon,   label: 'Budget',    matchPath: '/budget'    },
+  { href: '/settings',     Icon: SettingsIcon, label: 'Mer',       matchPath: '/settings'  },
 ]
 
-interface BottomNavProps {
-  className?: string
-}
+interface BottomNavProps { className?: string }
 
 export function BottomNav({ className }: BottomNavProps) {
   const pathname = usePathname()
 
   return (
-    <>
-      {/* Floating FAB - separate from nav, positioned above nav pill */}
-      <Link
-        href="/expenses"
-        className={cn(
-          "fixed right-5 z-[91] keyboard-hide md:hidden",
-          "bottom-[calc(env(safe-area-inset-bottom,0px)+96px)]",
-        )}
-        aria-label="Lägg till ny utgift"
-        onClick={() => triggerHaptic('medium')}
-      >
-        <motion.div
-          whileTap={{ scale: 0.9 }}
-          className="flex items-center justify-center rounded-full bg-hb-nav text-hb-nav-foreground shadow-xl shadow-hb-nav/30"
-          style={{ width: 52, height: 52 }}
-        >
-          <PlusIcon className="w-[22px] h-[22px]" />
-        </motion.div>
-      </Link>
+    <nav
+      className={cn(
+        "fixed z-[90] keyboard-hide",
+        "bottom-[calc(env(safe-area-inset-bottom,0px)+20px)]",
+        "left-1/2 -translate-x-1/2",
+        "w-[calc(100%-40px)] max-w-[380px]",
+        "bg-hb-nav rounded-full",
+        "shadow-2xl shadow-hb-nav/25",
+        "flex items-stretch",
+        className
+      )}
+      aria-label="Mobilnavigation"
+    >
+      {navItems.map((item) => {
+        const isActive = item.matchPath
+          ? pathname === item.matchPath || pathname.startsWith(item.matchPath + '/')
+          : false
+        const { Icon } = item
 
-      {/* Floating pill nav */}
-      <nav
-        className={cn(
-          "fixed z-[90] keyboard-hide",
-          "bottom-[calc(env(safe-area-inset-bottom,0px)+20px)]",
-          "left-1/2 -translate-x-1/2",
-          "w-[calc(100%-40px)] max-w-[380px]",
-          "bg-hb-nav rounded-full p-1.5",
-          "shadow-2xl shadow-hb-nav/25",
-          "flex justify-around items-center",
-          className
-        )}
-        aria-label="Mobilnavigation"
-      >
-        {navItems.map((item) => {
-          const isActive = pathname === item.matchPath || pathname.startsWith(item.matchPath + '/')
-          const { Icon } = item
-
+        if (item.isAdd) {
           return (
             <Link
               key={item.href}
               href={item.href}
               prefetch={true}
-              className={cn(
-                "flex items-center justify-center rounded-full transition-all duration-200",
-                "min-w-[44px] min-h-[36px] px-3 py-2",
-                isActive
-                  ? "bg-hb-cognac text-hb-nav"
-                  : "text-hb-nav-foreground/55"
-              )}
-              aria-label={item.label}
-              aria-current={isActive ? 'page' : undefined}
-              onClick={() => triggerHaptic('light')}
+              aria-label="Lägg till ny utgift"
+              onClick={() => triggerHaptic('medium')}
+              className="flex-1 flex items-center justify-center py-3"
             >
-              <Icon className="w-[18px] h-[18px]" />
+              <motion.div
+                whileTap={{ scale: 0.88 }}
+                className="w-9 h-9 rounded-full bg-hb-cognac grid place-items-center"
+              >
+                <PlusIcon className="w-[18px] h-[18px] text-hb-nav" />
+              </motion.div>
             </Link>
           )
-        })}
-      </nav>
-    </>
+        }
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            prefetch={true}
+            aria-label={item.label}
+            aria-current={isActive ? 'page' : undefined}
+            onClick={() => triggerHaptic('light')}
+            className={cn(
+              "flex-1 flex items-center justify-center py-3.5 rounded-full transition-all duration-150",
+              isActive ? "text-hb-cognac" : "text-hb-nav-foreground/50"
+            )}
+          >
+            <Icon className="w-[19px] h-[19px]" />
+          </Link>
+        )
+      })}
+    </nav>
   )
 }

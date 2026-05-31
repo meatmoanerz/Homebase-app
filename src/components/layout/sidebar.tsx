@@ -3,16 +3,16 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
-import { Home, Wallet, Receipt, ListChecks, Settings, Plus } from 'lucide-react'
+import { Home, Wallet, ListChecks, Settings, Plus } from 'lucide-react'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { usePerspective } from '@/hooks/use-perspective'
 
 const navItems = [
-  { href: '/dashboard', icon: Home, label: 'Översikt' },
-  { href: '/expenses/list', icon: ListChecks, label: 'Utgifter' },
-  { href: '/budget', icon: Wallet, label: 'Budget' },
-  { href: '/receipts', icon: Receipt, label: 'Kvitton' },
-  { href: '/settings', icon: Settings, label: 'Inställningar' },
+  { href: '/dashboard',     icon: Home,      label: 'Översikt'     },
+  { href: '/expenses/list', icon: ListChecks, label: 'Utgifter'    },
+  { href: '/budget',        icon: Wallet,    label: 'Budget'       },
+  { href: '/expenses',      icon: Plus,      label: 'Ny utgift'    },
+  { href: '/settings',      icon: Settings,  label: 'Inställningar'},
 ]
 
 function PerspectiveAvatars() {

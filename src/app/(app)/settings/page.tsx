@@ -25,7 +25,8 @@ import {
   FileSearch,
   Wallet,
   Home,
-  Sparkles
+  Sparkles,
+  Receipt
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
@@ -43,6 +44,7 @@ const menuItems = [
     items: [
       { href: '/import', label: 'Importera CSV', icon: FileSearch, description: 'Ladda upp transaktioner från CSV' },
       { href: '/settings/mappings', label: 'Kategoriregler', icon: Sparkles, description: 'Auto-kategorisering vid import' },
+      { href: '/receipts', label: 'Kvitton', icon: Receipt, description: 'Inköp och prisanalys' },
       { href: '/settings/loans', label: 'Lån', icon: Landmark, description: 'Lån och skulder' },
       { href: '/settings/ccm', label: 'Kreditkortshanterare', icon: CreditCard, description: 'CCM-inställningar' },
       { href: '/savings', label: 'Sparmål', icon: Target, description: 'Dina besparingsmål' },

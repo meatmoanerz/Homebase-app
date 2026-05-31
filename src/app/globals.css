@@ -188,22 +188,23 @@ body {
 .font-serif {
   font-family: var(--font-serif) !important;
   letter-spacing: -0.02em;
-  font-feature-settings: "ss01", "ss02";
+  font-optical-sizing: auto;
 }
 
-/* Hero numbers: lighter weight, tighter tracking (mock: weight 400, -0.025em) */
+/* Hero numbers: display optical size, lighter weight (mock: weight 400, opsz 9) */
 .font-serif-hero {
   font-family: var(--font-serif) !important;
   font-weight: 400 !important;
   letter-spacing: -0.025em;
-  font-feature-settings: "ss01";
+  font-variation-settings: "opsz" 9;
 }
 
-/* KPI values: medium weight (mock: weight 500, -0.02em) */
+/* KPI values: slightly larger optical size (mock: weight 500, -0.02em) */
 .font-serif-kpi {
   font-family: var(--font-serif) !important;
   font-weight: 500 !important;
   letter-spacing: -0.02em;
+  font-variation-settings: "opsz" 12;
 }
 
 /* Small category labels: uppercase caps (mock: uppercase, tracking 0.1em, weight 600) */
