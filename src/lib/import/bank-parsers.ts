@@ -79,9 +79,45 @@ function parseUSDate(s: string): string | null {
 
 // ----- Amount helpers -----
 
+/**
+ * Parses an amount from either Swedish or English number format.
+ *
+ *   Swedish:  "1 350,00"  "1350,00"  "26,62"   (comma = decimal, space = thousands)
+ *   English:  "1,350.00"  "1350.00"  "26.62"   (period = decimal, comma = thousands)
+ *
+ * Strategy: strip spaces and currency text, then decide which of comma/period
+ * is the decimal separator by looking at which one appears LAST.
+ */
 function parseSwedishAmount(s: string): number | null {
   if (!s) return null
-  const cleaned = s.toString().replace(/\s/g, '').replace(/kr/gi, '').replace(',', '.')
+  let cleaned = s.toString().trim().replace(/\s/g, '').replace(/kr/gi, '').replace(/[$€£]/g, '')
+  if (!cleaned) return null
+
+  const lastComma = cleaned.lastIndexOf(',')
+  const lastDot = cleaned.lastIndexOf('.')
+
+  if (lastComma > -1 && lastDot > -1) {
+    // Both present — the last one is the decimal separator
+    if (lastComma > lastDot) {
+      // Swedish: "1.350,00" → remove dots (thousands), comma → decimal
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.')
+    } else {
+      // English: "1,350.00" → remove commas (thousands)
+      cleaned = cleaned.replace(/,/g, '')
+    }
+  } else if (lastComma > -1) {
+    // Only comma — treat as decimal (Swedish "1350,00")
+    // unless it looks like a thousands group (e.g. "1,350" with exactly 3 digits after)
+    const after = cleaned.length - lastComma - 1
+    if (after === 3 && !cleaned.slice(0, lastComma).includes(',')) {
+      // Ambiguous "1,350" — treat comma as thousands → 1350
+      cleaned = cleaned.replace(',', '')
+    } else {
+      cleaned = cleaned.replace(',', '.')
+    }
+  }
+  // Only dot, or no separator → already valid
+
   const n = parseFloat(cleaned)
   return isNaN(n) ? null : n
 }
