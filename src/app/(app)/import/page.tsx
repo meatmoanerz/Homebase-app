@@ -11,14 +11,18 @@ import { parseHomebaseCsv, getCsvTemplate, type CsvParseResult } from '@/lib/imp
 import { parseBankCsv, detectBank, decodeCsvBuffer, type BankParseResult } from '@/lib/import/bank-parsers'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { useUser } from '@/hooks/use-user'
-import { motion } from 'framer-motion'
-import { Upload, FileText, CheckCircle2, AlertTriangle, Download, X, ArrowLeft, Sparkles } from 'lucide-react'
+import { useImportBatches, useStagingRows, useUpdateStagingRow, useToggleBatchPin, useDeleteBatch, type StagingBatch, type StagingRow } from '@/hooks/use-import-staging'
+import { createClient } from '@/lib/supabase/client'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Upload, FileText, CheckCircle2, AlertTriangle, Download, X, ArrowLeft, Sparkles, Pin, PinOff, Trash2, Clock, ChevronRight, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { toast } from 'sonner'
+import { formatDistanceToNow } from 'date-fns'
+import { sv } from 'date-fns/locale'
 import Link from 'next/link'
 
-type ImportMode = 'homebase' | 'bank'
-type Step = 'choose' | 'upload' | 'preview' | 'importing' | 'done'
+type ImportMode = 'homebase' | 'bank' | 'ai'
+type Step = 'choose' | 'upload' | 'preview' | 'importing' | 'done' | 'ai-batches' | 'ai-review'
 type BankChoice = 'auto' | 'SEB' | 'Swedbank' | 'Amex'
 
 interface PreviewRow {
@@ -45,7 +49,13 @@ export default function ImportPage() {
   const createMapping = useCreateMapping()
   const assignmentOptions = useAssignmentOptions()
 
-  const [mode, setMode] = useState<ImportMode>('homebase')
+  // AI-import hooks
+  const { data: batches = [], isLoading: batchesLoading } = useImportBatches()
+  const updateStagingRow = useUpdateStagingRow()
+  const togglePin = useToggleBatchPin()
+  const deleteBatch = useDeleteBatch()
+
+  const [mode, setMode] = useState<ImportMode>('bank')
   const [step, setStep] = useState<Step>('choose')
   const [bankChoice, setBankChoice] = useState<BankChoice>('auto')
   const [fileName, setFileName] = useState('')
@@ -57,6 +67,12 @@ export default function ImportPage() {
   const [savedRuleRows, setSavedRuleRows] = useState<Set<number>>(new Set())
   const [parseError, setParseError] = useState<string | null>(null)
 
+  // AI-import state
+  const [activeBatchId, setActiveBatchId] = useState<string | null>(null)
+  const { data: stagingRows = [], isLoading: stagingLoading } = useStagingRows(activeBatchId)
+  const [stagingEdits, setStagingEdits] = useState<Record<number, Partial<StagingRow>>>({})
+  const [importingStaging, setImportingStaging] = useState(false)
+
   const categoryByName = new Map(categories.map((c) => [c.name.toLowerCase(), c]))
   const categoryById = new Map(categories.map((c) => [c.id, c]))
 
@@ -64,8 +80,6 @@ export default function ImportPage() {
     const result = parseHomebaseCsv(text, categories.map((c) => c.name))
     setParseResult(result)
     setBankResult(null)
-
-    // Convert to preview rows
     const rows: PreviewRow[] = result.rows.map((r) => {
       const cat = categoryByName.get(r.category.toLowerCase())
       return {
@@ -92,12 +106,9 @@ export default function ImportPage() {
       const result = parseBankCsv(text, bankChoice)
       setBankResult(result)
       setParseResult(null)
-
-      // Apply category mappings to each transaction
       const rows: PreviewRow[] = result.transactions.map((tx) => {
         const match = findMatchingMapping(tx.description, mappings, tx.bank)
         const isAmex = tx.bank === 'Amex'
-
         return {
           date: tx.date,
           description: tx.description,
@@ -113,7 +124,6 @@ export default function ImportPage() {
           skip: false,
         }
       })
-
       setPreviewRows(rows)
       setParseError(
         rows.length === 0
@@ -159,7 +169,6 @@ export default function ImportPage() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    // No MIME restriction — iOS Safari often reports CSV as octet-stream/empty
     maxFiles: 1,
   })
 
@@ -180,7 +189,6 @@ export default function ImportPage() {
   async function handleSaveRule(index: number) {
     const row = previewRows[index]
     if (!row || !row.selectedCategoryId) return
-
     const pattern = suggestPatternFromDescription(row.description)
     try {
       await createMapping.mutateAsync({
@@ -203,9 +211,7 @@ export default function ImportPage() {
   async function handleImport() {
     if (!user) return
     setStep('importing')
-
     const rowsToImport = previewRows.filter((r) => !r.skip && r.date && r.description && r.amount !== 0)
-
     let imported = 0
     for (const row of rowsToImport) {
       try {
@@ -220,28 +226,93 @@ export default function ImportPage() {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any)
         imported++
-
-        // Fire-and-forget: bump hit_count if we used a mapping
         if (row.mappingId) {
           incrementMappingHit(row.mappingId).catch(() => {})
         }
-
         setImportProgress(Math.round((imported / rowsToImport.length) * 100))
         setImportedCount(imported)
       } catch (err) {
         console.error('Import error:', err)
       }
     }
-
     setStep('done')
     toast.success(`${imported} utgifter importerade`)
   }
 
-  // Computed stats
+  // ---- AI-import helpers ----
+
+  function getMergedRow(row: StagingRow): StagingRow {
+    const edits = stagingEdits[row.id] || {}
+    return { ...row, ...edits }
+  }
+
+  function updateStagingEdit(id: number, updates: Partial<StagingRow>) {
+    setStagingEdits((prev) => ({ ...prev, [id]: { ...(prev[id] || {}), ...updates } }))
+  }
+
+  async function flushEdits() {
+    const supabase = createClient()
+    const entries = Object.entries(stagingEdits)
+    for (const [idStr, updates] of entries) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('import_staging') as any).update(updates).eq('id', Number(idStr))
+    }
+    setStagingEdits({})
+  }
+
+  async function handleAiImport() {
+    if (!activeBatchId) return
+    setImportingStaging(true)
+    await flushEdits()
+
+    const rowsToImport = stagingRows
+      .map((r) => getMergedRow(r))
+      .filter((r) => r.selected && r.status === 'pending' && r.amount !== 0)
+
+    const supabase = createClient()
+    let imported = 0
+
+    for (const row of rowsToImport) {
+      try {
+        await createExpense.mutateAsync({
+          date: row.date,
+          description: row.description,
+          amount: row.amount,
+          category_id: row.category_id,
+          cost_assignment: row.cost_assignment,
+          is_ccm: row.is_ccm,
+          bank: row.bank,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any)
+        imported++
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from('import_staging') as any)
+          .update({ status: 'imported' })
+          .eq('id', row.id)
+      } catch (err) {
+        console.error('AI import error:', err)
+      }
+    }
+
+    // Delete the whole batch now that we're done
+    await deleteBatch.mutateAsync(activeBatchId)
+    setImportingStaging(false)
+    setActiveBatchId(null)
+    setStep('done')
+    setImportedCount(imported)
+    toast.success(`${imported} utgifter importerade från AI-import`)
+  }
+
+  // Computed stats (regular import)
   const totalRows = previewRows.length
   const matchedRows = previewRows.filter((r) => r.suggestedCategoryId).length
   const importableRows = previewRows.filter((r) => !r.skip).length
   const totalAmount = previewRows.filter((r) => !r.skip).reduce((s, r) => s + r.amount, 0)
+
+  // Computed stats (AI import)
+  const aiImportableRows = stagingRows.map(getMergedRow).filter((r) => r.selected).length
+  const aiTotalAmount = stagingRows.map(getMergedRow).filter((r) => r.selected).reduce((s, r) => s + r.amount, 0)
+  const aiUncategorised = stagingRows.map(getMergedRow).filter((r) => r.selected && !r.category_id).length
 
   return (
     <div className="px-4 md:px-8 pt-2 md:pt-4 pb-4 space-y-5 max-w-3xl mx-auto">
@@ -258,7 +329,9 @@ export default function ImportPage() {
             Importera transaktioner
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Ladda upp en CSV-fil från din bank eller en färdig Homebase-fil
+            {step === 'ai-batches' || step === 'ai-review'
+              ? 'AI-förbehandlade importer redo att granska'
+              : 'Ladda upp en CSV-fil från din bank eller en färdig Homebase-fil'}
           </p>
         </div>
       </div>
@@ -280,13 +353,143 @@ export default function ImportPage() {
             description="Färdig CSV-fil (t.ex. förberedd i Claude-chatten) med kategorier och kostnadsdelning ifyllda."
             icon="📋"
           />
+          <ModeCard
+            active={mode === 'ai'}
+            onClick={() => setMode('ai')}
+            title="AI-import"
+            description="Claude har redan behandlat dina CSV-filer och lagt dem redo här. Granska och spara med ett tryck."
+            icon="✨"
+            badge={batches.length > 0 ? `${batches.length} batch${batches.length > 1 ? 'ar' : ''} redo` : undefined}
+          />
 
           <button
-            onClick={() => setStep('upload')}
+            onClick={() => {
+              if (mode === 'ai') setStep('ai-batches')
+              else setStep('upload')
+            }}
             className="w-full py-3 rounded-full bg-hb-nav text-hb-nav-foreground font-medium text-sm hover:opacity-90 transition-opacity"
           >
             Fortsätt
           </button>
+        </motion.div>
+      )}
+
+      {/* Step: AI — batch list */}
+      {step === 'ai-batches' && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+          <button
+            onClick={() => setStep('choose')}
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+          >
+            <ArrowLeft className="w-3 h-3" />
+            Tillbaka
+          </button>
+
+          {batchesLoading && (
+            <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-sm">Hämtar batchar…</span>
+            </div>
+          )}
+
+          {!batchesLoading && batches.length === 0 && (
+            <div className="bg-card border border-border rounded-2xl p-8 text-center">
+              <Sparkles className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+              <p className="font-medium text-sm mb-1">Inga AI-importer just nu</p>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto">
+                Ladda upp dina CSV-filer i Claude-chatten så förbehandlar Claude dem och lägger dem redo här.
+              </p>
+            </div>
+          )}
+
+          {batches.map((batch) => (
+            <BatchCard
+              key={batch.batch_id}
+              batch={batch}
+              onOpen={() => {
+                setActiveBatchId(batch.batch_id)
+                setStagingEdits({})
+                setStep('ai-review')
+              }}
+              onPin={() => togglePin.mutate({ batchId: batch.batch_id, pinned: !batch.pinned })}
+              onDelete={() => {
+                deleteBatch.mutate(batch.batch_id)
+                toast.success('Batch raderad')
+              }}
+            />
+          ))}
+        </motion.div>
+      )}
+
+      {/* Step: AI — review rows */}
+      {step === 'ai-review' && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+          <button
+            onClick={() => {
+              setActiveBatchId(null)
+              setStep('ai-batches')
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+          >
+            <ArrowLeft className="w-3 h-3" />
+            Alla batchar
+          </button>
+
+          {stagingLoading && (
+            <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-sm">Hämtar transaktioner…</span>
+            </div>
+          )}
+
+          {!stagingLoading && stagingRows.length > 0 && (
+            <>
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-2.5">
+                <StatCard label="Att importera" value={aiImportableRows} accent="default" />
+                <StatCard
+                  label="Utan kategori"
+                  value={aiUncategorised}
+                  accent={aiUncategorised > 0 ? 'warn' : 'success'}
+                />
+                <StatCard label="Summa" value={aiTotalAmount} accent="default" isCurrency />
+              </div>
+
+              {aiUncategorised > 0 && (
+                <div className="bg-hb-amber/10 border border-hb-amber/30 rounded-xl px-3 py-2 flex items-center gap-2 text-xs text-hb-amber">
+                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                  {aiUncategorised} rader saknar kategori — välj nedan eller hoppa över dem
+                </div>
+              )}
+
+              {/* Row list */}
+              <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                <div className="max-h-[60vh] overflow-y-auto">
+                  {stagingRows.map((row) => {
+                    const merged = getMergedRow(row)
+                    return (
+                      <AiPreviewRow
+                        key={row.id}
+                        row={merged}
+                        categories={categories}
+                        assignmentOptions={assignmentOptions}
+                        onUpdate={(updates) => updateStagingEdit(row.id, updates)}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+
+              <button
+                onClick={handleAiImport}
+                disabled={importingStaging || aiImportableRows === 0}
+                className="w-full py-3 rounded-full bg-hb-nav text-hb-nav-foreground font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                {importingStaging && <Loader2 className="w-4 h-4 animate-spin" />}
+                {importingStaging ? 'Importerar…' : `Importera ${aiImportableRows} utgifter · ${formatCurrency(aiTotalAmount)}`}
+              </button>
+            </>
+          )}
         </motion.div>
       )}
 
@@ -379,7 +582,6 @@ export default function ImportPage() {
         </motion.div>
       )}
 
-      {/* Step: Preview */}
       {/* Step: Preview — error / empty state */}
       {step === 'preview' && previewRows.length === 0 && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -405,7 +607,6 @@ export default function ImportPage() {
 
       {step === 'preview' && previewRows.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-          {/* File summary */}
           <div className="flex items-center justify-between bg-card border border-border rounded-2xl px-4 py-3">
             <div className="flex items-center gap-2.5 min-w-0">
               <FileText className="w-5 h-5 text-hb-cognac flex-shrink-0" />
@@ -429,7 +630,6 @@ export default function ImportPage() {
             </button>
           </div>
 
-          {/* Stats grid */}
           <div className="grid grid-cols-3 gap-2.5">
             <StatCard label="Att importera" value={importableRows} accent="default" />
             <StatCard
@@ -444,7 +644,6 @@ export default function ImportPage() {
             />
           </div>
 
-          {/* Errors */}
           {parseResult?.globalErrors && parseResult.globalErrors.length > 0 && (
             <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 space-y-1">
               {parseResult.globalErrors.map((err, i) => (
@@ -456,7 +655,6 @@ export default function ImportPage() {
             </div>
           )}
 
-          {/* Preview rows with inline edit */}
           <div className="bg-card border border-border rounded-2xl overflow-hidden">
             <div className="max-h-[60vh] overflow-y-auto">
               {previewRows.map((row, idx) => (
@@ -535,18 +733,17 @@ export default function ImportPage() {
   )
 }
 
+// ---- Sub-components ----
+
 function ModeCard({
-  active,
-  onClick,
-  title,
-  description,
-  icon,
+  active, onClick, title, description, icon, badge,
 }: {
   active: boolean
   onClick: () => void
   title: string
   description: string
   icon: string
+  badge?: string
 }) {
   return (
     <button
@@ -559,7 +756,14 @@ function ModeCard({
       <div className="flex items-start gap-3">
         <div className="text-2xl flex-shrink-0">{icon}</div>
         <div className="flex-1 min-w-0">
-          <div className="font-serif text-[16px] font-medium tracking-tight">{title}</div>
+          <div className="flex items-center gap-2">
+            <span className="font-serif text-[16px] font-medium tracking-tight">{title}</span>
+            {badge && (
+              <span className="text-[10px] font-semibold bg-hb-cognac/15 text-hb-cognac-deep px-2 py-0.5 rounded-full">
+                {badge}
+              </span>
+            )}
+          </div>
           <div className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{description}</div>
         </div>
         {active && (
@@ -572,7 +776,154 @@ function ModeCard({
   )
 }
 
-function StatCard({ label, value, accent }: { label: string; value: number; accent: 'default' | 'success' | 'warn' }) {
+function BatchCard({
+  batch, onOpen, onPin, onDelete,
+}: {
+  batch: StagingBatch
+  onOpen: () => void
+  onPin: () => void
+  onDelete: () => void
+}) {
+  const expiresAt = new Date(batch.expires_at)
+  const uploadedAt = new Date(batch.uploaded_at)
+  const isExpiringSoon = !batch.pinned && expiresAt.getTime() - Date.now() < 6 * 60 * 60 * 1000
+
+  return (
+    <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <button onClick={onOpen} className="w-full px-4 py-3.5 text-left hover:bg-secondary/50 transition-colors">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-hb-cognac/10 grid place-items-center flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-hb-cognac" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-medium">
+                {batch.bank || 'AI-import'} — {batch.row_count} transaktioner
+              </div>
+              <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                <Clock className="w-3 h-3" />
+                Uppladdad {formatDistanceToNow(uploadedAt, { locale: sv, addSuffix: true })}
+                {batch.pinned && (
+                  <span className="text-hb-cognac-deep font-medium">· Fastnålad</span>
+                )}
+                {!batch.pinned && (
+                  <span className={cn(isExpiringSoon ? 'text-destructive' : 'text-muted-foreground')}>
+                    · Raderas {formatDistanceToNow(expiresAt, { locale: sv, addSuffix: true })}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <span className="font-serif text-[15px] font-medium text-right">
+              {formatCurrency(batch.total_amount)}
+            </span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+        </div>
+      </button>
+      <div className="border-t border-border px-4 py-2 flex items-center gap-2">
+        <button
+          onClick={onPin}
+          className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {batch.pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+          {batch.pinned ? 'Lossa' : 'Nåla fast'}
+        </button>
+        <div className="flex-1" />
+        <button
+          onClick={onDelete}
+          className="flex items-center gap-1.5 text-[11px] font-medium text-destructive/70 hover:text-destructive transition-colors"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Radera
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function AiPreviewRow({
+  row, categories, assignmentOptions, onUpdate,
+}: {
+  row: StagingRow
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  categories: any[]
+  assignmentOptions: { value: 'personal' | 'shared' | 'partner'; label: string }[]
+  onUpdate: (updates: Partial<StagingRow>) => void
+}) {
+  const isDuplicate = row.dup_existing
+  const isBlank = !row.category_id
+
+  return (
+    <div
+      className={cn(
+        'px-4 py-3 border-b border-border last:border-b-0',
+        !row.selected && 'opacity-50',
+        isDuplicate && 'bg-destructive/5',
+        isBlank && row.selected && 'bg-hb-amber/5'
+      )}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium truncate">{row.description}</div>
+          <div className="text-[11px] text-muted-foreground">
+            {row.date}
+            {row.bank && ` · ${row.bank}`}
+            {row.is_ccm && ' · Amex'}
+            {row.match_source === 'blank' && (
+              <span className="ml-1 text-hb-amber">· Ingen match</span>
+            )}
+            {isDuplicate && (
+              <span className="ml-1 text-destructive">· Finns redan</span>
+            )}
+          </div>
+        </div>
+        <span className={cn('font-serif text-[15px] font-medium flex-shrink-0', row.amount < 0 && 'text-success')}>
+          {formatCurrency(row.amount)}
+        </span>
+      </div>
+
+      <div className="mt-2 flex items-center gap-2 flex-wrap">
+        <select
+          value={row.category_id || ''}
+          onChange={(e) => onUpdate({ category_id: e.target.value || null })}
+          className={cn(
+            'text-[11px] bg-secondary border border-border rounded-full px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-hb-cognac',
+            isBlank && row.selected && 'border-hb-amber/50'
+          )}
+        >
+          <option value="">— ingen kategori —</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+
+        <select
+          value={row.cost_assignment}
+          onChange={(e) => onUpdate({ cost_assignment: e.target.value as 'personal' | 'shared' | 'partner' })}
+          className="text-[11px] bg-secondary border border-border rounded-full px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-hb-cognac"
+        >
+          {assignmentOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+
+        <label className="text-[11px] text-muted-foreground flex items-center gap-1 cursor-pointer ml-auto">
+          <input
+            type="checkbox"
+            checked={!row.selected}
+            onChange={(e) => onUpdate({ selected: !e.target.checked })}
+            className="w-3 h-3 accent-hb-cognac"
+          />
+          Hoppa över
+        </label>
+      </div>
+    </div>
+  )
+}
+
+function StatCard({ label, value, accent, isCurrency }: { label: string; value: number; accent: 'default' | 'success' | 'warn'; isCurrency?: boolean }) {
   const color =
     accent === 'success'
       ? 'text-success'
@@ -585,20 +936,15 @@ function StatCard({ label, value, accent }: { label: string; value: number; acce
       <div className="text-[10px] uppercase tracking-[0.06em] text-muted-foreground font-semibold">
         {label}
       </div>
-      <div className={cn('font-serif text-[22px] font-medium mt-1', color)}>{value}</div>
+      <div className={cn('font-serif text-[22px] font-medium mt-1 truncate', color)}>
+        {isCurrency ? formatCurrency(value) : value}
+      </div>
     </div>
   )
 }
 
 function PreviewRowItem({
-  row,
-  categories,
-  categoryById,
-  onUpdate,
-  onSaveRule,
-  ruleSaved,
-  showSaveRule,
-  assignmentOptions,
+  row, categories, categoryById, onUpdate, onSaveRule, ruleSaved, showSaveRule, assignmentOptions,
 }: {
   row: PreviewRow
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -611,7 +957,6 @@ function PreviewRowItem({
   showSaveRule: boolean
   assignmentOptions: { value: 'personal' | 'shared' | 'partner'; label: string }[]
 }) {
-  // Show "save as rule" when: bank mode, no auto-match existed, user picked a category
   const canSaveRule =
     showSaveRule && !row.suggestedCategoryId && !!row.selectedCategoryId && !ruleSaved
 
@@ -637,7 +982,6 @@ function PreviewRowItem({
         </span>
       </div>
 
-      {/* Inline category + assignment edit */}
       <div className="mt-2 flex items-center gap-2 flex-wrap">
         <select
           value={row.selectedCategoryId || ''}
@@ -646,9 +990,7 @@ function PreviewRowItem({
         >
           <option value="">— ingen kategori —</option>
           {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
+            <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
 
