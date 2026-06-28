@@ -157,6 +157,16 @@ export function getPeriodDates(periodStr: string, salaryDay: number): { startDat
 }
 
 /**
+ * Shift a period string (YYYY-MM) by a number of months (can be negative).
+ * Used for stepping between periods with the overview arrows.
+ */
+export function shiftPeriod(periodStr: string, delta: number): string {
+  const [year, month] = periodStr.split('-').map(Number)
+  const d = new Date(year, month - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/**
  * Get array of recent periods for selection (deduplicated, guaranteed unique)
  */
 export function getRecentPeriods(salaryDay: number, count: number = 6): BudgetPeriod[] {

@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/dialog'
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -51,7 +50,7 @@ export default function LoansSettingsPage() {
   const { data: loanGroups } = useLoanGroups()
   const createExpensesFromLoans = useCreateExpensesFromLoans()
 
-  const handleCreateExpenses = async () => {
+  const handleCreateExpenses = async (mode: 'calculate' | 'register') => {
     if (!ownLoans || ownLoans.length === 0) return
 
     try {
@@ -59,11 +58,14 @@ export default function LoansSettingsPage() {
         loans: ownLoans,
         period: currentPeriod.period,
         date: expenseDate,
+        mode,
       })
 
       setCreateExpensesOpen(false)
 
-      if (result.created === 0) {
+      if (mode === 'calculate') {
+        toast.success(result.message || 'Belopp omberäknade')
+      } else if (result.created === 0) {
         toast.info(result.message || 'Inga nya utgifter skapades')
       } else {
         toast.success(`${result.created} utgifter skapade!${result.loansUpdated && result.loansUpdated > 0 ? ` ${result.loansUpdated} lån uppdaterade.` : ''}`)
@@ -477,15 +479,15 @@ export default function LoansSettingsPage() {
             <AlertDialogDescription asChild>
               <div className="space-y-3">
                 <p>
-                  Detta skapar utgifter för <strong>{formatPeriodDisplay(currentPeriod.period)}</strong> baserat på dina {ownLoans?.length || 0} lån:
+                  För <strong>{formatPeriodDisplay(currentPeriod.period)}</strong> baserat på dina {ownLoans?.length || 0} lån. Välj vad du vill göra:
                 </p>
-                <ul className="text-sm space-y-1 pl-4">
-                  <li>• <strong>Ränta bolån</strong> - Räntekostnad för varje lån</li>
-                  <li>• <strong>Amortering</strong> - Amortering för varje lån (om &gt; 0)</li>
+                <ul className="text-sm space-y-1.5 pl-1">
+                  <li>• <strong>Bara beräkna nya belopp</strong> — drar av amorteringen från skulden och räknar om räntan. Skapar inga transaktioner.</li>
+                  <li>• <strong>Beräkna + registrera</strong> — gör samma sak och bokför dessutom ränta och amortering som utgifter.</li>
                 </ul>
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-foreground mb-1.5">
-                    Datum för utgifter
+                    Datum för utgifter (vid registrering)
                   </label>
                   <input
                     type="date"
@@ -494,31 +496,36 @@ export default function LoansSettingsPage() {
                     className="w-full px-3 py-2 border rounded-md bg-background text-foreground"
                   />
                 </div>
-                <p className="text-sm">
-                  Lånens kvarvarande belopp uppdateras automatiskt med amorteringsbeloppet.
-                </p>
                 <p className="text-xs text-muted-foreground">
-                  Om utgifter redan finns för denna period hoppas de över.
+                  Kostnader som redan finns för perioden (även CSV-importerade med kategori Ränta/Amortering) hoppas över så inget dubbelbokas.
                 </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCreateExpenses}
+          <AlertDialogFooter className="flex-col sm:flex-col gap-2">
+            <Button
+              onClick={() => handleCreateExpenses('register')}
               disabled={createExpensesFromLoans.isPending}
-              className="bg-hb-cognac hover:bg-hb-cognac/90"
+              className="w-full bg-hb-cognac hover:bg-hb-cognac/90"
             >
               {createExpensesFromLoans.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Skapar...
+                  Arbetar...
                 </>
               ) : (
-                'Skapa utgifter'
+                'Beräkna + registrera'
               )}
-            </AlertDialogAction>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleCreateExpenses('calculate')}
+              disabled={createExpensesFromLoans.isPending}
+              className="w-full"
+            >
+              Bara beräkna nya belopp
+            </Button>
+            <AlertDialogCancel className="w-full mt-0">Avbryt</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

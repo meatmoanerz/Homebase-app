@@ -12,6 +12,7 @@ import { parseBankCsv, detectBank, decodeCsvBuffer, type BankParseResult } from 
 import { formatCurrency } from '@/lib/utils/formatters'
 import { useUser } from '@/hooks/use-user'
 import { useImportBatches, useStagingRows, useUpdateStagingRow, useToggleBatchPin, useDeleteBatch, type StagingBatch, type StagingRow } from '@/hooks/use-import-staging'
+import { CategoryCombobox } from '@/components/import/category-combobox'
 import { createClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Upload, FileText, CheckCircle2, AlertTriangle, Download, X, ArrowLeft, Sparkles, Pin, PinOff, Trash2, Clock, ChevronRight, Loader2 } from 'lucide-react'
@@ -31,6 +32,7 @@ interface PreviewRow {
   amount: number
   bank: string | null
   onCreditCard: boolean
+  cardholder?: string | null
   suggestedCategoryId: string | null
   suggestedCategoryName: string | null
   selectedCategoryId: string | null
@@ -72,6 +74,10 @@ export default function ImportPage() {
   const { data: stagingRows = [], isLoading: stagingLoading } = useStagingRows(activeBatchId)
   const [stagingEdits, setStagingEdits] = useState<Record<number, Partial<StagingRow>>>({})
   const [importingStaging, setImportingStaging] = useState(false)
+  // Multi-select (bulk categorize) state
+  const [bulkMode, setBulkMode] = useState(false)
+  const [bulkSelected, setBulkSelected] = useState<Set<number>>(new Set())
+  const [bulkCategoryId, setBulkCategoryId] = useState<string | null>(null)
 
   const categoryByName = new Map(categories.map((c) => [c.name.toLowerCase(), c]))
   const categoryById = new Map(categories.map((c) => [c.id, c]))
@@ -94,7 +100,7 @@ export default function ImportPage() {
         costAssignment: r.costAssignment,
         mappingId: null,
         warnings: r.warnings,
-        skip: r.warnings.length > 0,
+        skip: false,
       }
     })
     setPreviewRows(rows)
@@ -115,6 +121,7 @@ export default function ImportPage() {
           amount: tx.amount,
           bank: tx.bank,
           onCreditCard: isAmex,
+          cardholder: tx.cardholder ?? null,
           suggestedCategoryId: match?.category_id ?? null,
           suggestedCategoryName: match?.category?.name ?? null,
           selectedCategoryId: match?.category_id ?? null,
@@ -210,8 +217,13 @@ export default function ImportPage() {
 
   async function handleImport() {
     if (!user) return
-    setStep('importing')
     const rowsToImport = previewRows.filter((r) => !r.skip && r.date && r.description && r.amount !== 0)
+    const missingCategory = rowsToImport.filter((r) => !r.selectedCategoryId).length
+    if (missingCategory > 0) {
+      toast.error(`${missingCategory} rader saknar kategori. Välj kategori eller bocka i "Hoppa över" innan import.`)
+      return
+    }
+    setStep('importing')
     let imported = 0
     for (const row of rowsToImport) {
       try {
@@ -250,6 +262,36 @@ export default function ImportPage() {
     setStagingEdits((prev) => ({ ...prev, [id]: { ...(prev[id] || {}), ...updates } }))
   }
 
+  function toggleBulkRow(id: number) {
+    setBulkSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function applyBulkCategory() {
+    if (!bulkCategoryId || bulkSelected.size === 0) return
+    setStagingEdits((prev) => {
+      const next = { ...prev }
+      for (const id of bulkSelected) {
+        next[id] = { ...(next[id] || {}), category_id: bulkCategoryId }
+      }
+      return next
+    })
+    const count = bulkSelected.size
+    setBulkSelected(new Set())
+    setBulkCategoryId(null)
+    toast.success(`Kategori satt på ${count} rader`)
+  }
+
+  function exitBulkMode() {
+    setBulkMode(false)
+    setBulkSelected(new Set())
+    setBulkCategoryId(null)
+  }
+
   async function flushEdits() {
     const supabase = createClient()
     const entries = Object.entries(stagingEdits)
@@ -262,6 +304,14 @@ export default function ImportPage() {
 
   async function handleAiImport() {
     if (!activeBatchId) return
+
+    const selectedRows = stagingRows.map((r) => getMergedRow(r)).filter((r) => r.selected)
+    const missingCategory = selectedRows.filter((r) => !r.category_id).length
+    if (missingCategory > 0) {
+      toast.error(`${missingCategory} rader saknar kategori. Välj kategori eller bocka i "Hoppa över" innan import.`)
+      return
+    }
+
     setImportingStaging(true)
     await flushEdits()
 
@@ -458,7 +508,53 @@ export default function ImportPage() {
               {aiUncategorised > 0 && (
                 <div className="bg-hb-amber/10 border border-hb-amber/30 rounded-xl px-3 py-2 flex items-center gap-2 text-xs text-hb-amber">
                   <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                  {aiUncategorised} rader saknar kategori — välj nedan eller hoppa över dem
+                  {aiUncategorised} rader saknar kategori — välj kategori eller bocka i &quot;Hoppa över&quot;
+                </div>
+              )}
+
+              {/* Bulk toolbar */}
+              <div className="flex items-center justify-between gap-2">
+                {!bulkMode ? (
+                  <button
+                    onClick={() => setBulkMode(true)}
+                    className="text-xs font-medium text-hb-cognac-deep bg-hb-cognac/10 hover:bg-hb-cognac/20 transition-colors rounded-full px-3 py-1.5"
+                  >
+                    Markera flera
+                  </button>
+                ) : (
+                  <button
+                    onClick={exitBulkMode}
+                    className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors rounded-full px-3 py-1.5"
+                  >
+                    Avbryt markering
+                  </button>
+                )}
+                {bulkMode && (
+                  <button
+                    onClick={() => setBulkSelected(new Set(stagingRows.map((r) => r.id)))}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Markera alla
+                  </button>
+                )}
+              </div>
+
+              {bulkMode && bulkSelected.size > 0 && (
+                <div className="bg-hb-sage/15 border border-hb-sage/40 rounded-xl px-3 py-2.5 flex items-center gap-2 flex-wrap sticky top-0 z-10">
+                  <span className="text-xs font-medium">{bulkSelected.size} markerade</span>
+                  <CategoryCombobox
+                    value={bulkCategoryId}
+                    categories={categories}
+                    onChange={setBulkCategoryId}
+                    placeholder="Välj kategori…"
+                  />
+                  <button
+                    onClick={applyBulkCategory}
+                    disabled={!bulkCategoryId}
+                    className="ml-auto text-xs font-medium bg-hb-cognac text-white rounded-full px-3 py-1.5 hover:bg-hb-cognac/90 disabled:opacity-40"
+                  >
+                    Tilldela kategori
+                  </button>
                 </div>
               )}
 
@@ -474,6 +570,9 @@ export default function ImportPage() {
                         categories={categories}
                         assignmentOptions={assignmentOptions}
                         onUpdate={(updates) => updateStagingEdit(row.id, updates)}
+                        bulkMode={bulkMode}
+                        bulkChecked={bulkSelected.has(row.id)}
+                        onBulkToggle={() => toggleBulkRow(row.id)}
                       />
                     )
                   })}
@@ -844,13 +943,16 @@ function BatchCard({
 }
 
 function AiPreviewRow({
-  row, categories, assignmentOptions, onUpdate,
+  row, categories, assignmentOptions, onUpdate, bulkMode, bulkChecked, onBulkToggle,
 }: {
   row: StagingRow
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categories: any[]
   assignmentOptions: { value: 'personal' | 'shared' | 'partner'; label: string }[]
   onUpdate: (updates: Partial<StagingRow>) => void
+  bulkMode: boolean
+  bulkChecked: boolean
+  onBulkToggle: () => void
 }) {
   const isDuplicate = row.dup_existing
   const isBlank = !row.category_id
@@ -861,22 +963,34 @@ function AiPreviewRow({
         'px-4 py-3 border-b border-border last:border-b-0',
         !row.selected && 'opacity-50',
         isDuplicate && 'bg-destructive/5',
-        isBlank && row.selected && 'bg-hb-amber/5'
+        isBlank && row.selected && 'bg-hb-amber/5',
+        bulkMode && bulkChecked && 'bg-hb-sage/15'
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-medium truncate">{row.description}</div>
-          <div className="text-[11px] text-muted-foreground">
-            {row.date}
-            {row.bank && ` · ${row.bank}`}
-            {row.is_ccm && ' · Amex'}
-            {row.match_source === 'blank' && (
-              <span className="ml-1 text-hb-amber">· Ingen match</span>
-            )}
-            {isDuplicate && (
-              <span className="ml-1 text-destructive">· Finns redan</span>
-            )}
+        <div className="min-w-0 flex-1 flex items-center gap-2.5">
+          {bulkMode && (
+            <input
+              type="checkbox"
+              checked={bulkChecked}
+              onChange={onBulkToggle}
+              className="w-4 h-4 accent-hb-cognac flex-shrink-0"
+            />
+          )}
+          <div className="min-w-0">
+            <div className="text-sm font-medium truncate">{row.description}</div>
+            <div className="text-[11px] text-muted-foreground">
+              {row.date}
+              {row.bank && ` · ${row.bank}`}
+              {row.is_ccm && ' · Amex'}
+              {row.cardholder && ` · ${row.cardholder}`}
+              {row.match_source === 'blank' && (
+                <span className="ml-1 text-hb-amber">· Ingen match</span>
+              )}
+              {isDuplicate && (
+                <span className="ml-1 text-destructive">· Finns redan</span>
+              )}
+            </div>
           </div>
         </div>
         <span className={cn('font-serif text-[15px] font-medium flex-shrink-0', row.amount < 0 && 'text-success')}>
@@ -885,19 +999,12 @@ function AiPreviewRow({
       </div>
 
       <div className="mt-2 flex items-center gap-2 flex-wrap">
-        <select
-          value={row.category_id || ''}
-          onChange={(e) => onUpdate({ category_id: e.target.value || null })}
-          className={cn(
-            'text-[11px] bg-secondary border border-border rounded-full px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-hb-cognac',
-            isBlank && row.selected && 'border-hb-amber/50'
-          )}
-        >
-          <option value="">— ingen kategori —</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+        <CategoryCombobox
+          value={row.category_id || null}
+          categories={categories}
+          onChange={(id) => onUpdate({ category_id: id })}
+          error={isBlank && row.selected}
+        />
 
         <select
           value={row.cost_assignment}
@@ -975,6 +1082,7 @@ function PreviewRowItem({
             {row.date}
             {row.bank && ` · ${row.bank}`}
             {row.onCreditCard && ' · Amex'}
+            {row.cardholder && ` · ${row.cardholder}`}
           </div>
         </div>
         <span className="font-serif text-[15px] font-medium flex-shrink-0">
@@ -983,16 +1091,11 @@ function PreviewRowItem({
       </div>
 
       <div className="mt-2 flex items-center gap-2 flex-wrap">
-        <select
-          value={row.selectedCategoryId || ''}
-          onChange={(e) => onUpdate({ selectedCategoryId: e.target.value || null })}
-          className="text-[11px] bg-secondary border border-border rounded-full px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-hb-cognac"
-        >
-          <option value="">— ingen kategori —</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+        <CategoryCombobox
+          value={row.selectedCategoryId || null}
+          categories={categories}
+          onChange={(id) => onUpdate({ selectedCategoryId: id })}
+        />
 
         <select
           value={row.costAssignment}

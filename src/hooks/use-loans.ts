@@ -404,11 +404,14 @@ export function useCreateExpensesFromLoans() {
     mutationFn: async ({
       loans,
       period,
-      date
+      date,
+      mode = 'register',
     }: {
       loans: LoanWithGroup[]
       period: string
       date: string
+      /** 'calculate' = only amortize balances + recompute; 'register' = also create expense transactions */
+      mode?: 'calculate' | 'register'
     }) => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
@@ -463,17 +466,34 @@ export function useCreateExpensesFromLoans() {
       const lastDayOfMonth = new Date(year, month, 0).getDate()
       const periodEndDate = `${period}-${lastDayOfMonth.toString().padStart(2, '0')}`
 
-      // Check for existing loan expenses in this period to prevent duplicates
+      // Check for existing loan expenses in this period to prevent duplicates.
+      // We match against the loan categories so CSV-imported interest/amortization
+      // rows (which carry the Ränta/Amortering category) are caught too.
       const { data: existingExpensesData, error: existingError } = await supabase
         .from('expenses')
-        .select('id, description, category_id')
+        .select('id, description, category_id, amount')
         .eq('user_id', user.id)
         .gte('date', `${period}-01`)
         .lte('date', periodEndDate)
         .in('category_id', [interestCategory?.id, amortizationCategory?.id].filter(Boolean))
 
       if (existingError) throw existingError
-      const existingExpenses = existingExpensesData as Array<{ id: string; description: string; category_id: string }> | null
+      const existingExpenses = existingExpensesData as Array<{ id: string; description: string; category_id: string; amount: number }> | null
+
+      // An expected loan cost is "already registered" if a matching expense exists
+      // in the period — either by exact description, or by category + amount (±5%,
+      // min 50 kr) so imported transactions with bank descriptions still match.
+      const alreadyRegistered = (categoryId: string | undefined, description: string, expected: number) => {
+        if (!categoryId) return false
+        const tol = Math.max(50, Math.round(expected * 0.05))
+        return existingExpenses?.some(
+          e =>
+            e.category_id === categoryId &&
+            (e.description === description || Math.abs(Number(e.amount) - expected) <= tol)
+        ) ?? false
+      }
+
+      const periodStart = `${period}-01`
 
       const expenses: Array<{
         user_id: string
@@ -492,57 +512,55 @@ export function useCreateExpensesFromLoans() {
         const interestDescription = `${loanTypeName} - ${loan.name} (Ränta)`
         const amortizationDescription = `${loanTypeName} - ${loan.name} (Amortering)`
 
-        // Calculate monthly interest
         const monthlyInterest = Math.round(loan.current_balance * (loan.interest_rate / 100 / 12))
+        const amortization = loan.monthly_amortization
 
-        // Check if interest expense already exists
-        const interestExists = existingExpenses?.some(
-          e => e.description === interestDescription && e.category_id === interestCategory?.id
-        )
+        // Only create transactions in 'register' mode, and only when not already booked
+        if (mode === 'register') {
+          if (monthlyInterest > 0 && interestCategory && !alreadyRegistered(interestCategory.id, interestDescription, monthlyInterest)) {
+            expenses.push({
+              user_id: user.id,
+              category_id: interestCategory.id,
+              amount: monthlyInterest,
+              description: interestDescription,
+              date,
+              cost_assignment: loan.is_shared ? 'shared' : 'personal',
+              is_ccm: false,
+            })
+          }
 
-        if (!interestExists && monthlyInterest > 0 && interestCategory) {
-          expenses.push({
-            user_id: user.id,
-            category_id: interestCategory.id,
-            amount: monthlyInterest,
-            description: interestDescription,
-            date,
-            cost_assignment: loan.is_shared ? 'shared' : 'personal',
-            is_ccm: false,
-          })
+          if (amortization > 0 && amortizationCategory && !alreadyRegistered(amortizationCategory.id, amortizationDescription, amortization)) {
+            expenses.push({
+              user_id: user.id,
+              category_id: amortizationCategory.id,
+              amount: amortization,
+              description: amortizationDescription,
+              date,
+              cost_assignment: loan.is_shared ? 'shared' : 'personal',
+              is_ccm: false,
+            })
+          }
         }
 
-        // Check if amortization expense already exists
-        const amortizationExists = existingExpenses?.some(
-          e => e.description === amortizationDescription && e.category_id === amortizationCategory?.id
-        )
-
-        if (!amortizationExists && loan.monthly_amortization > 0 && amortizationCategory) {
-          expenses.push({
-            user_id: user.id,
-            category_id: amortizationCategory.id,
-            amount: loan.monthly_amortization,
-            description: amortizationDescription,
-            date,
-            cost_assignment: loan.is_shared ? 'shared' : 'personal',
-            is_ccm: false,
-          })
-
-          // Track loan balance update
-          const newBalance = Math.max(0, loan.current_balance - loan.monthly_amortization)
+        // Balance reduction is decoupled from expense creation and guarded by
+        // last_amortization_date so it happens exactly once per period — in both
+        // modes, and even if the amortization was imported via CSV.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const lastAmort = (loan as any).last_amortization_date as string | null | undefined
+        const alreadyAmortizedThisPeriod = !!lastAmort && lastAmort >= periodStart
+        if (amortization > 0 && !alreadyAmortizedThisPeriod) {
+          const newBalance = Math.max(0, loan.current_balance - amortization)
           loansToUpdate.push({ id: loan.id, newBalance })
         }
       }
 
-      if (expenses.length === 0) {
-        return { created: 0, skipped: loans.length * 2, loansUpdated: 0, message: 'Alla utgifter finns redan för denna period' }
-      }
-
-      // Insert expenses
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: insertError } = await (supabase.from('expenses') as any).insert(expenses)
-      if (insertError) {
-        throw new Error(`Kunde inte skapa utgifter: ${insertError.message}`)
+      // Insert expenses (register mode only)
+      if (expenses.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: insertError } = await (supabase.from('expenses') as any).insert(expenses)
+        if (insertError) {
+          throw new Error(`Kunde inte skapa utgifter: ${insertError.message}`)
+        }
       }
 
       // Update loan balances
@@ -563,10 +581,30 @@ export function useCreateExpensesFromLoans() {
         }
       }
 
+      if (mode === 'calculate') {
+        return {
+          created: 0,
+          skipped: 0,
+          loansUpdated: loansUpdatedCount,
+          message: loansUpdatedCount > 0
+            ? `${loansUpdatedCount} lån omberäknade`
+            : 'Inget att omberäkna — redan gjort för perioden',
+        }
+      }
+
+      if (expenses.length === 0) {
+        return {
+          created: 0,
+          skipped: loans.length * 2,
+          loansUpdated: loansUpdatedCount,
+          message: 'Alla utgifter finns redan för denna period',
+        }
+      }
+
       return {
         created: expenses.length,
         skipped: (loans.length * 2) - expenses.length,
-        loansUpdated: loansUpdatedCount
+        loansUpdated: loansUpdatedCount,
       }
     },
     onSuccess: () => {

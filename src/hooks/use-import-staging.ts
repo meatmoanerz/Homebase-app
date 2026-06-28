@@ -22,6 +22,7 @@ export interface StagingRow {
   expires_at: string
   pinned: boolean
   bank: string | null
+  cardholder: string | null
   date: string
   description: string
   amount: number

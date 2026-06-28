@@ -7,7 +7,7 @@ import { useHouseholdIncome } from '@/hooks/use-incomes'
 import { useMonthlyIncomeTotal } from '@/hooks/use-monthly-incomes'
 import { useBudgetByPeriod } from '@/hooks/use-budgets'
 import { useCategories } from '@/hooks/use-categories'
-import { getCurrentBudgetPeriod, formatPeriodDisplay } from '@/lib/utils/budget-period'
+import { getCurrentBudgetPeriod, formatPeriodDisplay, shiftPeriod, getPeriodDates } from '@/lib/utils/budget-period'
 import { KPICards } from '@/components/dashboard/kpi-cards'
 import { SpendHero } from '@/components/dashboard/spend-hero'
 import { BudgetOverview } from '@/components/dashboard/budget-overview'
@@ -74,11 +74,17 @@ export default function DashboardPage() {
   }, [user, categories, setupDone, supabase, refetchCategories])
   const salaryDay = user?.salary_day || 25
   const currentPeriod = getCurrentBudgetPeriod(salaryDay)
-  
-  const { data: expenses = [], isLoading: expensesLoading } = useExpensesByPeriod(salaryDay)
+
+  // Selected period for the overview — defaults to current, steppable with arrows
+  const [selectedPeriod, setSelectedPeriod] = useState(currentPeriod.period)
+  const isCurrentPeriod = selectedPeriod === currentPeriod.period
+  const periodDates = getPeriodDates(selectedPeriod, salaryDay)
+  const periodRange = `${periodDates.startDate.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} – ${periodDates.endDate.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}`
+
+  const { data: expenses = [], isLoading: expensesLoading } = useExpensesByPeriod(selectedPeriod, salaryDay)
   const { data: householdIncome } = useHouseholdIncome()
-  const { data: monthlyIncomeTotal } = useMonthlyIncomeTotal(currentPeriod.period)
-  const { data: budget } = useBudgetByPeriod(currentPeriod.period)
+  const { data: monthlyIncomeTotal } = useMonthlyIncomeTotal(selectedPeriod)
+  const { data: budget } = useBudgetByPeriod(selectedPeriod)
 
   if (userLoading || expensesLoading) {
     return <DashboardSkeleton />
@@ -144,13 +150,16 @@ export default function DashboardPage() {
       >
         <h1 className="font-serif text-[32px] font-medium tracking-tight">Översikt</h1>
         <p className="text-sm text-muted-foreground">
-          Aktuell budgetperiod
+          {isCurrentPeriod ? 'Aktuell budgetperiod' : 'Tidigare/kommande period'}
         </p>
       </motion.div>
 
       {/* Period strip with arrows */}
       <PeriodStrip
-        label={formatPeriodDisplay(currentPeriod.period)}
+        label={formatPeriodDisplay(selectedPeriod)}
+        range={periodRange}
+        onPrevious={() => setSelectedPeriod((p) => shiftPeriod(p, -1))}
+        onNext={() => setSelectedPeriod((p) => shiftPeriod(p, 1))}
         className="pt-1"
       />
 

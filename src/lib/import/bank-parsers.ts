@@ -40,6 +40,8 @@ export interface NormalizedTransaction {
   description: string
   amount: number // positive for expenses, negative for refunds/income
   bank: 'SEB' | 'Swedbank' | 'Amex'
+  /** Card member first name (Amex only) — used to show who made the purchase */
+  cardholder?: string | null
   /** Original raw row for debugging / preserving notes */
   rawRow?: Record<string, string>
 }
@@ -255,6 +257,7 @@ function parseAmex(csvText: string): BankParseResult {
   const dateKey = find('Datum', 'Date')
   const descKey = find('Beskrivning', 'Description')
   const amountKey = find('Belopp', 'Amount')
+  const cardholderKey = find('Kortmedlem', 'Card Member')
 
   if (!dateKey || !descKey || !amountKey) {
     errors.push(
@@ -262,6 +265,13 @@ function parseAmex(csvText: string): BankParseResult {
       `Förväntar Datum/Date, Beskrivning/Description, Belopp/Amount.`
     )
     return { transactions, errors, detectedBank: 'Amex' }
+  }
+
+  // Extract first name from a "Card Member" value like "TIM ANDERSSON" -> "Tim"
+  const firstName = (full: string): string | null => {
+    const token = full.trim().split(/\s+/)[0]
+    if (!token) return null
+    return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase()
   }
 
   for (const row of result.data) {
@@ -277,6 +287,7 @@ function parseAmex(csvText: string): BankParseResult {
       description,
       amount: rawAmount,
       bank: 'Amex',
+      cardholder: cardholderKey ? firstName(row[cardholderKey] || '') : null,
       rawRow: row,
     })
   }
