@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useBudgets } from '@/hooks/use-budgets'
+import { useBudgets, type BudgetListEntry } from '@/hooks/use-budgets'
 import { useTemporaryBudgets } from '@/hooks/use-temporary-budgets'
 import { useExpensesByPeriod } from '@/hooks/use-expenses'
 import { useUser, usePartner } from '@/hooks/use-user'
@@ -14,7 +14,8 @@ import { getCurrency, formatCurrencyAmount, convertFromSEK } from '@/lib/utils/c
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, ChevronRight, ChevronDown, Calendar, Target, Archive, FolderOpen } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
-import type { Budget, TemporaryBudgetWithCategories } from '@/types'
+import type { TemporaryBudgetWithCategories } from '@/types'
+import { sumBudgetSplit } from '@/lib/utils/budget-split'
 
 export default function BudgetListPage() {
   const { data: user } = useUser()
@@ -106,6 +107,8 @@ export default function BudgetListPage() {
               hasPartner={hasPartner}
               userName={user?.first_name || 'Du'}
               partnerName={partner?.first_name || 'Partner'}
+              userId={user?.id}
+              partnerId={partner?.id}
             />
           ))}
         </div>
@@ -157,16 +160,18 @@ export default function BudgetListPage() {
 }
 
 interface BudgetCardProps {
-  budget: Budget
+  budget: BudgetListEntry
   index: number
   isCurrent: boolean
   salaryDay: number
   hasPartner: boolean
   userName: string
   partnerName: string
+  userId?: string
+  partnerId?: string | null
 }
 
-function BudgetCard({ budget, index, isCurrent, salaryDay, hasPartner, userName, partnerName }: BudgetCardProps) {
+function BudgetCard({ budget, index, isCurrent, salaryDay, hasPartner, userName, partnerName, userId, partnerId }: BudgetCardProps) {
   const { data: expenses } = useExpensesByPeriod(budget.period, salaryDay)
   const [expanded, setExpanded] = useState(false)
 
@@ -184,8 +189,15 @@ function BudgetCard({ budget, index, isCurrent, salaryDay, hasPartner, userName,
   }, [expenses])
 
   const budgetedExpenses = (budget.total_expenses || 0) + (budget.total_savings || 0)
-  const userBudget = budgetedExpenses / 2
-  const partnerBudget = budgetedExpenses / 2
+  // Per-person budget from explicit budget_item_assignments (50/50 fallback per item)
+  const { userBudget, partnerBudget } = useMemo(() => {
+    const items = budget.budget_items || []
+    if (items.length === 0) {
+      return { userBudget: budgetedExpenses / 2, partnerBudget: budgetedExpenses / 2 }
+    }
+    const split = sumBudgetSplit(items, userId, partnerId)
+    return { userBudget: split.user, partnerBudget: split.partner }
+  }, [budget.budget_items, budgetedExpenses, userId, partnerId])
   const spentRatio = budgetedExpenses > 0 ? (totalSpent / budgetedExpenses) * 100 : 0
   const remaining = budgetedExpenses - totalSpent
   const isOver = remaining < 0

@@ -19,6 +19,7 @@ import {
 import { formatCurrency } from '@/lib/utils/formatters'
 import { formatPeriodDisplay, getCurrentBudgetPeriod, getRecentPeriods } from '@/lib/utils/budget-period'
 import { cn } from '@/lib/utils/cn'
+import { splitBudgetItem } from '@/lib/utils/budget-split'
 
 export default function SharedAccountPage() {
   const router = useRouter()
@@ -111,18 +112,9 @@ export default function SharedAccountPage() {
     let partnerTotal = 0
 
     selectedItems.forEach(item => {
-      const userAssign = item.budget_item_assignments?.find(a => a.user_id === user?.id)
-      const partnerAssign = item.budget_item_assignments?.find(a => a.user_id === partner?.id)
-
-      if (userAssign || partnerAssign) {
-        const u = userAssign?.amount ?? (item.amount - (partnerAssign?.amount ?? 0))
-        const p = partnerAssign?.amount ?? (item.amount - (userAssign?.amount ?? 0))
-        userTotal += u
-        partnerTotal += p
-      } else {
-        userTotal += item.amount / 2
-        partnerTotal += item.amount / 2
-      }
+      const split = splitBudgetItem(item, user?.id, partner?.id)
+      userTotal += split.user
+      partnerTotal += split.partner
     })
 
     return { total, userTotal, partnerTotal, selectedCount: selectedItems.length, items: selectedItems }

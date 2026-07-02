@@ -481,13 +481,16 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
     if (allCategories.length === 0) return
 
     if (existingBudget?.budget_items) {
-      // Editing existing budget - use its values, restore assignments
+      // Editing existing budget - use its values, restore assignments.
+      // The assignment row may belong to either person (it's stored for whoever
+      // created the split), so check both and derive the other person's share.
       const items: Record<string, BudgetItemState> = {}
       existingBudget.budget_items.forEach(item => {
         if (item.category_id) {
-          const assignment = item.budget_item_assignments?.find(a => a.user_id === user?.id)
-          if (assignment) {
-            const userAmount = assignment.amount
+          const ownAssignment = item.budget_item_assignments?.find(a => a.user_id === user?.id)
+          const partnerAssignment = item.budget_item_assignments?.find(a => a.user_id === partner?.id)
+          if (ownAssignment || partnerAssignment) {
+            const userAmount = ownAssignment?.amount ?? (item.amount - (partnerAssignment?.amount ?? 0))
             const partnerAmount = item.amount - userAmount
             items[item.category_id] = {
               total: item.amount,

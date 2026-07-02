@@ -4,16 +4,24 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useReceipts, useProductSummary, useReceiptItems, usePriceHistory } from '@/hooks/use-receipts'
 import { formatCurrency, formatRelativeDate } from '@/lib/utils/formatters'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Receipt, Search, ChevronRight, X, Store } from 'lucide-react'
+import { Receipt, Search, ChevronRight, X, Store, ShoppingBasket } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { ReceiptsPageSkeleton } from '@/components/shared/page-skeletons'
 
 const PAGE_SIZE = 20
 
+type TabType = 'receipts' | 'products'
+
+const tabs = [
+  { id: 'receipts' as const, label: 'Kvitton', icon: Receipt },
+  { id: 'products' as const, label: 'Prisanalys', icon: ShoppingBasket },
+]
+
 export default function ReceiptsPage() {
   const { data: receipts = [], isLoading: receiptsLoading } = useReceipts()
   const { data: products = [], isLoading: productsLoading } = useProductSummary()
 
+  const [activeTab, setActiveTab] = useState<TabType>('receipts')
   const [productSearch, setProductSearch] = useState('')
   const [openReceiptId, setOpenReceiptId] = useState<string | null>(null)
   const [openProductId, setOpenProductId] = useState<string | null>(null)
@@ -115,12 +123,29 @@ export default function ReceiptsPage() {
             </div>
           </div>
 
-          <div className="md:grid md:grid-cols-2 md:gap-5 space-y-5 md:space-y-0">
+          {/* Tabs */}
+          <div className="flex gap-1 p-1 bg-muted/50 rounded-xl">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200',
+                  activeTab === tab.id
+                    ? 'bg-white dark:bg-card shadow-sm text-hb-cognac'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div>
             {/* Receipts list */}
+            {activeTab === 'receipts' && (
             <section>
-              <h2 className="font-serif text-[20px] font-medium tracking-tight pb-3">
-                Senaste kvitton
-              </h2>
               <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
                 {receipts.length === 0 ? (
                   <div className="px-4 py-8 text-center text-sm text-muted-foreground">
@@ -163,19 +188,18 @@ export default function ReceiptsPage() {
                 )}
               </div>
             </section>
+            )}
 
             {/* Price analysis */}
+            {activeTab === 'products' && (
             <section>
-              <div className="flex items-baseline justify-between pb-3">
-                <h2 className="font-serif text-[20px] font-medium tracking-tight">
-                  Prisanalys
-                </h2>
-                {filteredProducts.length > 0 && (
+              {filteredProducts.length > 0 && (
+                <div className="flex justify-end pb-2">
                   <span className="text-[11px] text-muted-foreground">
                     {filteredProducts.length} produkter
                   </span>
-                )}
-              </div>
+                </div>
+              )}
 
               <div className="flex items-center gap-2.5 bg-card border border-border rounded-xl px-3.5 py-2.5 mb-3">
                 <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -238,6 +262,7 @@ export default function ReceiptsPage() {
                 </>
               )}
             </section>
+            )}
           </div>
         </>
       )}

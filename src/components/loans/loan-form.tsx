@@ -71,7 +71,7 @@ export function LoanForm({ loan, onSuccess }: LoanFormProps) {
       monthly_amortization: loan?.monthly_amortization || 0,
       group_id: loan?.group_id || null,
       is_shared: loan?.is_shared || false,
-      include_in_budget: (loan as LoanWithBudgetFlag)?.include_in_budget || true, // Default to true for new loans
+      include_in_budget: (loan as LoanWithBudgetFlag)?.include_in_budget ?? true, // Default to true for new loans
     },
   })
 

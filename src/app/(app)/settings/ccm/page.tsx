@@ -4,14 +4,14 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { useCCMExpenses, groupExpensesByInvoicePeriod } from '@/hooks/use-expenses'
-import { useCCMInvoices, useUpsertCCMInvoice, type CCMInvoice } from '@/hooks/use-ccm-invoices'
+import { useCCMInvoices, useUpsertCCMInvoice, useSetCCMPeriodPaid, type CCMInvoice } from '@/hooks/use-ccm-invoices'
 import { useDeleteExpense } from '@/hooks/use-expenses'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { LoadingPage } from '@/components/shared/loading-spinner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ExpenseEditDialog } from '@/components/expenses/expense-edit-dialog'
-import { ArrowLeft, CreditCard, Settings, AlertTriangle, Users, UserCheck, Trash2, ChevronDown, ChevronUp, Calendar, Check, Receipt, Plus } from 'lucide-react'
+import { ArrowLeft, CreditCard, Settings, AlertTriangle, Users, UserCheck, Trash2, ChevronDown, ChevronUp, Calendar, Check, CheckCircle2, Undo2, Receipt, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency, formatRelativeDate } from '@/lib/utils/formatters'
 import { format } from 'date-fns'
@@ -59,9 +59,10 @@ interface InvoicePeriodCardProps {
   onDelete: (id: string, description: string) => void
   onEdit: (expense: ExpenseWithCategory) => void
   onUpdateInvoice: (period: string, amount: number) => void
+  onTogglePaid: (period: string, paid: boolean, actualAmount: number) => void
 }
 
-function InvoicePeriodCard({ period, expenses, invoice, user, partner, onDelete, onEdit, onUpdateInvoice }: InvoicePeriodCardProps) {
+function InvoicePeriodCard({ period, expenses, invoice, user, partner, onDelete, onEdit, onUpdateInvoice, onTogglePaid }: InvoicePeriodCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [editingAmount, setEditingAmount] = useState(false)
   const [invoiceInput, setInvoiceInput] = useState(invoice?.actual_amount?.toString() || '')
@@ -102,6 +103,12 @@ function InvoicePeriodCard({ period, expenses, invoice, user, partner, onDelete,
             {status === 'upcoming' && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-hb-tim/20 text-hb-tim font-medium">
                 Kommande
+              </span>
+            )}
+            {invoice?.paid_at && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-success/20 text-success font-medium inline-flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                Betald
               </span>
             )}
             {paymentSplit.hasWarning && (
@@ -279,6 +286,37 @@ function InvoicePeriodCard({ period, expenses, invoice, user, partner, onDelete,
                   </div>
                 ))
               )}
+
+              {/* Paid toggle */}
+              <div className="p-3 border-t border-border bg-muted/20">
+                {invoice?.paid_at ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-muted-foreground"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onTogglePaid(period, false, invoice?.actual_amount || 0)
+                    }}
+                  >
+                    <Undo2 className="w-4 h-4 mr-2" />
+                    Markera som obetald
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-success border-success/30 hover:bg-success/10"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onTogglePaid(period, true, invoice?.actual_amount || 0)
+                    }}
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Markera som betald
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </motion.div>
         )}
@@ -296,7 +334,9 @@ export default function CCMDashboardPage() {
   const { data: invoices = [] } = useCCMInvoices()
   const deleteExpense = useDeleteExpense()
   const upsertInvoice = useUpsertCCMInvoice()
+  const setPeriodPaid = useSetCCMPeriodPaid()
   const [groupPurchaseOpen, setGroupPurchaseOpen] = useState(false)
+  const [showPaidPeriods, setShowPaidPeriods] = useState(false)
   const [editExpense, setEditExpense] = useState<ExpenseWithCategory | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editGroupPurchase, setEditGroupPurchase] = useState<ExpenseWithCategory | null>(null)
@@ -337,6 +377,15 @@ export default function CCMDashboardPage() {
       toast.success('Fakturabelopp sparat')
     } catch {
       toast.error('Kunde inte spara fakturabelopp')
+    }
+  }
+
+  const handleTogglePaid = async (period: string, paid: boolean, actualAmount: number) => {
+    try {
+      await setPeriodPaid.mutateAsync({ period, paid, actualAmount })
+      toast.success(paid ? 'Period markerad som betald' : 'Period markerad som obetald')
+    } catch {
+      toast.error('Kunde inte uppdatera perioden')
     }
   }
 
@@ -481,27 +530,79 @@ export default function CCMDashboardPage() {
           </Card>
         </motion.div>
       ) : (
-        <div className="space-y-3">
-          {Array.from(groupedExpenses.entries()).map(([period, expenses], index) => (
-            <motion.div
-              key={period}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 + index * 0.05 }}
-            >
-              <InvoicePeriodCard
-                period={period}
-                expenses={expenses}
-                invoice={invoiceMap.get(period)}
-                user={{ id: user.id, first_name: user.first_name }}
-                partner={partner ? { id: partner.id, first_name: partner.first_name } : null}
-                onDelete={handleDelete}
-                onEdit={handleEditExpense}
-                onUpdateInvoice={handleUpdateInvoice}
-              />
-            </motion.div>
-          ))}
-        </div>
+        <>
+          {/* Unpaid periods */}
+          <div className="space-y-3">
+            {Array.from(groupedExpenses.entries())
+              .filter(([period]) => !invoiceMap.get(period)?.paid_at)
+              .map(([period, expenses], index) => (
+                <motion.div
+                  key={period}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 + index * 0.05 }}
+                >
+                  <InvoicePeriodCard
+                    period={period}
+                    expenses={expenses}
+                    invoice={invoiceMap.get(period)}
+                    user={{ id: user.id, first_name: user.first_name }}
+                    partner={partner ? { id: partner.id, first_name: partner.first_name } : null}
+                    onDelete={handleDelete}
+                    onEdit={handleEditExpense}
+                    onUpdateInvoice={handleUpdateInvoice}
+                    onTogglePaid={handleTogglePaid}
+                  />
+                </motion.div>
+              ))}
+          </div>
+
+          {/* Paid periods — collapsed archive so the list stays short */}
+          {(() => {
+            const paidPeriods = Array.from(groupedExpenses.entries())
+              .filter(([period]) => !!invoiceMap.get(period)?.paid_at)
+            if (paidPeriods.length === 0) return null
+            return (
+              <div className="space-y-3">
+                <button
+                  onClick={() => setShowPaidPeriods(v => !v)}
+                  className="w-full flex items-center justify-between px-1 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-success" />
+                    Betalda perioder ({paidPeriods.length})
+                  </span>
+                  <ChevronDown className={cn('w-4 h-4 transition-transform', showPaidPeriods && 'rotate-180')} />
+                </button>
+                <AnimatePresence>
+                  {showPaidPeriods && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="space-y-3 overflow-hidden"
+                    >
+                      {paidPeriods.map(([period, expenses]) => (
+                        <InvoicePeriodCard
+                          key={period}
+                          period={period}
+                          expenses={expenses}
+                          invoice={invoiceMap.get(period)}
+                          user={{ id: user.id, first_name: user.first_name }}
+                          partner={partner ? { id: partner.id, first_name: partner.first_name } : null}
+                          onDelete={handleDelete}
+                          onEdit={handleEditExpense}
+                          onUpdateInvoice={handleUpdateInvoice}
+                          onTogglePaid={handleTogglePaid}
+                        />
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )
+          })()}
+        </>
       )}
 
       <GroupPurchaseWizard

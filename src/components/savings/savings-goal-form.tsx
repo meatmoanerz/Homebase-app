@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { useCreateSavingsGoal } from '@/hooks/use-savings-goals'
+import { useCreateSavingsGoal, useUpdateSavingsGoal } from '@/hooks/use-savings-goals'
 import { useCustomGoalTypes, useCreateCustomGoalType } from '@/hooks/use-custom-goal-types'
 import { usePartner } from '@/hooks/use-user'
 import { toast } from 'sonner'
@@ -15,7 +15,7 @@ import { Loader2, ChevronDown, Check, Target, Wallet, Calendar, PiggyBank, Plus,
 import { format, addMonths } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
-import type { GoalCategory, CustomGoalType } from '@/types'
+import type { GoalCategory, CustomGoalType, SavingsGoalWithCategory } from '@/types'
 
 const defaultGoalCategoryIcons: Record<GoalCategory, string> = {
   emergency: '🛡️',
@@ -54,18 +54,22 @@ type SavingsGoalFormData = z.infer<typeof savingsGoalSchema>
 
 interface SavingsGoalFormProps {
   onSuccess?: () => void
+  /** When provided, the form edits this goal instead of creating a new one */
+  goal?: SavingsGoalWithCategory | null
 }
 
-export function SavingsGoalForm({ onSuccess }: SavingsGoalFormProps) {
+export function SavingsGoalForm({ onSuccess, goal }: SavingsGoalFormProps) {
   const { data: partner } = usePartner()
   const { data: customGoalTypes = [] } = useCustomGoalTypes()
   const createGoal = useCreateSavingsGoal()
+  const updateGoal = useUpdateSavingsGoal()
   const createCustomType = useCreateCustomGoalType()
   const hasPartner = !!partner
+  const isEditing = !!goal
 
-  const [amountDisplay, setAmountDisplay] = useState('')
-  const [startingDisplay, setStartingDisplay] = useState('')
-  const [monthlyDisplay, setMonthlyDisplay] = useState('')
+  const [amountDisplay, setAmountDisplay] = useState(goal?.target_amount ? goal.target_amount.toString() : '')
+  const [startingDisplay, setStartingDisplay] = useState(goal ? (goal.starting_balance || 0).toString() : '')
+  const [monthlyDisplay, setMonthlyDisplay] = useState(goal?.monthly_savings_amount ? goal.monthly_savings_amount.toString() : '')
   const [goalTypeOpen, setGoalTypeOpen] = useState(false)
   const [showAddCustomType, setShowAddCustomType] = useState(false)
   const [newCustomTypeName, setNewCustomTypeName] = useState('')
@@ -78,16 +82,16 @@ export function SavingsGoalForm({ onSuccess }: SavingsGoalFormProps) {
   const form = useForm<SavingsGoalFormData>({
     resolver: zodResolver(savingsGoalSchema),
     defaultValues: {
-      name: '',
-      description: '',
-      target_amount: 0,
-      target_date: format(addMonths(new Date(), 12), 'yyyy-MM-dd'),
-      starting_balance: 0,
-      monthly_savings_enabled: false,
-      monthly_savings_amount: 0,
-      goal_category: 'other',
-      custom_goal_type_id: null,
-      is_shared: false,
+      name: goal?.name || '',
+      description: goal?.description || '',
+      target_amount: goal?.target_amount || 0,
+      target_date: goal?.target_date || format(addMonths(new Date(), 12), 'yyyy-MM-dd'),
+      starting_balance: goal?.starting_balance || 0,
+      monthly_savings_enabled: goal?.monthly_savings_enabled || false,
+      monthly_savings_amount: goal?.monthly_savings_amount || 0,
+      goal_category: (goal?.goal_category as GoalCategory) || 'other',
+      custom_goal_type_id: goal?.custom_goal_type_id || null,
+      is_shared: goal?.is_shared || false,
     },
   })
 
@@ -178,6 +182,25 @@ export function SavingsGoalForm({ onSuccess }: SavingsGoalFormProps) {
 
   async function onSubmit(data: SavingsGoalFormData) {
     try {
+      if (isEditing && goal) {
+        await updateGoal.mutateAsync({
+          id: goal.id,
+          name: data.name,
+          description: data.description || null,
+          target_amount: data.target_amount,
+          target_date: data.target_date || null,
+          starting_balance: data.starting_balance,
+          monthly_savings_enabled: data.monthly_savings_enabled,
+          monthly_savings_amount: data.monthly_savings_amount,
+          goal_category: data.goal_category,
+          custom_goal_type_id: data.custom_goal_type_id,
+          is_shared: data.is_shared,
+        })
+        toast.success('Sparmål uppdaterat!')
+        onSuccess?.()
+        return
+      }
+
       await createGoal.mutateAsync({
         name: data.name,
         description: data.description,
@@ -513,15 +536,15 @@ export function SavingsGoalForm({ onSuccess }: SavingsGoalFormProps) {
       <Button
         type="submit"
         className="w-full h-11"
-        disabled={createGoal.isPending}
+        disabled={createGoal.isPending || updateGoal.isPending}
       >
-        {createGoal.isPending ? (
+        {(createGoal.isPending || updateGoal.isPending) ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Sparar...
           </>
         ) : (
-          'Skapa sparmål'
+          isEditing ? 'Spara ändringar' : 'Skapa sparmål'
         )}
       </Button>
     </form>

@@ -2,8 +2,17 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import type { Budget, BudgetWithItems } from '@/types'
+import type { Budget, BudgetWithItems, BudgetItemAssignment } from '@/types'
 import type { InsertTables, UpdateTables, Tables } from '@/types/database'
+
+export type BudgetListEntry = Budget & {
+  budget_items?: {
+    id: string
+    amount: number
+    category_id: string | null
+    budget_item_assignments?: BudgetItemAssignment[]
+  }[]
+}
 
 export function useBudgets() {
   const supabase = createClient()
@@ -13,11 +22,19 @@ export function useBudgets() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('budgets')
-        .select('*')
+        .select(`
+          *,
+          budget_items(
+            id,
+            amount,
+            category_id,
+            budget_item_assignments(*)
+          )
+        `)
         .order('period', { ascending: false })
 
       if (error) throw error
-      return data as Budget[]
+      return data as BudgetListEntry[]
     },
   })
 }

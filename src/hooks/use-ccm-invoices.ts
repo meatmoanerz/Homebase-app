@@ -9,6 +9,7 @@ export interface CCMInvoice {
   period: string
   actual_amount: number
   notes: string | null
+  paid_at: string | null
   created_at: string
   updated_at: string
 }
@@ -69,6 +70,41 @@ export function useUpsertCCMInvoice() {
             period,
             actual_amount,
             notes,
+          },
+          { onConflict: 'user_id,period' }
+        )
+        .select()
+        .single()
+
+      if (error) throw error
+      return data as CCMInvoice
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ccm-invoices'] })
+    },
+  })
+}
+
+// Mark an invoice period as paid/unpaid.
+// Upserts the ccm_invoices row so it works even for periods without a saved invoice amount.
+export function useSetCCMPeriodPaid() {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ period, paid, actualAmount }: { period: string; paid: boolean; actualAmount?: number }) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from('ccm_invoices')
+        .upsert(
+          {
+            user_id: user.id,
+            period,
+            actual_amount: actualAmount ?? 0,
+            paid_at: paid ? new Date().toISOString() : null,
           },
           { onConflict: 'user_id,period' }
         )

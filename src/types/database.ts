@@ -486,6 +486,7 @@ export type Database = {
           monthly_amortization: number
           last_amortization_date: string | null
           is_shared: boolean
+          include_in_budget: boolean
           created_at: string
           updated_at: string
         }
@@ -500,6 +501,7 @@ export type Database = {
           monthly_amortization?: number
           last_amortization_date?: string | null
           is_shared?: boolean
+          include_in_budget?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -514,6 +516,7 @@ export type Database = {
           monthly_amortization?: number
           last_amortization_date?: string | null
           is_shared?: boolean
+          include_in_budget?: boolean
           created_at?: string
           updated_at?: string
         }

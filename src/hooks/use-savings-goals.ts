@@ -34,9 +34,10 @@ export function useSavingsGoals() {
         throw error
       }
 
-      // Filter to active or null status in JS instead of in query
+      // Filter out archived goals — keep active, completed, and null status
+      // (completed goals are shown in the "Uppnådda" tab)
       const goals = (data || []).filter((goal: SavingsGoalWithCategory) => {
-        return goal.status === 'active' || goal.status === null || goal.status === undefined
+        return goal.status !== 'archived'
       }) as SavingsGoalWithCategory[]
 
       return goals

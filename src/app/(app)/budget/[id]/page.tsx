@@ -34,6 +34,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { BudgetItem, Category, ExpenseWithCategory } from '@/types'
+import { budgetAmountForView, type SplittableBudgetItem } from '@/lib/utils/budget-split'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -88,13 +89,13 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
   }, [budget])
 
   // Calculate cashflow: budgeted expenses excluding credit card items
+  // Per-person amounts come from budget_item_assignments (50/50 only as fallback)
   const cashflow = useMemo(() => {
     if (!budget?.budget_items) return 0
-    const budgetMultiplier = viewMode === 'total' ? 1 : 0.5
     return budget.budget_items
       .filter(item => !item.is_ccm && (item.type === 'fixedExpense' || item.type === 'variableExpense'))
-      .reduce((sum, item) => sum + (item.amount * budgetMultiplier), 0)
-  }, [budget, viewMode])
+      .reduce((sum, item) => sum + budgetAmountForView(item, viewMode, user?.id, partner?.id), 0)
+  }, [budget, viewMode, user?.id, partner?.id])
 
   // Calculate actual spending per category based on view mode
   // - total: all expenses at full amount (household view)
@@ -186,14 +187,15 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
   }, [groupedItems, unbudgetedByCategory, budget])
 
   // Calculate totals based on view mode
-  // When viewing individual user, split the budget amount 50/50
+  // Per-person budget amounts come from explicit budget_item_assignments,
+  // with 50/50 as fallback when no assignment exists
   const totals = useMemo(() => {
-    // Helper to get budget amount based on view mode
-    const budgetMultiplier = viewMode === 'total' ? 1 : 0.5
+    const itemBudget = (item: BudgetItem & SplittableBudgetItem) =>
+      budgetAmountForView(item, viewMode, user?.id, partner?.id)
 
-    const fixedBudgeted = enhancedGroupedItems.fixed.reduce((sum, item) => sum + (item.amount * budgetMultiplier), 0)
-    const variableBudgeted = enhancedGroupedItems.variable.reduce((sum, item) => sum + (item.amount * budgetMultiplier), 0)
-    const savingsBudgeted = enhancedGroupedItems.savings.reduce((sum, item) => sum + (item.amount * budgetMultiplier), 0)
+    const fixedBudgeted = enhancedGroupedItems.fixed.reduce((sum, item) => sum + itemBudget(item), 0)
+    const variableBudgeted = enhancedGroupedItems.variable.reduce((sum, item) => sum + itemBudget(item), 0)
+    const savingsBudgeted = enhancedGroupedItems.savings.reduce((sum, item) => sum + itemBudget(item), 0)
 
     const fixedActual = enhancedGroupedItems.fixed.reduce((sum, item) => sum + (actualSpending[item.category_id || ''] || 0), 0)
     const variableActual = enhancedGroupedItems.variable.reduce((sum, item) => sum + (actualSpending[item.category_id || ''] || 0), 0)
@@ -209,7 +211,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
       totalBudgeted: fixedBudgeted + variableBudgeted + savingsBudgeted,
       totalActual: fixedActual + variableActual,
     }
-  }, [enhancedGroupedItems, actualSpending, viewMode])
+  }, [enhancedGroupedItems, actualSpending, viewMode, user?.id, partner?.id])
 
   // Get expenses filtered by category and view mode
   const getExpensesForCategory = (categoryId: string) => {
@@ -280,8 +282,14 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
   }
 
   const isCurrent = budget.period === currentPeriod.period
-  // Income also follows view mode - split 50/50 for individual views
-  const displayIncome = viewMode === 'total' ? budget.total_income : budget.total_income / 2
+  // Income also follows view mode — use each person's actual incomes when available
+  const ownIncome = householdIncomes?.filter(i => i.is_own).reduce((s, i) => s + i.amount, 0)
+  const partnerIncome = householdIncomes?.filter(i => !i.is_own).reduce((s, i) => s + i.amount, 0)
+  const displayIncome = viewMode === 'total'
+    ? budget.total_income
+    : viewMode === 'mine'
+      ? (ownIncome ?? budget.total_income / 2)
+      : (partnerIncome ?? budget.total_income / 2)
   // Calculate remaining: Total budgeted (fixed + variable + savings) - Actual spent
   // All money going out should be counted - both expenses and savings
   const remaining = totals.totalBudgeted - totals.totalActual
@@ -561,7 +569,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
           actualTotal={totals.fixedActual}
           delay={0.15}
           onCategoryClick={handleCategoryClick}
-          viewMode={viewMode}
+          getItemBudget={(item) => budgetAmountForView(item, viewMode, user?.id, partner?.id)}
         />
       )}
 
@@ -576,7 +584,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
           actualTotal={totals.variableActual}
           delay={0.2}
           onCategoryClick={handleCategoryClick}
-          viewMode={viewMode}
+          getItemBudget={(item) => budgetAmountForView(item, viewMode, user?.id, partner?.id)}
         />
       )}
 
@@ -592,7 +600,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
           delay={0.25}
           accentColor="success"
           onCategoryClick={handleCategoryClick}
-          viewMode={viewMode}
+          getItemBudget={(item) => budgetAmountForView(item, viewMode, user?.id, partner?.id)}
         />
       )}
 
@@ -691,7 +699,8 @@ interface BudgetSectionProps {
   delay: number
   accentColor?: 'default' | 'success'
   onCategoryClick?: (item: BudgetItem) => void
-  viewMode?: BudgetViewMode
+  /** Returns budgeted amount for the item in the current view mode (assignments-aware) */
+  getItemBudget: (item: BudgetItem) => number
 }
 
 function BudgetSection({
@@ -704,15 +713,9 @@ function BudgetSection({
   delay,
   accentColor = 'default',
   onCategoryClick,
-  viewMode = 'total',
+  getItemBudget,
 }: BudgetSectionProps) {
   const isOverBudget = actualTotal > budgetedTotal
-
-  // Helper function to get budget amount based on view mode
-  const getItemBudget = (amount: number) => {
-    if (viewMode === 'total') return amount
-    return amount / 2 // 50/50 split for individual views
-  }
 
   return (
     <motion.div
@@ -751,7 +754,7 @@ function BudgetSection({
         <CardContent className="space-y-3">
           {items.map(item => {
             const actual = actualSpending[item.category_id || ''] || 0
-            const budgeted = getItemBudget(item.amount)
+            const budgeted = getItemBudget(item)
             const itemPercentage = budgeted > 0 ? (actual / budgeted) * 100 : (actual > 0 ? 100 : 0)
             const itemOverBudget = actual > budgeted
 

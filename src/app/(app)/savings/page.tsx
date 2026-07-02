@@ -5,6 +5,8 @@ import { SavingsGoalForm } from '@/components/savings/savings-goal-form'
 import { SavingsGoalCard } from '@/components/savings/savings-goal-card'
 import { Card, CardContent } from '@/components/ui/card'
 import { useSavingsGoals } from '@/hooks/use-savings-goals'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import type { SavingsGoalWithCategory } from '@/types'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Target, CheckCircle2, PiggyBank, TrendingUp } from 'lucide-react'
@@ -26,10 +28,11 @@ const subtitles: Record<TabType, string> = {
 
 export default function SavingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('active')
+  const [editingGoal, setEditingGoal] = useState<SavingsGoalWithCategory | null>(null)
   const { data: savingsGoals = [], isLoading } = useSavingsGoals()
 
-  // Separate active and completed goals
-  const activeGoals = savingsGoals.filter(g => g.status === 'active')
+  // Separate active and completed goals (null status counts as active)
+  const activeGoals = savingsGoals.filter(g => g.status === 'active' || !g.status)
   const completedGoals = savingsGoals.filter(g => g.status === 'completed')
 
   // Calculate totals - for shared goals, use user amounts; for personal goals, use starting_balance
@@ -189,7 +192,7 @@ export default function SavingsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <SavingsGoalCard goal={goal} />
+                  <SavingsGoalCard goal={goal} onEdit={setEditingGoal} />
                 </motion.div>
               ))
             )}
@@ -246,13 +249,28 @@ export default function SavingsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <SavingsGoalCard goal={goal} />
+                  <SavingsGoalCard goal={goal} onEdit={setEditingGoal} />
                 </motion.div>
               ))
             )}
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Edit goal dialog */}
+      <Dialog open={!!editingGoal} onOpenChange={(open) => !open && setEditingGoal(null)}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Redigera sparmål</DialogTitle>
+          </DialogHeader>
+          {editingGoal && (
+            <SavingsGoalForm
+              goal={editingGoal}
+              onSuccess={() => setEditingGoal(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
