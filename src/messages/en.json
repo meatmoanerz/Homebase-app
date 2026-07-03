@@ -219,7 +219,7 @@
     "nextInvoice": "Next invoice",
     "totalCCMExpenses": "Total credit card expenses",
     "groupPurchase": {
-      "title": "Add group purchase",
+      "title": "Register outlay",
       "subtitle": "Register a bill where others reimbursed you via Swish",
       "totalAmount": "Total amount",
       "description": "Description",
@@ -250,9 +250,9 @@
       "sumExceedsTotal": "Sum exceeds total amount",
       "sumDoesNotMatch": "Amount does not match total",
       "sum": "Sum",
-      "create": "Create group purchase",
-      "saved": "Group purchase saved!",
-      "couldNotSave": "Could not save group purchase",
+      "create": "Save outlay",
+      "saved": "Outlay saved!",
+      "couldNotSave": "Could not save outlay",
       "step": "Step {current} of {total}"
     }
   },

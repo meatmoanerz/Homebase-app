@@ -255,7 +255,7 @@
     "nextInvoice": "Nästa faktura",
     "totalCCMExpenses": "Totala kreditkortsutgifter",
     "groupPurchase": {
-      "title": "Lägg till gruppköp",
+      "title": "Registrera utlägg",
       "subtitle": "Registrera hel nota där andra swishat dig",
       "totalAmount": "Totalt belopp",
       "description": "Beskrivning",
@@ -286,9 +286,9 @@
       "sumExceedsTotal": "Summan överstiger totalbeloppet",
       "sumDoesNotMatch": "Beloppet matchar inte totalsumman",
       "sum": "Summa",
-      "create": "Skapa gruppköp",
-      "saved": "Gruppköp sparat!",
-      "couldNotSave": "Kunde inte spara gruppköp",
+      "create": "Spara utlägg",
+      "saved": "Utlägg sparat!",
+      "couldNotSave": "Kunde inte spara utlägget",
       "step": "Steg {current} av {total}"
     }
   },
@@ -459,4 +459,3 @@
     }
   }
 }
-

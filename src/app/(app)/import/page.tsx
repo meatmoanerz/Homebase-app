@@ -12,10 +12,13 @@ import { parseBankCsv, detectBank, decodeCsvBuffer, type BankParseResult } from 
 import { formatCurrency } from '@/lib/utils/formatters'
 import { useUser } from '@/hooks/use-user'
 import { useImportBatches, useStagingRows, useUpdateStagingRow, useToggleBatchPin, useDeleteBatch, type StagingBatch, type StagingRow } from '@/hooks/use-import-staging'
+import { usePartner } from '@/hooks/use-user'
+import { UtlaggSplitDialog, type UtlaggSplit } from '@/components/ccm/utlagg-dialog'
+import { deriveCostAssignment } from '@/hooks/use-utlagg'
 import { CategoryCombobox } from '@/components/import/category-combobox'
 import { createClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, FileText, CheckCircle2, AlertTriangle, Download, X, ArrowLeft, Sparkles, Pin, PinOff, Trash2, Clock, ChevronRight, Loader2 } from 'lucide-react'
+import { Upload, FileText, CheckCircle2, AlertTriangle, Download, X, ArrowLeft, Sparkles, Pin, PinOff, Trash2, Clock, ChevronRight, Loader2, HandCoins } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
@@ -40,11 +43,13 @@ interface PreviewRow {
   mappingId: string | null
   warnings: string[]
   skip: boolean
+  utlagg: UtlaggSplit | null
 }
 
 export default function ImportPage() {
   const router = useRouter()
   const { data: user } = useUser()
+  const { data: partner } = usePartner()
   const { data: categories = [] } = useCategories()
   const { data: mappings = [] } = useCategoryMappings()
   const createExpense = useCreateExpense()
@@ -78,6 +83,10 @@ export default function ImportPage() {
   const [bulkMode, setBulkMode] = useState(false)
   const [bulkSelected, setBulkSelected] = useState<Set<number>>(new Set())
   const [bulkCategoryId, setBulkCategoryId] = useState<string | null>(null)
+  // Utlägg split dialog: which row is being edited
+  const [splitTarget, setSplitTarget] = useState<
+    { kind: 'preview'; index: number } | { kind: 'staging'; id: number } | null
+  >(null)
 
   const categoryByName = new Map(categories.map((c) => [c.name.toLowerCase(), c]))
   const categoryById = new Map(categories.map((c) => [c.id, c]))
@@ -101,6 +110,7 @@ export default function ImportPage() {
         mappingId: null,
         warnings: r.warnings,
         skip: false,
+        utlagg: null,
       }
     })
     setPreviewRows(rows)
@@ -129,6 +139,7 @@ export default function ImportPage() {
           mappingId: match?.id ?? null,
           warnings: !match ? ['Ingen automatisk kategorimatchning'] : [],
           skip: false,
+          utlagg: null,
         }
       })
       setPreviewRows(rows)
@@ -227,14 +238,28 @@ export default function ImportPage() {
     let imported = 0
     for (const row of rowsToImport) {
       try {
+        const utlagg = row.utlagg
+        const budgetAmount = utlagg
+          ? Math.round((utlagg.userShare + utlagg.partnerShare) * 100) / 100
+          : row.amount
         await createExpense.mutateAsync({
           date: row.date,
           description: row.description,
-          amount: row.amount,
+          amount: budgetAmount,
           category_id: row.selectedCategoryId,
-          cost_assignment: row.costAssignment,
+          cost_assignment: utlagg
+            ? deriveCostAssignment(utlagg.userShare, utlagg.partnerShare)
+            : row.costAssignment,
           is_ccm: row.onCreditCard,
           bank: row.bank,
+          ...(utlagg && {
+            is_group_purchase: true,
+            group_purchase_total: row.amount,
+            group_purchase_user_share: utlagg.userShare,
+            group_purchase_partner_share: utlagg.partnerShare,
+            group_purchase_swish_amount: Math.round((row.amount - budgetAmount) * 100) / 100,
+            group_purchase_swish_recipient: utlagg.swishRecipient,
+          }),
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any)
         imported++
@@ -324,14 +349,26 @@ export default function ImportPage() {
 
     for (const row of rowsToImport) {
       try {
+        const isUtlagg = row.is_group_purchase
+        const uShare = row.group_purchase_user_share || 0
+        const pShare = row.group_purchase_partner_share || 0
+        const budgetAmount = isUtlagg ? Math.round((uShare + pShare) * 100) / 100 : row.amount
         await createExpense.mutateAsync({
           date: row.date,
           description: row.description,
-          amount: row.amount,
+          amount: budgetAmount,
           category_id: row.category_id,
-          cost_assignment: row.cost_assignment,
+          cost_assignment: isUtlagg ? deriveCostAssignment(uShare, pShare) : row.cost_assignment,
           is_ccm: row.is_ccm,
           bank: row.bank,
+          ...(isUtlagg && {
+            is_group_purchase: true,
+            group_purchase_total: row.amount,
+            group_purchase_user_share: uShare,
+            group_purchase_partner_share: pShare,
+            group_purchase_swish_amount: Math.round((row.amount - budgetAmount) * 100) / 100,
+            group_purchase_swish_recipient: row.group_purchase_swish_recipient || 'user',
+          }),
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any)
         imported++
@@ -573,6 +610,7 @@ export default function ImportPage() {
                         bulkMode={bulkMode}
                         bulkChecked={bulkSelected.has(row.id)}
                         onBulkToggle={() => toggleBulkRow(row.id)}
+                        onOpenUtlagg={() => setSplitTarget({ kind: 'staging', id: row.id })}
                       />
                     )
                   })}
@@ -767,6 +805,7 @@ export default function ImportPage() {
                   ruleSaved={savedRuleRows.has(idx)}
                   showSaveRule={mode === 'bank'}
                   assignmentOptions={assignmentOptions}
+                  onOpenUtlagg={() => setSplitTarget({ kind: 'preview', index: idx })}
                 />
               ))}
             </div>
@@ -828,6 +867,69 @@ export default function ImportPage() {
           </div>
         </motion.div>
       )}
+
+      {/* Utlägg split dialog (shared by bank preview + AI review) */}
+      {(() => {
+        const target = splitTarget
+        if (!target) return null
+        let total = 0
+        let description = ''
+        let initial: UtlaggSplit | null = null
+        if (target.kind === 'preview') {
+          const row = previewRows[target.index]
+          if (!row) return null
+          total = row.amount
+          description = row.description
+          initial = row.utlagg
+        } else {
+          const row = stagingRows.find((r) => r.id === target.id)
+          if (!row) return null
+          const merged = getMergedRow(row)
+          total = merged.amount
+          description = merged.description
+          initial = merged.is_group_purchase
+            ? {
+                userShare: merged.group_purchase_user_share || 0,
+                partnerShare: merged.group_purchase_partner_share || 0,
+                swishRecipient: merged.group_purchase_swish_recipient || 'user',
+              }
+            : null
+        }
+        return (
+          <UtlaggSplitDialog
+            open
+            onOpenChange={(o) => { if (!o) setSplitTarget(null) }}
+            total={total}
+            description={description}
+            partnerName={partner?.first_name ?? null}
+            initial={initial}
+            onSave={(split) => {
+              if (target.kind === 'preview') {
+                updateRow(target.index, { utlagg: split })
+              } else {
+                updateStagingEdit(target.id, {
+                  is_group_purchase: true,
+                  group_purchase_user_share: split.userShare,
+                  group_purchase_partner_share: split.partnerShare,
+                  group_purchase_swish_recipient: split.swishRecipient,
+                })
+              }
+            }}
+            onRemove={() => {
+              if (target.kind === 'preview') {
+                updateRow(target.index, { utlagg: null })
+              } else {
+                updateStagingEdit(target.id, {
+                  is_group_purchase: false,
+                  group_purchase_user_share: null,
+                  group_purchase_partner_share: null,
+                  group_purchase_swish_recipient: null,
+                })
+              }
+            }}
+          />
+        )
+      })()}
     </div>
   )
 }
@@ -943,7 +1045,7 @@ function BatchCard({
 }
 
 function AiPreviewRow({
-  row, categories, assignmentOptions, onUpdate, bulkMode, bulkChecked, onBulkToggle,
+  row, categories, assignmentOptions, onUpdate, bulkMode, bulkChecked, onBulkToggle, onOpenUtlagg,
 }: {
   row: StagingRow
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -953,9 +1055,13 @@ function AiPreviewRow({
   bulkMode: boolean
   bulkChecked: boolean
   onBulkToggle: () => void
+  onOpenUtlagg: () => void
 }) {
   const isDuplicate = row.dup_existing
   const isBlank = !row.category_id
+  const utlaggBudget = row.is_group_purchase
+    ? Math.round(((row.group_purchase_user_share || 0) + (row.group_purchase_partner_share || 0)) * 100) / 100
+    : null
 
   return (
     <div
@@ -1006,15 +1112,31 @@ function AiPreviewRow({
           error={isBlank && row.selected}
         />
 
-        <select
-          value={row.cost_assignment}
-          onChange={(e) => onUpdate({ cost_assignment: e.target.value as 'personal' | 'shared' | 'partner' })}
-          className="text-[11px] bg-secondary border border-border rounded-full px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-hb-cognac"
+        {utlaggBudget === null && (
+          <select
+            value={row.cost_assignment}
+            onChange={(e) => onUpdate({ cost_assignment: e.target.value as 'personal' | 'shared' | 'partner' })}
+            className="text-[11px] bg-secondary border border-border rounded-full px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-hb-cognac"
+          >
+            {assignmentOptions.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        )}
+
+        <button
+          type="button"
+          onClick={onOpenUtlagg}
+          className={cn(
+            'text-[11px] font-medium rounded-full px-2.5 py-1 flex items-center gap-1 border transition-colors',
+            utlaggBudget !== null
+              ? 'bg-hb-cognac/15 text-hb-cognac-deep border-hb-cognac/40'
+              : 'bg-secondary border-border text-muted-foreground hover:border-hb-cognac/50'
+          )}
         >
-          {assignmentOptions.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+          <HandCoins className="w-3 h-3" />
+          {utlaggBudget !== null ? `Utlägg · ${formatCurrency(utlaggBudget)} i budget` : 'Utlägg'}
+        </button>
 
         <label className="text-[11px] text-muted-foreground flex items-center gap-1 cursor-pointer ml-auto">
           <input
@@ -1051,7 +1173,7 @@ function StatCard({ label, value, accent, isCurrency }: { label: string; value: 
 }
 
 function PreviewRowItem({
-  row, categories, categoryById, onUpdate, onSaveRule, ruleSaved, showSaveRule, assignmentOptions,
+  row, categories, categoryById, onUpdate, onSaveRule, ruleSaved, showSaveRule, assignmentOptions, onOpenUtlagg,
 }: {
   row: PreviewRow
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1063,9 +1185,13 @@ function PreviewRowItem({
   ruleSaved: boolean
   showSaveRule: boolean
   assignmentOptions: { value: 'personal' | 'shared' | 'partner'; label: string }[]
+  onOpenUtlagg: () => void
 }) {
   const canSaveRule =
     showSaveRule && !row.suggestedCategoryId && !!row.selectedCategoryId && !ruleSaved
+  const utlaggBudget = row.utlagg
+    ? Math.round((row.utlagg.userShare + row.utlagg.partnerShare) * 100) / 100
+    : null
 
   return (
     <div
@@ -1097,17 +1223,33 @@ function PreviewRowItem({
           onChange={(id) => onUpdate({ selectedCategoryId: id })}
         />
 
-        <select
-          value={row.costAssignment}
-          onChange={(e) =>
-            onUpdate({ costAssignment: e.target.value as 'personal' | 'shared' | 'partner' })
-          }
-          className="text-[11px] bg-secondary border border-border rounded-full px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-hb-cognac"
+        {utlaggBudget === null && (
+          <select
+            value={row.costAssignment}
+            onChange={(e) =>
+              onUpdate({ costAssignment: e.target.value as 'personal' | 'shared' | 'partner' })
+            }
+            className="text-[11px] bg-secondary border border-border rounded-full px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-hb-cognac"
+          >
+            {assignmentOptions.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        )}
+
+        <button
+          type="button"
+          onClick={onOpenUtlagg}
+          className={cn(
+            'text-[11px] font-medium rounded-full px-2.5 py-1 flex items-center gap-1 border transition-colors',
+            utlaggBudget !== null
+              ? 'bg-hb-cognac/15 text-hb-cognac-deep border-hb-cognac/40'
+              : 'bg-secondary border-border text-muted-foreground hover:border-hb-cognac/50'
+          )}
         >
-          {assignmentOptions.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+          <HandCoins className="w-3 h-3" />
+          {utlaggBudget !== null ? `Utlägg · ${formatCurrency(utlaggBudget)} i budget` : 'Utlägg'}
+        </button>
 
         <label className="text-[11px] text-muted-foreground flex items-center gap-1 cursor-pointer ml-auto">
           <input

@@ -25,13 +25,26 @@ export function calculatePaymentSplit(
   expenses.forEach((expense) => {
     const amount = expense.amount
 
-    // Handle group purchases separately
+    // Handle group purchases (utlägg) separately
     if (expense.is_group_purchase) {
       const swishAmount = expense.group_purchase_swish_amount || 0
       const swishRecipient = expense.group_purchase_swish_recipient
+      const hasStoredShares =
+        expense.group_purchase_user_share != null || expense.group_purchase_partner_share != null
 
-      // Add actual shares to personal/shared (amount = user_share + partner_share)
-      if (expense.cost_assignment === 'personal') {
+      if (hasStoredShares) {
+        // Use the exact stored shares. user_share/partner_share are from the
+        // perspective of the expense owner (expense.user_id).
+        const ownerShare = expense.group_purchase_user_share || 0
+        const otherShare = expense.group_purchase_partner_share || 0
+        if (expense.user_id === userId) {
+          userPersonal += ownerShare
+          partnerPersonal += otherShare
+        } else {
+          partnerPersonal += ownerShare
+          userPersonal += otherShare
+        }
+      } else if (expense.cost_assignment === 'personal') {
         if (expense.user_id === userId) {
           userPersonal += amount
         } else {

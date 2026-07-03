@@ -33,6 +33,10 @@ export interface StagingRow {
   dup_existing: boolean
   selected: boolean
   status: string
+  is_group_purchase: boolean
+  group_purchase_user_share: number | null
+  group_purchase_partner_share: number | null
+  group_purchase_swish_recipient: 'user' | 'partner' | 'shared' | null
 }
 
 export function useImportBatches() {

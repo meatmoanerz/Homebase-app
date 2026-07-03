@@ -44,7 +44,7 @@ const menuItems = [
   {
     title: 'Ekonomi',
     items: [
-      { href: '/import', label: 'Importera CSV', icon: FileSearch, description: 'Ladda upp transaktioner från CSV' },
+      { href: '/import', label: 'Importera transaktioner', icon: FileSearch, description: 'Ladda upp transaktioner från din bank' },
       { href: '/settings/mappings', label: 'Kategoriregler', icon: Sparkles, description: 'Auto-kategorisering vid import' },
       { href: '/receipts', label: 'Kvitton', icon: Receipt, description: 'Inköp och prisanalys' },
       { href: '/settings/loans', label: 'Lån', icon: Landmark, description: 'Lån och skulder' },

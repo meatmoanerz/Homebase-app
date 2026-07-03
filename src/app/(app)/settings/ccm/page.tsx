@@ -19,7 +19,7 @@ import { sv } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 import Link from 'next/link'
 import type { ExpenseWithCategory } from '@/types'
-import { GroupPurchaseWizard } from '@/components/ccm/group-purchase-wizard'
+import { UtlaggDialog } from '@/components/ccm/utlagg-dialog'
 import { calculatePaymentSplit } from '@/lib/utils/ccm-split'
 
 const categoryIcons: Record<string, string> = {
@@ -254,7 +254,7 @@ function InvoicePeriodCard({ period, expenses, invoice, user, partner, onDelete,
                     </div>
                     <div className="flex items-center gap-2">
                       {expense.is_group_purchase && (
-                        <div className="w-5 h-5 rounded-full bg-hb-sand/30 flex items-center justify-center" title="Gruppköp">
+                        <div className="w-5 h-5 rounded-full bg-hb-sand/30 flex items-center justify-center" title="Utlägg">
                           <Users className="w-3 h-3 text-hb-cognac" />
                         </div>
                       )}
@@ -508,7 +508,7 @@ export default function CCMDashboardPage() {
           className="w-full text-hb-cognac border-hb-cognac/30 hover:bg-hb-cognac/10"
         >
           <Plus className="w-4 h-4 mr-2" />
-          Gruppköp
+          Registrera utlägg
         </Button>
       </motion.div>
 
@@ -605,12 +605,12 @@ export default function CCMDashboardPage() {
         </>
       )}
 
-      <GroupPurchaseWizard
+      <UtlaggDialog
         open={groupPurchaseOpen}
         onOpenChange={setGroupPurchaseOpen}
       />
 
-      <GroupPurchaseWizard
+      <UtlaggDialog
         open={editGroupPurchaseOpen}
         onOpenChange={(open) => {
           setEditGroupPurchaseOpen(open)
