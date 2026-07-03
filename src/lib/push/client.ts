@@ -5,7 +5,7 @@
 
 export const VAPID_PUBLIC_KEY =
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-  'BKyO5Je9kuTj0yu3eVZJl9KRbH0_7hY75HysZVSeaYuY0FuY4PBzWXNZ6D1cqDPNNwKEuhUFl0xE0uaj361hMgQ'
+  'BHmiU7GNXPDSfoQYh_s3TxtqTRjox9hXXTSq-WlyFyDlm8TEcfi_DRtNL_EvpNPs_vg9MMMD-zAWaLoKaqeKdkg'
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
