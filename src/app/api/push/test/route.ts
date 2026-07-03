@@ -50,6 +50,7 @@ export async function POST() {
     })
 
     let sent = 0
+    const errors: { statusCode?: number; message?: string }[] = []
     for (const sub of subscriptions) {
       try {
         await webpush.sendNotification(
@@ -58,8 +59,27 @@ export async function POST() {
         )
         sent++
       } catch (err) {
-        console.error('[Push test] send failed:', err)
+        const statusCode = (err as { statusCode?: number })?.statusCode
+        const message = (err as { body?: string })?.body || (err as Error)?.message
+        console.error('[Push test] send failed:', statusCode, message)
+        errors.push({ statusCode, message })
+        // Clean up dead/mismatched subscriptions (expired, unsubscribed, or key mismatch)
+        if (statusCode === 403 || statusCode === 404 || statusCode === 410) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (subsClient as any).from('push_subscriptions').delete().eq('id', sub.id)
+        }
       }
+    }
+
+    if (sent === 0 && errors.length > 0) {
+      const e = errors[0]
+      const hint = (e.statusCode === 403 || e.statusCode === 400)
+        ? ' — trolig orsak: prenumerationen registrerades mot en annan VAPID-nyckel. Stäng av och aktivera notiser på nytt på enheten.'
+        : ''
+      return NextResponse.json(
+        { error: `Push misslyckades (kod ${e.statusCode ?? '?'})${hint}`, details: e.message },
+        { status: 502 }
+      )
     }
 
     return NextResponse.json({ ok: true, sent })
