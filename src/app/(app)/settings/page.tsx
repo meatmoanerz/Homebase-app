@@ -26,7 +26,8 @@ import {
   Wallet,
   Home,
   Sparkles,
-  Receipt
+  Receipt,
+  Bell
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
@@ -36,6 +37,7 @@ const menuItems = [
     title: 'Konto',
     items: [
       { href: '/settings/profile', label: 'Profil', icon: User, description: 'Namn, löndag, inkomster' },
+      { href: '/settings/notifications', label: 'Notiser', icon: Bell, description: 'Påminnelser för transaktionsimport' },
       { href: '/settings/categories', label: 'Kategorier', icon: FolderOpen, description: 'Hantera kostnadskategorier' },
     ]
   },
