@@ -438,7 +438,7 @@ export default function LoansSettingsPage() {
 
       {/* Add Loan Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Lägg till lån</DialogTitle>
             <DialogDescription>

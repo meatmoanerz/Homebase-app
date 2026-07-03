@@ -127,7 +127,7 @@ export function TemporaryBudgetSettingsDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Inställningar</DialogTitle>
           </DialogHeader>

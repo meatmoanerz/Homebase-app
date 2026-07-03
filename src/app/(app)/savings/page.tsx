@@ -259,7 +259,7 @@ export default function SavingsPage() {
 
       {/* Edit goal dialog */}
       <Dialog open={!!editingGoal} onOpenChange={(open) => !open && setEditingGoal(null)}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Redigera sparmål</DialogTitle>
           </DialogHeader>

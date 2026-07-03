@@ -187,7 +187,7 @@ export function LoanCard({ loan, index = 0 }: LoanCardProps) {
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Redigera lån</DialogTitle>
             <DialogDescription>

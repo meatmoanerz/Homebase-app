@@ -439,7 +439,7 @@ export function TemporaryBudgetDetail({ id }: TemporaryBudgetDetailProps) {
         open={selectedCategoryId !== null}
         onOpenChange={(open) => !open && setSelectedCategoryId(null)}
       >
-        <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-md max-h-[80dvh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {selectedCategoryId === 'uncategorized'

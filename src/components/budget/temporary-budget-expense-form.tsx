@@ -172,7 +172,7 @@ export function TemporaryBudgetExpenseForm({
         onOpenChange(o)
       }}
     >
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Ny utgift — {budget.name}</DialogTitle>
         </DialogHeader>

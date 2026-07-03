@@ -606,7 +606,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
 
       {/* Category Drill-down Dialog */}
       <Dialog open={!!selectedCategory} onOpenChange={(open) => !open && setSelectedCategory(null)}>
-        <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-md max-h-[80dvh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>{selectedCategory?.name}</span>
