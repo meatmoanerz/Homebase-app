@@ -180,32 +180,32 @@ export default function SharedAccountPage() {
 
       {/* Summary Card */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <Card className="border-0 shadow-sm bg-hb-nav text-hb-nav-foreground">
+        <Card className="border-0 shadow-sm bg-hb-nav text-white">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-hb-nav-foreground/70 text-sm">Total summa</p>
-                <p className="text-3xl font-bold text-hb-nav-foreground">{formatCurrency(totals.total)}</p>
+                <p className="text-white/70 text-sm">Total summa</p>
+                <p className="text-3xl font-bold text-white">{formatCurrency(totals.total)}</p>
               </div>
-              <div className="w-14 h-14 rounded-full bg-hb-nav-foreground/15 flex items-center justify-center">
-                <Calculator className="w-7 h-7" />
+              <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center">
+                <Calculator className="w-7 h-7 text-white" />
               </div>
             </div>
 
             {hasPartner && (
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-hb-nav-foreground/20">
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/20">
                 <div>
-                  <p className="text-hb-nav-foreground/70 text-xs">Du betalar</p>
-                  <p className="text-xl font-semibold text-hb-nav-foreground">{formatCurrency(totals.userTotal)}</p>
+                  <p className="text-white/70 text-xs">Du betalar</p>
+                  <p className="text-xl font-semibold text-white">{formatCurrency(totals.userTotal)}</p>
                 </div>
                 <div>
-                  <p className="text-hb-nav-foreground/70 text-xs">{partner?.first_name || 'Partner'} betalar</p>
-                  <p className="text-xl font-semibold text-hb-nav-foreground">{formatCurrency(totals.partnerTotal)}</p>
+                  <p className="text-white/70 text-xs">{partner?.first_name || 'Partner'} betalar</p>
+                  <p className="text-xl font-semibold text-white">{formatCurrency(totals.partnerTotal)}</p>
                 </div>
               </div>
             )}
 
-            <p className="text-hb-nav-foreground/60 text-xs mt-4">
+            <p className="text-white/60 text-xs mt-4">
               {totals.selectedCount} kategorier valda
             </p>
           </CardContent>

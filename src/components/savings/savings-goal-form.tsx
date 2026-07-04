@@ -434,21 +434,20 @@ export function SavingsGoalForm({ onSuccess, goal }: SavingsGoalFormProps) {
       {/* Target Date */}
       <div className="space-y-2">
         <Label className="text-muted-foreground text-sm">Måldatum (valfritt)</Label>
-        <button
-          type="button"
-          onClick={() => dateInputRef.current?.showPicker?.()}
-          className={cn(inputStyles, "text-left cursor-pointer flex items-center gap-2")}
-        >
-          <Calendar className="w-4 h-4 text-muted-foreground" />
-          {form.watch('target_date') ? formatDisplayDate(form.watch('target_date')!) : 'Välj datum'}
-        </button>
-        <input
-          ref={dateInputRef}
-          type="date"
-          value={form.watch('target_date') || ''}
-          onChange={(e) => form.setValue('target_date', e.target.value)}
-          className="sr-only"
-        />
+        <div className="relative">
+          <div className={cn(inputStyles, "text-left flex items-center gap-2 pointer-events-none")}>
+            <Calendar className="w-4 h-4 text-muted-foreground" />
+            {form.watch('target_date') ? formatDisplayDate(form.watch('target_date')!) : 'Välj datum'}
+          </div>
+          <input
+            ref={dateInputRef}
+            type="date"
+            value={form.watch('target_date') || ''}
+            onChange={(e) => form.setValue('target_date', e.target.value)}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            aria-label="Måldatum"
+          />
+        </div>
       </div>
 
       {/* Starting Balance */}
