@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { LoadingPage } from '@/components/shared/loading-spinner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ExpenseEditDialog } from '@/components/expenses/expense-edit-dialog'
-import { ArrowLeft, CreditCard, Settings, AlertTriangle, Users, UserCheck, Trash2, ChevronDown, ChevronUp, Calendar, Check, CheckCircle2, Undo2, Receipt, Plus } from 'lucide-react'
+import { ArrowLeft, CreditCard, Settings, AlertTriangle, Trash2, ChevronDown, ChevronUp, Calendar, Check, CheckCircle2, Undo2, Receipt, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency, formatRelativeDate } from '@/lib/utils/formatters'
 import { format } from 'date-fns'
@@ -20,20 +20,9 @@ import { cn } from '@/lib/utils/cn'
 import Link from 'next/link'
 import type { ExpenseWithCategory } from '@/types'
 import { UtlaggDialog } from '@/components/ccm/utlagg-dialog'
-import { calculatePaymentSplit } from '@/lib/utils/ccm-split'
+import { calculatePaymentSplit, getAssignmentLabel } from '@/lib/utils/ccm-split'
 
-const categoryIcons: Record<string, string> = {
-  Mat: '🛒',
-  Hem: '🏠',
-  Kläder: '👕',
-  Nöje: '🎬',
-  Restaurang: '🍽️',
-  Transport: '🚗',
-  Kollektivtrafik: '🚌',
-  Resor: '✈️',
-  El: '⚡',
-  Prenumerationer: '📱',
-}
+
 
 function formatInvoicePeriod(period: string): string {
   const [year, month] = period.split('-')
@@ -214,7 +203,7 @@ function InvoicePeriodCard({ period, expenses, invoice, user, partner, onDelete,
                       <p className="text-lg font-bold text-hb-cognac">{formatCurrency(paymentSplit.partnerAmount)}</p>
                     </div>
                   </div>
-                  {paymentSplit.unregisteredDifference > 0 && (
+                  {Math.round(paymentSplit.unregisteredDifference) >= 1 && (
                     <p className="text-xs text-muted-foreground mt-2">
                       * Inkluderar {formatCurrency(paymentSplit.unregisteredDifference / 2)} var för oregistrerade utgifter
                     </p>
@@ -241,36 +230,23 @@ function InvoicePeriodCard({ period, expenses, invoice, user, partner, onDelete,
                       index !== expenses.length - 1 && "border-b border-border"
                     )}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-hb-terracotta/10 flex items-center justify-center text-lg">
-                        {categoryIcons[expense.category?.name || ''] || '💳'}
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">{expense.description}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {expense.category?.name} • {formatRelativeDate(expense.date)}
-                        </p>
-                      </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">{expense.description}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {expense.category?.name ? `${expense.category.name} • ` : ''}
+                        {formatRelativeDate(expense.date)} • {getAssignmentLabel(expense, user, partner)}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {expense.is_group_purchase && (
-                        <div className="w-5 h-5 rounded-full bg-hb-sand/30 flex items-center justify-center" title="Utlägg">
-                          <Users className="w-3 h-3 text-hb-cognac" />
-                        </div>
-                      )}
-                      {expense.cost_assignment === 'shared' && !expense.is_group_purchase && (
-                        <div className="w-5 h-5 rounded-full bg-hb-tim/20 flex items-center justify-center" title="Delad utgift">
-                          <Users className="w-3 h-3 text-hb-tim" />
-                        </div>
-                      )}
-                      {expense.cost_assignment === 'partner' && (
-                        <div className="w-5 h-5 rounded-full bg-hb-terracotta/20 flex items-center justify-center" title="Partnerns utgift">
-                          <UserCheck className="w-3 h-3 text-hb-terracotta" />
-                        </div>
-                      )}
-                      <span className="font-semibold text-hb-terracotta">
-                        -{formatCurrency(expense.is_group_purchase ? (expense.group_purchase_total || expense.amount) : expense.amount)}
-                      </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {(() => {
+                        const amount = expense.is_group_purchase ? (expense.group_purchase_total || expense.amount) : expense.amount
+                        const isRefund = amount < 0
+                        return (
+                          <span className={cn('font-semibold', isRefund ? 'text-success' : 'text-hb-terracotta')}>
+                            {isRefund ? '+' : '-'}{formatCurrency(Math.abs(amount))}
+                          </span>
+                        )
+                      })()}
                       <Button
                         variant="ghost"
                         size="icon"

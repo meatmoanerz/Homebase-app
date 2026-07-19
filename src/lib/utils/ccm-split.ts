@@ -105,6 +105,31 @@ export function calculatePaymentSplit(
     unregisteredDifference: Math.max(0, unregisteredDifference),
     registeredTotal,
     actualInvoice: actualInvoiceAmount,
-    hasWarning: registeredTotal > actualInvoiceAmount && actualInvoiceAmount > 0,
+    // Jämför avrundat till hela kronor — samma precision som visas i UI:t.
+    // Annars kan öres-diffar ge varningen "registrerat X men fakturan är X".
+    hasWarning:
+      Math.round(registeredTotal) > Math.round(actualInvoiceAmount) &&
+      actualInvoiceAmount > 0,
   }
+}
+
+export interface PersonRef {
+  id: string
+  first_name: string | null
+}
+
+/** Kort textetikett för vem transaktionen är tilldelad, t.ex. "Delad", "Tim", "Amanda", "Utlägg". */
+export function getAssignmentLabel(
+  expense: Pick<ExpenseWithCategory, 'is_group_purchase' | 'cost_assignment' | 'user_id'>,
+  user: PersonRef,
+  partner: PersonRef | null
+): string {
+  if (expense.is_group_purchase) return 'Utlägg'
+  if (expense.cost_assignment === 'shared') return 'Delad'
+  const ownerIsUser = expense.user_id === user.id
+  if (expense.cost_assignment === 'personal') {
+    return (ownerIsUser ? user.first_name : partner?.first_name) || 'Personlig'
+  }
+  // 'partner' = den andra personen relativt utgiftens ägare
+  return (ownerIsUser ? partner?.first_name : user.first_name) || 'Partner'
 }

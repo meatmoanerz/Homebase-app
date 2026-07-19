@@ -4,31 +4,19 @@ import { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useCCMExpenses, groupExpensesByInvoicePeriod } from '@/hooks/use-expenses'
-import { useUser } from '@/hooks/use-user'
+import { useUser, usePartner } from '@/hooks/use-user'
 import { useDeleteExpense } from '@/hooks/use-expenses'
 import { ExpenseEditDialog } from '@/components/expenses/expense-edit-dialog'
 import { formatCurrency, formatRelativeDate } from '@/lib/utils/formatters'
 import { motion } from 'framer-motion'
-import { CreditCard, Trash2, Users, UserCheck, ChevronRight, Calendar } from 'lucide-react'
+import { CreditCard, Trash2, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import Link from 'next/link'
 import type { ExpenseWithCategory } from '@/types'
-
-const categoryIcons: Record<string, string> = {
-  Mat: '🛒',
-  Hem: '🏠',
-  Kläder: '👕',
-  Nöje: '🎬',
-  Restaurang: '🍽️',
-  Transport: '🚗',
-  Kollektivtrafik: '🚌',
-  Resor: '✈️',
-  El: '⚡',
-  Prenumerationer: '📱',
-}
+import { getAssignmentLabel } from '@/lib/utils/ccm-split'
 
 function formatInvoicePeriod(period: string): string {
   const [year, month] = period.split('-')
@@ -47,6 +35,7 @@ function getInvoiceStatus(period: string): 'current' | 'upcoming' | 'past' {
 
 export function CCMExpensesList() {
   const { data: user } = useUser()
+  const { data: partner } = usePartner()
   const invoiceBreakDate = user?.ccm_invoice_break_date || 1
   const { data: ccmExpenses = [], isLoading } = useCCMExpenses(invoiceBreakDate)
   const deleteExpense = useDeleteExpense()
@@ -207,30 +196,17 @@ export function CCMExpensesList() {
                       index !== expenses.length - 1 && "border-b border-border"
                     )}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-hb-terracotta/10 flex items-center justify-center text-lg">
-                        {categoryIcons[expense.category?.name || ''] || '💳'}
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">{expense.description}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {expense.category?.name} • {formatRelativeDate(expense.date)}
-                        </p>
-                      </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">{expense.description}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {expense.category?.name ? `${expense.category.name} • ` : ''}
+                        {formatRelativeDate(expense.date)}
+                        {user ? ` • ${getAssignmentLabel(expense, user, partner ?? null)}` : ''}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {expense.cost_assignment === 'shared' && (
-                        <div className="w-5 h-5 rounded-full bg-hb-tim/20 flex items-center justify-center" title="Delad utgift">
-                          <Users className="w-3 h-3 text-hb-tim" />
-                        </div>
-                      )}
-                      {expense.cost_assignment === 'partner' && (
-                        <div className="w-5 h-5 rounded-full bg-hb-terracotta/20 flex items-center justify-center" title="Partnerns utgift">
-                          <UserCheck className="w-3 h-3 text-hb-terracotta" />
-                        </div>
-                      )}
-                      <span className="font-semibold text-hb-terracotta">
-                        -{formatCurrency(expense.amount)}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={cn('font-semibold', expense.amount < 0 ? 'text-success' : 'text-hb-terracotta')}>
+                        {expense.amount < 0 ? '+' : '-'}{formatCurrency(Math.abs(expense.amount))}
                       </span>
                       <Button
                         variant="ghost"

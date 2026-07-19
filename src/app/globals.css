@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* dark:-varianter ska följa next-themes klass (.dark), inte systemets färgschema.
+   Utan denna rad aktiveras dark:-utilities av prefers-color-scheme, vilket gjorde
+   att t.ex. dark:bg-card slog över bg-hb-nav på hero-kort i ljust tema när
+   telefonen stod i mörkt systemläge. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Homebase Design System */
 :root {
   /* Homebase Color Palette */
