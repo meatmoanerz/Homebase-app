@@ -1,6 +1,10 @@
 # CLAUDE.md - Homebase
 
-**See main documentation**: `../CLAUDE.md`
+**Domän- och arbetsflödesdokumentation**: [`docs/README.md`](docs/README.md)
+
+Den här filen täcker kodkonventioner. Regler för databas, CSV-import,
+CCM-avstämning och byggflöde ligger i `docs/`. Läs relevant fil där innan du
+arbetar.
 
 ## Quick Reference
 
@@ -111,4 +115,4 @@ return useMutation({
 - Use `cn()` from `@/lib/utils/cn` for conditional classes
 - Colors: `stacka-olive` (primary), `stacka-sage`, `stacka-mint`, `stacka-peach`, `stacka-coral` (CCM), `stacka-blue` (shared)
 
-For full documentation, architectural details, database schema, and comprehensive guides, see `../CLAUDE.md`.
+For domain rules, database constraints, CSV import rules, CCM reconciliation and build gotchas, see [`docs/README.md`](docs/README.md).
