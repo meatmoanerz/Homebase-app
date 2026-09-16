@@ -84,6 +84,43 @@ export function useRecentExpenses(limit: number = 5) {
   })
 }
 
+const importBanks = ['SEB', 'Swedbank', 'Amex'] as const
+
+export function useLatestImportedTransactionDates(userId?: string) {
+  const supabase = createClient()
+
+  return useQuery({
+    queryKey: ['dashboard', 'latest-imported-transaction-dates', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      if (!userId) throw new Error('Not authenticated')
+
+      const dates: Record<(typeof importBanks)[number], string | null> = {
+        SEB: null,
+        Swedbank: null,
+        Amex: null,
+      }
+
+      await Promise.all(importBanks.map(async (bank) => {
+        const { data, error } = await supabase
+          .from('expenses')
+          .select('date')
+          .eq('user_id', userId)
+          .eq('bank', bank)
+          .order('date', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (error) throw error
+        const latest = data as { date: string } | null
+        dates[bank] = latest?.date ?? null
+      }))
+
+      return dates
+    },
+  })
+}
+
 export function useExpensesByPeriod(periodOrSalaryDay: string | number, salaryDay?: number) {
   const supabase = createClient()
   

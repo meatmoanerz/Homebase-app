@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
 import { useCategories } from '@/hooks/use-categories'
-import { useCreateExpense } from '@/hooks/use-expenses'
+import { useCreateExpense, useLatestImportedTransactionDates } from '@/hooks/use-expenses'
 import { useCategoryMappings, findMatchingMapping, incrementMappingHit, useCreateMapping, suggestPatternFromDescription } from '@/hooks/use-category-mappings'
 import { useAssignmentOptions } from '@/hooks/use-assignment-options'
 import { parseHomebaseCsv, getCsvTemplate, type CsvParseResult } from '@/lib/import/csv-parser'
@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Upload, FileText, CheckCircle2, AlertTriangle, Download, X, ArrowLeft, Sparkles, Pin, PinOff, Trash2, Clock, ChevronRight, Loader2, HandCoins } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { toast } from 'sonner'
-import { formatDistanceToNow } from 'date-fns'
+import { format, formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import Link from 'next/link'
 
@@ -49,6 +49,7 @@ interface PreviewRow {
 export default function ImportPage() {
   const router = useRouter()
   const { data: user } = useUser()
+  const { data: latestImportedDates, isPending: latestDatesPending, isError: latestDatesError } = useLatestImportedTransactionDates(user?.id)
   const { data: partner } = usePartner()
   const { data: categories = [] } = useCategories()
   const { data: mappings = [] } = useCategoryMappings()
@@ -420,6 +421,23 @@ export default function ImportPage() {
               ? 'AI-förbehandlade importer redo att granska'
               : 'Ladda upp en CSV-fil från din bank eller en färdig Homebase-fil'}
           </p>
+          {(step === 'choose' || step === 'upload') && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span>Senaste transaktionsdatum:</span>
+              {latestDatesError ? (
+                <span>Kunde inte hämta datum</span>
+              ) : latestDatesPending ? (
+                <span>Hämtar…</span>
+              ) : (['SEB', 'Swedbank', 'Amex'] as const).map((bank) => (
+                <span key={bank} className="whitespace-nowrap">
+                  <span className="font-medium text-foreground">{bank}</span>{' '}
+                  {latestImportedDates?.[bank]
+                    ? format(new Date(`${latestImportedDates[bank]}T00:00:00`), 'd MMM yyyy', { locale: sv })
+                    : '–'}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
