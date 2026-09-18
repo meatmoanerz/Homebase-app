@@ -8,16 +8,16 @@ import { useCreateExpense, useLatestImportedTransactionDates } from '@/hooks/use
 import { useCategoryMappings, findMatchingMapping, incrementMappingHit, useCreateMapping, suggestPatternFromDescription } from '@/hooks/use-category-mappings'
 import { useAssignmentOptions } from '@/hooks/use-assignment-options'
 import { parseHomebaseCsv, getCsvTemplate, type CsvParseResult } from '@/lib/import/csv-parser'
-import { parseBankCsv, detectBank, decodeCsvBuffer, type BankParseResult } from '@/lib/import/bank-parsers'
+import { parseBankCsv, decodeCsvBuffer, type BankParseResult } from '@/lib/import/bank-parsers'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { useUser } from '@/hooks/use-user'
-import { useImportBatches, useStagingRows, useUpdateStagingRow, useToggleBatchPin, useDeleteBatch, type StagingBatch, type StagingRow } from '@/hooks/use-import-staging'
+import { useImportBatches, useStagingRows, useToggleBatchPin, useMarkBatchOpened, useDeleteBatch, type StagingBatch, type StagingRow } from '@/hooks/use-import-staging'
 import { usePartner } from '@/hooks/use-user'
 import { UtlaggSplitDialog, type UtlaggSplit } from '@/components/ccm/utlagg-dialog'
 import { deriveCostAssignment } from '@/hooks/use-utlagg'
 import { CategoryCombobox } from '@/components/import/category-combobox'
 import { createClient } from '@/lib/supabase/client'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Upload, FileText, CheckCircle2, AlertTriangle, Download, X, ArrowLeft, Sparkles, Pin, PinOff, Trash2, Clock, ChevronRight, Loader2, HandCoins } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { toast } from 'sonner'
@@ -59,8 +59,8 @@ export default function ImportPage() {
 
   // AI-import hooks
   const { data: batches = [], isLoading: batchesLoading } = useImportBatches()
-  const updateStagingRow = useUpdateStagingRow()
   const togglePin = useToggleBatchPin()
+  const markBatchOpened = useMarkBatchOpened()
   const deleteBatch = useDeleteBatch()
 
   const [mode, setMode] = useState<ImportMode>('bank')
@@ -90,7 +90,6 @@ export default function ImportPage() {
   >(null)
 
   const categoryByName = new Map(categories.map((c) => [c.name.toLowerCase(), c]))
-  const categoryById = new Map(categories.map((c) => [c.id, c]))
 
   function processHomebaseUpload(text: string) {
     const result = parseHomebaseCsv(text, categories.map((c) => c.name))
@@ -252,6 +251,7 @@ export default function ImportPage() {
             ? deriveCostAssignment(utlagg.userShare, utlagg.partnerShare)
             : row.costAssignment,
           is_ccm: row.onCreditCard,
+          is_refund: row.amount < 0,
           bank: row.bank,
           ...(utlagg && {
             is_group_purchase: true,
@@ -361,6 +361,7 @@ export default function ImportPage() {
           category_id: row.category_id,
           cost_assignment: isUtlagg ? deriveCostAssignment(uShare, pShare) : row.cost_assignment,
           is_ccm: row.is_ccm,
+          is_refund: budgetAmount < 0,
           bank: row.bank,
           ...(isUtlagg && {
             is_group_purchase: true,
@@ -377,9 +378,26 @@ export default function ImportPage() {
         await (supabase.from('import_staging') as any)
           .update({ status: 'imported' })
           .eq('id', row.id)
+        if (row.amex_sync_transaction_id) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase.from('amex_sync_transactions') as any)
+            .update({ status: 'imported', staging_batch_id: null })
+            .eq('id', row.amex_sync_transaction_id)
+        }
       } catch (err) {
         console.error('AI import error:', err)
       }
+    }
+
+    const ignoredRawIds = stagingRows
+      .map((row) => getMergedRow(row))
+      .filter((row) => !row.selected && row.amex_sync_transaction_id)
+      .map((row) => row.amex_sync_transaction_id as string)
+    if (ignoredRawIds.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('amex_sync_transactions') as any)
+        .update({ status: 'ignored', staging_batch_id: null })
+        .in('id', ignoredRawIds)
     }
 
     // Delete the whole batch now that we're done
@@ -511,7 +529,10 @@ export default function ImportPage() {
             <BatchCard
               key={batch.batch_id}
               batch={batch}
-              onOpen={() => {
+              onOpen={async () => {
+                if (batch.source === 'amex_auto' && !batch.opened_at) {
+                  await markBatchOpened.mutateAsync(batch.batch_id)
+                }
                 setActiveBatchId(batch.batch_id)
                 setStagingEdits({})
                 setStep('ai-review')
@@ -817,7 +838,6 @@ export default function ImportPage() {
                   key={idx}
                   row={row}
                   categories={categories}
-                  categoryById={categoryById}
                   onUpdate={(updates) => updateRow(idx, updates)}
                   onSaveRule={() => handleSaveRule(idx)}
                   ruleSaved={savedRuleRows.has(idx)}
@@ -1003,9 +1023,10 @@ function BatchCard({
   onPin: () => void
   onDelete: () => void
 }) {
+  const [renderedAt] = useState(() => Date.now())
   const expiresAt = new Date(batch.expires_at)
   const uploadedAt = new Date(batch.uploaded_at)
-  const isExpiringSoon = !batch.pinned && expiresAt.getTime() - Date.now() < 6 * 60 * 60 * 1000
+  const isExpiringSoon = !batch.pinned && expiresAt.getTime() - renderedAt < 6 * 60 * 60 * 1000
 
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden">
@@ -1017,7 +1038,7 @@ function BatchCard({
             </div>
             <div className="min-w-0">
               <div className="text-sm font-medium">
-                {batch.bank || 'AI-import'} — {batch.row_count} transaktioner
+                {batch.source === 'amex_auto' ? 'Amex autoimport' : (batch.bank || 'AI-import')} — {batch.row_count} transaktioner
               </div>
               <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
                 <Clock className="w-3 h-3" />
@@ -1191,13 +1212,11 @@ function StatCard({ label, value, accent, isCurrency }: { label: string; value: 
 }
 
 function PreviewRowItem({
-  row, categories, categoryById, onUpdate, onSaveRule, ruleSaved, showSaveRule, assignmentOptions, onOpenUtlagg,
+  row, categories, onUpdate, onSaveRule, ruleSaved, showSaveRule, assignmentOptions, onOpenUtlagg,
 }: {
   row: PreviewRow
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categories: any[]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  categoryById: Map<string, any>
   onUpdate: (updates: Partial<PreviewRow>) => void
   onSaveRule: () => void
   ruleSaved: boolean

@@ -6,6 +6,8 @@ import { formatDistanceToNow } from 'date-fns'
 
 export interface StagingBatch {
   batch_id: string
+  source: string | null
+  opened_at: string | null
   uploaded_at: string
   expires_at: string
   pinned: boolean
@@ -37,6 +39,7 @@ export interface StagingRow {
   group_purchase_user_share: number | null
   group_purchase_partner_share: number | null
   group_purchase_swish_recipient: 'user' | 'partner' | 'shared' | null
+  amex_sync_transaction_id: string | null
 }
 
 export function useImportBatches() {
@@ -56,7 +59,18 @@ export function useImportBatches() {
         .order('uploaded_at', { ascending: false })
 
       if (error) throw error
-      if (!data) return []
+      if (!data || data.length === 0) return []
+
+      const batchIds = [...new Set(data.map((row: { batch_id: string }) => row.batch_id))]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: metadata, error: metadataError } = await (supabase.from('import_batches') as any)
+        .select('id, source, opened_at')
+        .in('id', batchIds)
+      if (metadataError) throw metadataError
+      const metadataById = new Map(
+        ((metadata || []) as Array<{ id: string; source: string; opened_at: string | null }>)
+          .map((batch) => [batch.id, batch])
+      )
 
       // Group by batch_id
       const batchMap = new Map<string, StagingBatch>()
@@ -70,8 +84,11 @@ export function useImportBatches() {
           existing.total_amount += Number(row.amount)
           if (row.selected) existing.selected_count++
         } else {
+          const batchMetadata = metadataById.get(row.batch_id)
           batchMap.set(row.batch_id, {
             batch_id: row.batch_id,
+            source: batchMetadata?.source ?? null,
+            opened_at: batchMetadata?.opened_at ?? null,
             uploaded_at: row.uploaded_at,
             expires_at: row.expires_at,
             pinned: row.pinned,
@@ -158,12 +175,40 @@ export function useToggleBatchPin() {
   })
 }
 
+export function useMarkBatchOpened() {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (batchId: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from('import_batches') as any)
+        .update({ opened_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq('id', batchId)
+        .is('opened_at', null)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-staging'] })
+    },
+  })
+}
+
 export function useDeleteBatch() {
   const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (batchId: string) => {
+      // Deleting batch metadata first releases staged Amex rows back to the
+      // durable inbox via the database trigger. Legacy/manual batches have no
+      // metadata row, so this remains a no-op for them.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: batchError } = await (supabase.from('import_batches') as any)
+        .delete()
+        .eq('id', batchId)
+      if (batchError) throw batchError
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase.from('import_staging') as any)
         .delete()

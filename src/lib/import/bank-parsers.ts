@@ -54,12 +54,6 @@ export interface BankParseResult {
 
 // ----- Date helpers -----
 
-function parseISODate(s: string): string | null {
-  const trimmed = s.trim()
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
-  return null
-}
-
 function parseSwedishDate(s: string): string | null {
   // "2026-05-22" or "2026/05/22"
   const trimmed = s.trim().replace(/\//g, '-')
@@ -237,7 +231,8 @@ function parseSwedbank(csvText: string): BankParseResult {
  *   - Headers vary by locale:
  *       EN: Date, Description, Card Member, Account #, Amount
  *       SV: Datum, Beskrivning, Kortmedlem, Konto #, Belopp
- *   - Positive amount = expense (correct sign for our model)
+ *   - Amount sign varies between Amex export variants. We detect the charge
+ *     sign from the file and normalize expenses to positive values.
  */
 function parseAmex(csvText: string): BankParseResult {
   const transactions: NormalizedTransaction[] = []
@@ -274,6 +269,14 @@ function parseAmex(csvText: string): BankParseResult {
     return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase()
   }
 
+  const parsedRows: Array<{
+    date: string
+    description: string
+    rawAmount: number
+    cardholder: string | null
+    row: Record<string, string>
+  }> = []
+
   for (const row of result.data) {
     const date = parseUSDate(row[dateKey] || '')
     // Collapse multiple spaces in Amex descriptions ("EASYPARK     STOCKHOLM")
@@ -282,13 +285,32 @@ function parseAmex(csvText: string): BankParseResult {
 
     if (!date || !description || rawAmount === null) continue
 
-    transactions.push({
+    parsedRows.push({
       date,
       description,
-      amount: rawAmount,
-      bank: 'Amex',
       cardholder: cardholderKey ? firstName(row[cardholderKey] || '') : null,
-      rawRow: row,
+      rawAmount,
+      row,
+    })
+  }
+
+  // Most rows in a card export are purchases. Exclude obvious credits/payments
+  // when detecting whether this particular export uses + or - for charges.
+  const creditPattern = /(payment|betalning|refund|återbetalning|credit|kredit)/i
+  const likelyCharges = parsedRows.filter((row) => !creditPattern.test(row.description))
+  const signSample = likelyCharges.length > 0 ? likelyCharges : parsedRows
+  const negativeCharges = signSample.filter((row) => row.rawAmount < 0).length
+  const positiveCharges = signSample.filter((row) => row.rawAmount > 0).length
+  const chargeMultiplier = negativeCharges > positiveCharges ? -1 : 1
+
+  for (const row of parsedRows) {
+    transactions.push({
+      date: row.date,
+      description: row.description,
+      amount: row.rawAmount * chargeMultiplier,
+      bank: 'Amex',
+      cardholder: row.cardholder,
+      rawRow: row.row,
     })
   }
 
