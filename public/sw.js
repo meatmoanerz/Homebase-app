@@ -11,8 +11,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Homebase'
   const options = {
     body: data.body || '',
-    icon: '/icon.svg',
-    badge: '/icon.svg',
+    icon: '/icon-192.png',
+    badge: '/badge-96.png',
     data: { url: data.url || '/' },
   }
 

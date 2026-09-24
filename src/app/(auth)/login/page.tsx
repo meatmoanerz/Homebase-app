@@ -77,10 +77,18 @@ export default function LoginPage() {
             <Image
               src="/logo-full.svg"
               alt="Homebase"
-              width={240}
-              height={80}
+              width={517}
+              height={456}
               priority
-              className="h-auto w-48"
+              className="h-auto w-36 dark:hidden"
+            />
+            <Image
+              src="/logo-full-dark.svg"
+              alt="Homebase"
+              width={517}
+              height={456}
+              priority
+              className="hidden h-auto w-36 dark:block"
             />
           </motion.div>
           <p className="text-muted-foreground mt-1">Din personliga ekonomi</p>

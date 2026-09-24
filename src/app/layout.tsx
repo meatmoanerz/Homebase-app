@@ -27,8 +27,18 @@ export const metadata: Metadata = {
   title: "Homebase",
   description: "Håll koll på din budget, utgifter och sparande",
   manifest: "/manifest.json",
+  metadataBase: new URL("https://homebase-app-omega.vercel.app"),
   icons: {
-    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  openGraph: {
+    title: "Homebase",
+    description: "Håll koll på din budget, utgifter och sparande",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Homebase" }],
   },
   appleWebApp: {
     capable: true,
