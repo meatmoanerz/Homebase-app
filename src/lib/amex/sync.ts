@@ -5,8 +5,6 @@ import { downloadAmexCsv, type DownloadAmexCsvResult } from './browserbase'
 
 const ROLLING_DAYS = 60
 
-type CostAssignment = 'personal' | 'shared' | 'partner'
-
 interface RawAmexTransaction {
   id: string
   source_transaction_id: string | null
@@ -19,20 +17,6 @@ interface RawAmexTransaction {
   cardholder: string | null
 }
 
-interface CategoryMapping {
-  id: string
-  pattern: string
-  category_id: string | null
-  cost_assignment: CostAssignment | null
-  match_type: 'contains' | 'starts_with' | 'exact'
-  bank: string | null
-  priority: number
-}
-
-interface ImportBatch {
-  id: string
-  opened_at: string | null
-}
 
 export interface AmexSyncResult {
   ok: true
@@ -90,25 +74,6 @@ function sourceTransactionId(row?: Record<string, string>): string | null {
   return value || null
 }
 
-function matchesMapping(description: string, mapping: CategoryMapping): boolean {
-  const value = description.toLowerCase()
-  const pattern = mapping.pattern.toLowerCase()
-  if (mapping.match_type === 'exact') return value === pattern
-  if (mapping.match_type === 'starts_with') return value.startsWith(pattern)
-  return value.includes(pattern)
-}
-
-function bestMapping(
-  description: string,
-  mappings: CategoryMapping[]
-): CategoryMapping | null {
-  const matches = mappings
-    .filter((mapping) => !mapping.bank || mapping.bank.toLowerCase() === 'amex')
-    .filter((mapping) => matchesMapping(description, mapping))
-    .sort((a, b) => b.priority - a.priority || b.pattern.length - a.pattern.length)
-  return matches[0] ?? null
-}
-
 async function ingestTransactions(
   userId: string,
   transactions: NormalizedTransaction[],
@@ -118,18 +83,23 @@ async function ingestTransactions(
   // migration is deployed; keep this admin-only integration locally typed.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = createServiceClient() as any
+  if (transactions.length === 0) return { inserted: 0, alreadyKnown: 0 }
   const dates = transactions.map((transaction) => transaction.date).sort()
   const earliest = dates[0]
 
-  const { data: existingData, error: existingError } = await admin
-    .from('amex_sync_transactions')
-    .select('id, source_transaction_id, fingerprint, occurrence_index, status')
-    .eq('user_id', userId)
-    .gte('transaction_date', earliest)
-
-  if (existingError) throw existingError
-
-  const existing = (existingData ?? []) as RawAmexTransaction[]
+  const existing: RawAmexTransaction[] = []
+  for (let offset = 0; ; offset += 500) {
+    const { data, error } = await admin
+      .from('amex_sync_transactions')
+      .select('id, source_transaction_id, fingerprint, occurrence_index, status')
+      .eq('user_id', userId)
+      .gte('transaction_date', earliest)
+      .order('id')
+      .range(offset, offset + 499)
+    if (error) throw error
+    existing.push(...(data as RawAmexTransaction[]))
+    if (data.length < 500) break
+  }
   const bySourceId = new Map(
     existing
       .filter((row) => row.source_transaction_id)
@@ -152,6 +122,9 @@ async function ingestTransactions(
       ?? byOccurrence.get(`${fingerprint}:${occurrence}`)
 
     if (existingRow) {
+      if (sourceId && existingRow.source_transaction_id && sourceId !== existingRow.source_transaction_id) {
+        throw new Error('Amex-exporten har ändrade transaktions-ID:n för identiska köp. Kontrollera exporten innan import.')
+      }
       seenIds.push(existingRow.id)
       if (sourceId && !existingRow.source_transaction_id) {
         sourceIdUpdates.push({ id: existingRow.id, sourceTransactionId: sourceId })
@@ -201,115 +174,15 @@ async function ingestTransactions(
 }
 
 async function rebuildReviewBatch(
-  userId: string,
-  fetchedAt: string
+  userId: string
 ): Promise<{ staged: number; batchId: string | null; batchLocked: boolean }> {
+  // RPC owns the transaction and locks batch metadata before changing rows.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = createServiceClient() as any
-
-  const { data: existingBatchData, error: batchReadError } = await admin
-    .from('import_batches')
-    .select('id, opened_at')
-    .eq('user_id', userId)
-    .eq('source', 'amex_auto')
-    .maybeSingle()
-  if (batchReadError) throw batchReadError
-
-  let batch = existingBatchData as ImportBatch | null
-  if (batch?.opened_at) {
-    return { staged: 0, batchId: batch.id, batchLocked: true }
-  }
-
-  if (batch) {
-    const { error: releaseError } = await admin
-      .from('amex_sync_transactions')
-      .update({ status: 'unreviewed', staging_batch_id: null })
-      .eq('user_id', userId)
-      .eq('staging_batch_id', batch.id)
-      .eq('status', 'staged')
-    if (releaseError) throw releaseError
-
-    const { error: clearError } = await admin
-      .from('import_staging')
-      .delete()
-      .eq('user_id', userId)
-      .eq('batch_id', batch.id)
-    if (clearError) throw clearError
-  } else {
-    const { data, error } = await admin
-      .from('import_batches')
-      .insert({ user_id: userId, source: 'amex_auto' })
-      .select('id, opened_at')
-      .single()
-    if (error) throw error
-    batch = data as ImportBatch
-  }
-
-  const { data: rawData, error: rawError } = await admin
-    .from('amex_sync_transactions')
-    .select('id, transaction_date, description, amount, cardholder')
-    .eq('user_id', userId)
-    .eq('status', 'unreviewed')
-    .order('transaction_date', { ascending: false })
-  if (rawError) throw rawError
-
-  const rawRows = (rawData ?? []) as RawAmexTransaction[]
-  if (rawRows.length === 0) {
-    const { error } = await admin.from('import_batches').delete().eq('id', batch.id)
-    if (error) throw error
-    return { staged: 0, batchId: null, batchLocked: false }
-  }
-
-  const { data: mappingData, error: mappingError } = await admin
-    .from('category_mappings')
-    .select('id, pattern, category_id, cost_assignment, match_type, bank, priority')
-    .eq('user_id', userId)
-  if (mappingError) throw mappingError
-  const mappings = (mappingData ?? []) as CategoryMapping[]
-  const expiresAt = new Date(Date.parse(fetchedAt) + 48 * 60 * 60 * 1000).toISOString()
-
-  const stagingRows = rawRows.map((row) => {
-    const mapping = bestMapping(row.description, mappings)
-    return {
-      batch_id: batch.id,
-      user_id: userId,
-      uploaded_at: fetchedAt,
-      expires_at: expiresAt,
-      pinned: false,
-      bank: 'Amex',
-      date: row.transaction_date,
-      description: row.description,
-      amount: row.amount,
-      category_id: mapping?.category_id ?? null,
-      cost_assignment: mapping?.cost_assignment ?? 'shared',
-      is_ccm: true,
-      match_source: mapping ? 'mappning' : 'blank',
-      selected: true,
-      status: 'pending',
-      cardholder: row.cardholder,
-      amex_sync_transaction_id: row.id,
-    }
-  })
-
-  for (let offset = 0; offset < stagingRows.length; offset += 250) {
-    const { error } = await admin
-      .from('import_staging')
-      .insert(stagingRows.slice(offset, offset + 250))
-    if (error) throw error
-  }
-
-  const rawIds = rawRows.map((row) => row.id)
-  for (let offset = 0; offset < rawIds.length; offset += 250) {
-    const { error } = await admin
-      .from('amex_sync_transactions')
-      .update({ status: 'staged', staging_batch_id: batch.id })
-      .in('id', rawIds.slice(offset, offset + 250))
-    if (error) throw error
-  }
-
-  return { staged: stagingRows.length, batchId: batch.id, batchLocked: false }
+  const { data, error } = await admin.rpc('rebuild_amex_review_batch', { p_user_id: userId })
+  if (error) throw error
+  return data
 }
-
 export async function runAmexSync(now = new Date()): Promise<AmexSyncResult> {
   const userId = process.env.AMEX_SYNC_USER_ID
 
@@ -321,7 +194,7 @@ export async function runAmexSync(now = new Date()): Promise<AmexSyncResult> {
   const downloaded: DownloadAmexCsvResult = await downloadAmexCsv(range.start, range.end)
   const parsed = parseBankCsv(downloaded.csvText, 'Amex')
 
-  if (parsed.transactions.length === 0) {
+  if (parsed.errors.length > 0 || parsed.transactions.length === 0) {
     throw new Error(`Amex-exporten innehöll inga giltiga transaktioner. ${parsed.errors.join(' ')}`)
   }
 
@@ -329,7 +202,7 @@ export async function runAmexSync(now = new Date()): Promise<AmexSyncResult> {
     (transaction) => transaction.date >= range.start && transaction.date <= range.end
   )
   const ingested = await ingestTransactions(userId, transactions, fetchedAt)
-  const batch = await rebuildReviewBatch(userId, fetchedAt)
+  const batch = await rebuildReviewBatch(userId)
 
   return {
     ok: true,

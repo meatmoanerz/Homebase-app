@@ -221,5 +221,32 @@ export function useDeleteBatch() {
   })
 }
 
+export function useCompleteAmexBatch() {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ batchId, rows }: { batchId: string; rows: StagingRow[] }): Promise<number> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc('complete_amex_review_batch', {
+        p_batch_id: batchId,
+        p_edits: rows.map((row) => ({
+          id: row.id, category_id: row.category_id, cost_assignment: row.cost_assignment,
+          selected: row.selected, is_group_purchase: row.is_group_purchase,
+          group_purchase_user_share: row.group_purchase_user_share,
+          group_purchase_partner_share: row.group_purchase_partner_share,
+          group_purchase_swish_recipient: row.group_purchase_swish_recipient,
+        })),
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      for (const key of ['import-staging', 'expenses', 'dashboard', 'ccm-invoices', 'savings-goals', 'savings-goal-contributions']) {
+        queryClient.invalidateQueries({ queryKey: [key] })
+      }
+    },
+  })
+}
+
 // Unused export kept to avoid unused-import warning on formatDistanceToNow
 export { formatDistanceToNow }

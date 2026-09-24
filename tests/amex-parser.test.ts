@@ -29,3 +29,21 @@ test('Amex parser dynamically flips exports where charges are negative', () => {
   assert.equal(result.errors.length, 0)
   assert.deepEqual(result.transactions.map((row) => row.amount), [125.5, -25])
 })
+
+test('payments establish the sign but are excluded, even when refunds dominate', () => {
+  const result = parseBankCsv('Date,Description,Amount\n09/15/2026,Payment Received,-1000\n09/16/2026,SHOP,-25\n09/17/2026,SHOP,-35\n09/18/2026,SHOP,10', 'Amex')
+  assert.deepEqual(result.transactions.map((row) => row.amount), [-25, -35, 10])
+  assert.equal(result.errors.length, 0)
+})
+
+test('ambiguous negative-only exports fail closed instead of converting refunds to purchases', () => {
+  const result = parseBankCsv('Date,Description,Amount\n09/15/2026,SHOP,-25', 'Amex')
+  assert.equal(result.transactions.length, 0)
+  assert.ok(result.errors.length > 0)
+})
+
+test('invalid calendar dates are reported', () => {
+  const result = parseBankCsv('Date,Description,Amount\n02/30/2026,SHOP,25\n99/99/2026,SHOP,10', 'Amex')
+  assert.equal(result.transactions.length, 0)
+  assert.equal(result.errors.length, 2)
+})

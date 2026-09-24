@@ -283,7 +283,12 @@ function parseAmex(csvText: string): BankParseResult {
     const description = (row[descKey] || '').replace(/\s{2,}/g, ' ').trim()
     const rawAmount = parseSwedishAmount(row[amountKey] || '')
 
-    if (!date || !description || rawAmount === null) continue
+    if (!date || !description || rawAmount === null || !Number.isFinite(rawAmount)
+      || !Number.isFinite(Date.parse(date))
+      || new Date(date).toISOString().slice(0, 10) !== date) {
+      errors.push('Amex-exporten innehåller en ogiltig transaktionsrad.')
+      continue
+    }
 
     parsedRows.push({
       date,
@@ -296,14 +301,25 @@ function parseAmex(csvText: string): BankParseResult {
 
   // Most rows in a card export are purchases. Exclude obvious credits/payments
   // when detecting whether this particular export uses + or - for charges.
-  const creditPattern = /(payment|betalning|refund|återbetalning|credit|kredit)/i
-  const likelyCharges = parsedRows.filter((row) => !creditPattern.test(row.description))
-  const signSample = likelyCharges.length > 0 ? likelyCharges : parsedRows
+  const paymentPattern = /^(betalning mottagen|inbetalning mottagen|payment received|payment thank you|payment - thank you|tack för din betalning)\b/i
+  const creditPattern = /(refund|återbetalning|credit|kredit)/i
+  const credits = parsedRows.filter((row) => (creditPattern.test(row.description) || paymentPattern.test(row.description)) && row.rawAmount !== 0)
+  const creditSigns = new Set(credits.map((row) => Math.sign(row.rawAmount)))
+  if (creditSigns.size > 1) {
+    errors.push('Amex-exporten har motstridiga tecken för krediteringar. Kontrollera filen.')
+    return { transactions: [], errors, detectedBank: 'Amex' }
+  }
+  const likelyCharges = parsedRows.filter((row) => !creditPattern.test(row.description) && !paymentPattern.test(row.description))
+  const signSample = likelyCharges
   const negativeCharges = signSample.filter((row) => row.rawAmount < 0).length
-  const positiveCharges = signSample.filter((row) => row.rawAmount > 0).length
-  const chargeMultiplier = negativeCharges > positiveCharges ? -1 : 1
+  if (creditSigns.size === 0 && negativeCharges > 0) {
+    errors.push('Kan inte säkert skilja köp från returer i Amex-exporten. Teckenkonventionen behöver verifieras.')
+    return { transactions: [], errors, detectedBank: 'Amex' }
+  }
+  const chargeMultiplier = creditSigns.size === 1 ? -[...creditSigns][0] : 1
 
   for (const row of parsedRows) {
+    if (paymentPattern.test(row.description) || row.rawAmount === 0) continue
     transactions.push({
       date: row.date,
       description: row.description,

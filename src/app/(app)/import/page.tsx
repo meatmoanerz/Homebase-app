@@ -11,7 +11,7 @@ import { parseHomebaseCsv, getCsvTemplate, type CsvParseResult } from '@/lib/imp
 import { parseBankCsv, decodeCsvBuffer, type BankParseResult } from '@/lib/import/bank-parsers'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { useUser } from '@/hooks/use-user'
-import { useImportBatches, useStagingRows, useToggleBatchPin, useMarkBatchOpened, useDeleteBatch, type StagingBatch, type StagingRow } from '@/hooks/use-import-staging'
+import { useImportBatches, useStagingRows, useToggleBatchPin, useMarkBatchOpened, useDeleteBatch, useCompleteAmexBatch, type StagingBatch, type StagingRow } from '@/hooks/use-import-staging'
 import { usePartner } from '@/hooks/use-user'
 import { UtlaggSplitDialog, type UtlaggSplit } from '@/components/ccm/utlagg-dialog'
 import { deriveCostAssignment } from '@/hooks/use-utlagg'
@@ -62,6 +62,7 @@ export default function ImportPage() {
   const togglePin = useToggleBatchPin()
   const markBatchOpened = useMarkBatchOpened()
   const deleteBatch = useDeleteBatch()
+  const completeAmexBatch = useCompleteAmexBatch()
 
   const [mode, setMode] = useState<ImportMode>('bank')
   const [step, setStep] = useState<Step>('choose')
@@ -339,6 +340,24 @@ export default function ImportPage() {
     }
 
     setImportingStaging(true)
+    if (stagingRows.some((row) => row.amex_sync_transaction_id)) {
+      try {
+        const imported = await completeAmexBatch.mutateAsync({
+          batchId: activeBatchId, rows: stagingRows.map(getMergedRow),
+        })
+        setStagingEdits({})
+        setActiveBatchId(null)
+        setStep('done')
+        setImportedCount(imported)
+        toast.success(`${imported} utgifter importerade från AI-import`)
+      } catch (error) {
+        console.error('Amex import error:', error)
+        toast.error('Importen kunde inte sparas. Dina ändringar finns kvar; försök igen.')
+      } finally {
+        setImportingStaging(false)
+      }
+      return
+    }
     await flushEdits()
 
     const rowsToImport = stagingRows
