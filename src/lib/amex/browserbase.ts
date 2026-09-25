@@ -133,19 +133,41 @@ async function setDateRange(page: Page, startDate: string, endDate: string): Pro
     await dateInputs.nth(0).fill(startDate)
     await dateInputs.nth(1).fill(endDate)
   } else {
-    await startInput.fill(startDate)
-    await endInput.fill(endDate)
+    await fillDateControl(startInput, startDate)
+    await fillDateControl(endInput, endDate)
   }
 
   await clickFirstVisible([
-    page.getByRole('button', { name: /sök|search|visa|apply/i }),
+    page.getByRole('button', { name: /^(sök|search|visa|apply)$/i }),
     page.locator('button[type="submit"]:visible'),
   ])
+  await page.getByRole('button', { name: /^(ladda (ner|ned)|download|exportera|export)$/i })
+    .or(page.getByRole('link', { name: /^(ladda (ner|ned)|download|exportera|export)$/i }))
+    .first().waitFor({ state: 'visible', timeout: 30_000 })
+}
+
+async function fillDateControl(control: Locator, date: string): Promise<void> {
+  if ((await control.getAttribute('role')) !== 'group') {
+    await control.fill(date)
+    return
+  }
+  const fields = control.locator('input:not([type="hidden"]), [contenteditable="true"]')
+  const count = await fields.count()
+  if (count !== 3) {
+    throw new AmexBrowserError('EXPORT_UI_NOT_FOUND', `Okänt datumformat (${count} fält).`)
+  }
+  // The Swedish Amex control presents separate year/month/day fields.
+  const parts = date.split('-')
+  for (let index = 0; index < parts.length; index++) {
+    await fields.nth(index).fill(parts[index])
+    await fields.nth(index).press('Tab')
+  }
 }
 
 async function triggerCsvDownload(page: Page): Promise<void> {
   const opened = await clickFirstVisible([
-    page.getByRole('button', { name: /ladda (ner|ned)|download|exportera|export/i }),
+    page.getByRole('button', { name: /^(ladda (ner|ned)|download|exportera|export)$/i }),
+    page.getByRole('link', { name: /^(ladda (ner|ned)|download|exportera|export)$/i }),
     page.locator('button[aria-label*="download" i], button[title*="download" i]'),
     page.locator('[data-testid*="download" i]'),
   ])
@@ -169,25 +191,29 @@ async function triggerCsvDownload(page: Page): Promise<void> {
   }
 
   const extraDetails = page
-    .getByLabel(/alla.*(transaktions)?detaljer|additional transaction details|include.*details/i)
+    .getByLabel(/alla.*(transaktions)?detaljer|inkludera alla ytterligare transaktionsuppgifter|additional transaction details|include.*details/i)
     .first()
-  if (await extraDetails.isVisible().catch(() => false)) {
-    await extraDetails.setChecked(true).catch(() => extraDetails.click())
+  if (await extraDetails.isVisible().catch(() => false) && !(await extraDetails.isChecked())) {
+    await page.locator('label[for="axp-activity-download-body-checkbox-options-includeAll"]').click()
+    if (!(await extraDetails.isChecked())) {
+      throw new AmexBrowserError('EXPORT_UI_NOT_FOUND', 'Kunde inte välja ytterligare transaktionsuppgifter.')
+    }
   }
 
   const dialog = page.locator('[role="dialog"]:visible').last()
   const downloadButtons = [
-    dialog.getByRole('button', { name: /ladda (ner|ned)|download|exportera|export/i }),
-    page.getByRole('button', { name: /ladda (ner|ned)|download|exportera|export/i }).last(),
+    dialog.getByRole('button', { name: /^(hämta|ladda (ner|ned)|download|exportera|export)$/i }),
+    page.getByRole('button', { name: /^hämta$/i }),
   ]
 
-  const downloadPromise = page.waitForEvent('download', { timeout: 30_000 })
+  const downloadPromise = page.waitForEvent('download', { timeout: 30_000 }).catch(() => null)
   const submitted = await clickFirstVisible(downloadButtons)
   if (!submitted) {
     throw new AmexBrowserError('EXPORT_UI_NOT_FOUND', 'Kunde inte starta CSV-nedladdningen.')
   }
 
   const download = await downloadPromise
+  if (!download) throw new AmexBrowserError('DOWNLOAD_FAILED', 'CSV-nedladdningen startade inte inom 30 sekunder.')
   const failure = await download.failure()
   if (failure) throw new AmexBrowserError('DOWNLOAD_FAILED', failure)
 }
@@ -313,3 +339,4 @@ export async function downloadAmexCsv(
     await browser?.close().catch(() => undefined)
   }
 }
+
