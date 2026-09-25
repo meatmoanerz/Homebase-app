@@ -3,7 +3,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import webpush from 'web-push'
 import { VAPID_PUBLIC_KEY } from '@/lib/push/client'
 import { isCronAuthorized } from '@/lib/cron-auth'
-import { runAmexSync } from '@/lib/amex/sync'
+
 
 /**
  * Daily cron (see vercel.json):
@@ -121,34 +121,10 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // 3) Amex — only run when the route is protected and fully configured.
-  let amex: Record<string, unknown> = { status: 'skipped' }
-  if (
-    process.env.CRON_SECRET
-    && process.env.BROWSERBASE_API_KEY
-    && process.env.BROWSERBASE_CONTEXT_ID
-    && serviceKey
-  ) {
-    try {
-      amex = { ...(await runAmexSync()) }
-    } catch (error) {
-      console.error('[Daily] Amex sync failed:', error)
-      amex = {
-        status: 'failed',
-        error: error instanceof Error ? error.message : 'Okänt fel',
-      }
-    }
-  } else {
-    amex = {
-      status: 'skipped',
-      reason: 'CRON_SECRET, Browserbase or Supabase service configuration missing',
-    }
-  }
-
   return NextResponse.json({
-    ok: amex.status !== 'failed',
+    ok: !kaError,
     keepalive: !kaError,
     ...reminderResult,
-    amex,
-  }, { status: amex.status === 'failed' ? 500 : 200 })
+  })
 }
+
