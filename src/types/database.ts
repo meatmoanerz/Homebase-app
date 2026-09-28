@@ -347,6 +347,9 @@ export type Database = {
           temporary_budget_category_id: string | null
           original_currency: string | null
           original_amount: number | null
+          bank: string | null
+          is_refund: boolean
+          credit_card_id: string | null
           created_at: string
           updated_at: string
         }
@@ -372,6 +375,9 @@ export type Database = {
           temporary_budget_category_id?: string | null
           original_currency?: string | null
           original_amount?: number | null
+          bank?: string | null
+          is_refund?: boolean
+          credit_card_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -397,6 +403,9 @@ export type Database = {
           temporary_budget_category_id?: string | null
           original_currency?: string | null
           original_amount?: number | null
+          bank?: string | null
+          is_refund?: boolean
+          credit_card_id?: string | null
           created_at?: string
           updated_at?: string
         }

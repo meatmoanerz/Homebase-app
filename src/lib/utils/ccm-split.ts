@@ -54,7 +54,12 @@ export function calculatePaymentSplit(
         userShared += amount / 2
         partnerShared += amount / 2
       } else if (expense.cost_assignment === 'partner') {
-        partnerPersonal += amount
+        // 'partner' = den andra personen relativt utgiftens ägare
+        if (expense.user_id === userId) {
+          partnerPersonal += amount
+        } else {
+          userPersonal += amount
+        }
       }
 
       // Add Swish responsibility based on recipient
@@ -81,7 +86,12 @@ export function calculatePaymentSplit(
       userShared += amount / 2
       partnerShared += amount / 2
     } else if (expense.cost_assignment === 'partner') {
-      partnerPersonal += amount
+      // 'partner' = den andra personen relativt utgiftens ägare
+      if (expense.user_id === userId) {
+        partnerPersonal += amount
+      } else {
+        userPersonal += amount
+      }
     }
   })
 

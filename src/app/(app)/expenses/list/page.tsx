@@ -5,7 +5,7 @@ import { useExpenses } from '@/hooks/use-expenses'
 import { useUser } from '@/hooks/use-user'
 import { ExpenseListSkeleton } from '@/components/expenses/expense-list-skeleton'
 import { ExpenseEditDialog } from '@/components/expenses/expense-edit-dialog'
-import { AssignmentPill, AmexPill } from '@/components/shared/assignment-pill'
+import { AssignmentPill, CreditCardPill } from '@/components/shared/assignment-pill'
 import { PeriodStrip } from '@/components/shared/period-strip'
 import { formatCurrency, formatRelativeDate } from '@/lib/utils/formatters'
 import { getCurrentBudgetPeriod, formatPeriodDisplay, getRecentPeriods } from '@/lib/utils/budget-period'
@@ -178,7 +178,7 @@ export default function ExpenseListPage() {
                               <span className="text-[11px] text-muted-foreground">
                                 {expense.category?.name}
                               </span>
-                              {expense.is_ccm && <AmexPill />}
+                              {expense.is_ccm && <CreditCardPill cardId={expense.credit_card_id} />}
                               <AssignmentPill assignment={expense.cost_assignment} />
                             </div>
                           </div>

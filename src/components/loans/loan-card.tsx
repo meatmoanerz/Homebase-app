@@ -24,7 +24,7 @@ import {
 import { useDeleteLoan, calculateLoanSummary } from '@/hooks/use-loans'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
-import { Edit2, Trash2, TrendingDown, Percent, Calendar, ChevronRight, Users } from 'lucide-react'
+import { Edit2, Trash2, TrendingDown, Percent, Calendar, ChevronRight, Users, Coins } from 'lucide-react'
 import type { LoanWithGroup } from '@/types'
 import { LoanForm } from './loan-form'
 import { AmortizationPlanDialog } from './amortization-plan'
@@ -143,11 +143,16 @@ export function LoanCard({ loan, index = 0 }: LoanCardProps) {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-3 gap-3 mb-3">
+            <div className="grid grid-cols-2 gap-2 mb-3">
               <div className="text-center p-2 rounded-lg bg-muted/50">
                 <Percent className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
                 <p className="text-sm font-medium">{loan.interest_rate}%</p>
-                <p className="text-xs text-muted-foreground">Ränta</p>
+                <p className="text-xs text-muted-foreground">Räntesats</p>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-muted/50">
+                <Coins className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-sm font-medium">{formatCurrency(summary.monthlyInterestCost)}</p>
+                <p className="text-xs text-muted-foreground">Ränta/mån</p>
               </div>
               <div className="text-center p-2 rounded-lg bg-muted/50">
                 <TrendingDown className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />

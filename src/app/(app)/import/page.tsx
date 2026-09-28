@@ -8,7 +8,7 @@ import { useCreateExpense, useLatestImportedTransactionDates } from '@/hooks/use
 import { useCategoryMappings, findMatchingMapping, incrementMappingHit, useCreateMapping, suggestPatternFromDescription } from '@/hooks/use-category-mappings'
 import { useAssignmentOptions } from '@/hooks/use-assignment-options'
 import { parseHomebaseCsv, getCsvTemplate, type CsvParseResult } from '@/lib/import/csv-parser'
-import { parseBankCsv, decodeCsvBuffer, type BankParseResult } from '@/lib/import/bank-parsers'
+import { parseBankCsv, parseBankXlsx, isXlsxBuffer, decodeCsvBuffer, type BankParseResult } from '@/lib/import/bank-parsers'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { useUser } from '@/hooks/use-user'
 import { useImportBatches, useStagingRows, useToggleBatchPin, useMarkBatchOpened, useDeleteBatch, useCompleteAmexBatch, type StagingBatch, type StagingRow } from '@/hooks/use-import-staging'
@@ -27,7 +27,7 @@ import Link from 'next/link'
 
 type ImportMode = 'homebase' | 'bank' | 'ai'
 type Step = 'choose' | 'upload' | 'preview' | 'importing' | 'done' | 'ai-batches' | 'ai-review'
-type BankChoice = 'auto' | 'SEB' | 'Swedbank' | 'Amex'
+type BankChoice = 'auto' | 'SEB' | 'Swedbank' | 'Amex' | 'Norwegian'
 
 interface PreviewRow {
   date: string
@@ -120,41 +120,48 @@ export default function ImportPage() {
 
   function processBankUpload(text: string) {
     try {
-      const result = parseBankCsv(text, bankChoice)
-      setBankResult(result)
-      setParseResult(null)
-      const rows: PreviewRow[] = result.transactions.map((tx) => {
-        const match = findMatchingMapping(tx.description, mappings, tx.bank)
-        const isAmex = tx.bank === 'Amex'
-        return {
-          date: tx.date,
-          description: tx.description,
-          amount: tx.amount,
-          bank: tx.bank,
-          onCreditCard: isAmex,
-          cardholder: tx.cardholder ?? null,
-          suggestedCategoryId: match?.category_id ?? null,
-          suggestedCategoryName: match?.category?.name ?? null,
-          selectedCategoryId: match?.category_id ?? null,
-          costAssignment: match?.cost_assignment ?? 'shared',
-          mappingId: match?.id ?? null,
-          warnings: !match ? ['Ingen automatisk kategorimatchning'] : [],
-          skip: false,
-          utlagg: null,
-        }
-      })
-      setPreviewRows(rows)
-      setParseError(
-        rows.length === 0
-          ? `Hittade inga transaktioner i filen. Identifierat format: ${result.detectedBank}. ${result.errors.join(' ')} Kontrollera att rätt bank är vald.`
-          : null
-      )
-      setStep('preview')
+      if (bankChoice === 'Norwegian') {
+        throw new Error('Norwegian exporteras som Excel (.xlsx) — ladda upp Excel-filen')
+      }
+      processBankResult(parseBankCsv(text, bankChoice))
     } catch (err) {
       console.error('Bank parse error:', err)
       setParseError(`Kunde inte läsa filen: ${err instanceof Error ? err.message : 'okänt fel'}`)
       setStep('preview')
     }
+  }
+
+  function processBankResult(result: BankParseResult) {
+    setBankResult(result)
+    setParseResult(null)
+    const rows: PreviewRow[] = result.transactions.map((tx) => {
+      const match = findMatchingMapping(tx.description, mappings, tx.bank)
+      // Kreditkortsbanker → CCM. Kortet väljs i databasen utifrån banken.
+      const isCreditCard = tx.bank === 'Amex' || tx.bank === 'Norwegian'
+      return {
+        date: tx.date,
+        description: tx.description,
+        amount: tx.amount,
+        bank: tx.bank,
+        onCreditCard: isCreditCard,
+        cardholder: tx.cardholder ?? null,
+        suggestedCategoryId: match?.category_id ?? null,
+        suggestedCategoryName: match?.category?.name ?? null,
+        selectedCategoryId: match?.category_id ?? null,
+        costAssignment: match?.cost_assignment ?? 'shared',
+        mappingId: match?.id ?? null,
+        warnings: !match ? ['Ingen automatisk kategorimatchning'] : [],
+        skip: false,
+        utlagg: null,
+      }
+    })
+    setPreviewRows(rows)
+    setParseError(
+      rows.length === 0
+        ? `Hittade inga transaktioner i filen. Identifierat format: ${result.detectedBank}. ${result.errors.join(' ')} Kontrollera att rätt bank är vald.`
+        : null
+    )
+    setStep('preview')
   }
 
   const onDrop = useCallback(
@@ -167,6 +174,17 @@ export default function ImportPage() {
       reader.onload = (e) => {
         try {
           const buffer = e.target?.result as ArrayBuffer
+          // Excel (.xlsx) — idag Bank Norwegian
+          if (mode === 'bank' && isXlsxBuffer(buffer)) {
+            parseBankXlsx(buffer)
+              .then(processBankResult)
+              .catch((err) => {
+                console.error('Excel parse error:', err)
+                setParseError(`Kunde inte läsa Excel-filen: ${err instanceof Error ? err.message : 'okänt fel'}`)
+                setStep('preview')
+              })
+            return
+          }
           const text = decodeCsvBuffer(buffer)
           if (mode === 'homebase') processHomebaseUpload(text)
           else processBankUpload(text)
@@ -465,7 +483,7 @@ export default function ImportPage() {
                 <span>Kunde inte hämta datum</span>
               ) : latestDatesPending ? (
                 <span>Hämtar…</span>
-              ) : (['SEB', 'Swedbank', 'Amex'] as const).map((bank) => (
+              ) : (['SEB', 'Swedbank', 'Amex', 'Norwegian'] as const).map((bank) => (
                 <span key={bank} className="whitespace-nowrap">
                   <span className="font-medium text-foreground">{bank}</span>{' '}
                   {latestImportedDates?.[bank]
@@ -485,7 +503,7 @@ export default function ImportPage() {
             active={mode === 'bank'}
             onClick={() => setMode('bank')}
             title="Rå bankfil"
-            description="Ladda ner CSV direkt från SEB, Swedbank eller Amex. Appen kategoriserar automatiskt med dina sparade regler."
+            description="Ladda ner CSV från SEB, Swedbank eller Amex, eller Excel från Norwegian. Appen kategoriserar automatiskt med dina sparade regler."
             icon="🏦"
           />
           <ModeCard
@@ -705,12 +723,12 @@ export default function ImportPage() {
                 Vilken bank?
               </div>
               <div className="flex gap-1.5 bg-secondary rounded-full p-1">
-                {(['auto', 'SEB', 'Swedbank', 'Amex'] as BankChoice[]).map((b) => (
+                {(['auto', 'SEB', 'Swedbank', 'Amex', 'Norwegian'] as BankChoice[]).map((b) => (
                   <button
                     key={b}
                     onClick={() => setBankChoice(b)}
                     className={cn(
-                      'flex-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all',
+                      'flex-1 px-2 py-1.5 rounded-full text-xs font-medium transition-all',
                       bankChoice === b ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
                     )}
                   >
@@ -733,7 +751,7 @@ export default function ImportPage() {
               <Upload className="w-7 h-7 text-hb-cognac" />
             </div>
             <p className="font-medium text-sm">
-              {isDragActive ? 'Släpp filen här' : 'Dra hit CSV-filen eller tryck för att välja'}
+              {isDragActive ? 'Släpp filen här' : mode === 'bank' ? 'Dra hit CSV/Excel-filen eller tryck för att välja' : 'Dra hit CSV-filen eller tryck för att välja'}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               {mode === 'bank' ? 'Originalfil från banken' : 'Homebase standard-CSV'}
@@ -755,7 +773,7 @@ export default function ImportPage() {
               <>
                 <p className="font-medium text-foreground mb-2">Rå bankfil — så funkar det</p>
                 <p>
-                  Ladda ner transaktionerna som CSV direkt från din internetbank. Appen läser
+                  Ladda ner transaktionerna som CSV direkt från din internetbank (Norwegian: Excel-filen). Appen läser
                   varje rad, försöker kategorisera den automatiskt baserat på dina sparade regler,
                   och visar en förhandsgranskning där du kan justera innan import.
                 </p>
@@ -1146,7 +1164,7 @@ function AiPreviewRow({
             <div className="text-[11px] text-muted-foreground">
               {row.date}
               {row.bank && ` · ${row.bank}`}
-              {row.is_ccm && ' · Amex'}
+              {row.is_ccm && row.bank !== 'Amex' && row.bank !== 'Norwegian' && ' · Kreditkort'}
               {row.cardholder && ` · ${row.cardholder}`}
               {row.match_source === 'blank' && (
                 <span className="ml-1 text-hb-amber">· Ingen match</span>

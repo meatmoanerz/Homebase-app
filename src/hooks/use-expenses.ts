@@ -84,7 +84,7 @@ export function useRecentExpenses(limit: number = 5) {
   })
 }
 
-const importBanks = ['SEB', 'Swedbank', 'Amex'] as const
+const importBanks = ['SEB', 'Swedbank', 'Amex', 'Norwegian'] as const
 
 export function useLatestImportedTransactionDates(userId?: string) {
   const supabase = createClient()
@@ -99,6 +99,7 @@ export function useLatestImportedTransactionDates(userId?: string) {
         SEB: null,
         Swedbank: null,
         Amex: null,
+        Norwegian: null,
       }
 
       await Promise.all(importBanks.map(async (bank) => {
@@ -256,6 +257,9 @@ export function useCreateExpense() {
         temporary_budget_category_id: newExpense.temporary_budget_category_id || null,
         original_currency: newExpense.original_currency || null,
         original_amount: newExpense.original_amount || null,
+        bank: newExpense.bank || null,
+        is_refund: newExpense.is_refund || false,
+        credit_card_id: newExpense.credit_card_id || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         category: category || (newExpense.category_id ? {

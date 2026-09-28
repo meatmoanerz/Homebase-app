@@ -1,5 +1,6 @@
 'use client'
 
+import { useDefaultCreditCard } from '@/hooks/use-credit-cards'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -43,6 +44,7 @@ export function ExpenseFormCompact({ onSuccess }: ExpenseFormCompactProps) {
   const dateInputRef = useRef<HTMLInputElement>(null)
 
   const isCCMEnabled = user?.ccm_enabled || false
+  const { data: defaultCard } = useDefaultCreditCard()
 
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
@@ -314,7 +316,7 @@ export function ExpenseFormCompact({ onSuccess }: ExpenseFormCompactProps) {
             )}
           >
             <CreditCard className="w-4 h-4" />
-            Kreditkort
+            {defaultCard?.name || 'Kreditkort'}
           </button>
         )}
       </div>

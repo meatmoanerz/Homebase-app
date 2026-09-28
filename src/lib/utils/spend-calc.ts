@@ -46,7 +46,7 @@ function isCreditPurchaseThisPeriod(expense: ExpenseForCalc): boolean {
   if (expense.category?.excludes_from_expense_total === true) return false
 
   if (expense.is_ccm === true) return true
-  if (expense.bank && expense.bank.toLowerCase() === 'amex') return true
+  if (expense.bank && ['amex', 'norwegian'].includes(expense.bank.toLowerCase())) return true
   return false
 }
 

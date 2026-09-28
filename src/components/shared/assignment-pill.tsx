@@ -3,6 +3,8 @@
 import { cn } from '@/lib/utils/cn'
 import { useUser, usePartner } from '@/hooks/use-user'
 import type { CostAssignment } from '@/lib/utils/assignment-label'
+import { useCreditCards } from '@/hooks/use-credit-cards'
+import { getDefaultCard } from '@/lib/utils/credit-cards'
 
 interface AssignmentPillProps {
   assignment: CostAssignment | null | undefined
@@ -70,7 +72,7 @@ export function AssignmentPill({
 /**
  * Variant used for Amex-marked expenses.
  */
-export function AmexPill({ className }: { className?: string }) {
+export function AmexPill({ className, label = 'Amex' }: { className?: string; label?: string }) {
   return (
     <span
       className={cn(
@@ -79,7 +81,17 @@ export function AmexPill({ className }: { className?: string }) {
         className
       )}
     >
-      Amex
+      {label}
     </span>
   )
+}
+
+/**
+ * Kreditkortsetikett för CCM-utgifter — visar kortets namn (t.ex. "Amex",
+ * "Norwegian"). Faller tillbaka på standardkortet om utgiften saknar kort.
+ */
+export function CreditCardPill({ cardId, className }: { cardId: string | null | undefined; className?: string }) {
+  const { data: cards = [] } = useCreditCards()
+  const card = cards.find(c => c.id === cardId) ?? getDefaultCard(cards)
+  return <AmexPill className={className} label={card?.name || 'Kort'} />
 }

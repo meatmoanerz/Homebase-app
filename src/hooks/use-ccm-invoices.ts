@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 export interface CCMInvoice {
   id: string
   user_id: string
+  credit_card_id: string
   period: string
   actual_amount: number
   notes: string | null
@@ -32,32 +33,12 @@ export function useCCMInvoices() {
   })
 }
 
-export function useCCMInvoice(period: string) {
-  const supabase = createClient()
-
-  return useQuery({
-    queryKey: ['ccm-invoices', period],
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from('ccm_invoices')
-        .select('*')
-        .eq('period', period)
-        .maybeSingle()
-
-      if (error) throw error
-      return data as CCMInvoice | null
-    },
-    enabled: !!period,
-  })
-}
-
 export function useUpsertCCMInvoice() {
   const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ period, actual_amount, notes }: { period: string; actual_amount: number; notes?: string }) => {
+    mutationFn: async ({ creditCardId, period, actual_amount, notes }: { creditCardId: string; period: string; actual_amount: number; notes?: string }) => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
@@ -67,11 +48,12 @@ export function useUpsertCCMInvoice() {
         .upsert(
           {
             user_id: user.id,
+            credit_card_id: creditCardId,
             period,
             actual_amount,
             notes,
           },
-          { onConflict: 'user_id,period' }
+          { onConflict: 'credit_card_id,period' }
         )
         .select()
         .single()
@@ -86,13 +68,13 @@ export function useUpsertCCMInvoice() {
 }
 
 // Mark an invoice period as paid/unpaid.
-// Upserts the ccm_invoices row so it works even for periods without a saved invoice amount.
+// Upserts the ccm_invoices row (per kort + period) so it works even for periods without a saved invoice amount.
 export function useSetCCMPeriodPaid() {
   const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ period, paid, actualAmount }: { period: string; paid: boolean; actualAmount?: number }) => {
+    mutationFn: async ({ creditCardId, period, paid, actualAmount }: { creditCardId: string; period: string; paid: boolean; actualAmount?: number }) => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
@@ -102,11 +84,12 @@ export function useSetCCMPeriodPaid() {
         .upsert(
           {
             user_id: user.id,
+            credit_card_id: creditCardId,
             period,
             actual_amount: actualAmount ?? 0,
             paid_at: paid ? new Date().toISOString() : null,
           },
-          { onConflict: 'user_id,period' }
+          { onConflict: 'credit_card_id,period' }
         )
         .select()
         .single()

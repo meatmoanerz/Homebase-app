@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { useDefaultCreditCard } from '@/hooks/use-credit-cards'
 import {
   Dialog,
   DialogContent,
@@ -74,6 +75,8 @@ export function ExpenseEditDialog({ expense, open, onOpenChange }: ExpenseEditDi
   const dateInputRef = useRef<HTMLInputElement>(null)
 
   const isCCMEnabled = user?.ccm_enabled || false
+  const { data: defaultCard, cards: creditCards } = useDefaultCreditCard()
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
 
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
@@ -107,6 +110,7 @@ export function ExpenseEditDialog({ expense, open, onOpenChange }: ExpenseEditDi
       setCategoryOpen(false)
       setSelectedProjectBudgetId(expense.temporary_budget_id || null)
       setSelectedProjectCategoryId(expense.temporary_budget_category_id || null)
+      setSelectedCardId(expense.credit_card_id || null)
     }
   }, [expense, open, form])
 
@@ -175,6 +179,7 @@ export function ExpenseEditDialog({ expense, open, onOpenChange }: ExpenseEditDi
         ...data,
         temporary_budget_id: selectedProjectBudgetId,
         temporary_budget_category_id: selectedProjectCategoryId,
+        credit_card_id: data.is_ccm ? (selectedCardId ?? defaultCard?.id ?? null) : null,
       })
       toast.success('Utgift uppdaterad!')
       onOpenChange(false)
@@ -445,6 +450,34 @@ export function ExpenseEditDialog({ expense, open, onOpenChange }: ExpenseEditDi
                   checked={form.watch('is_ccm')}
                   onCheckedChange={(checked) => form.setValue('is_ccm', checked)}
                 />
+              </div>
+            )}
+
+            {/* Vilket kort — bara när det finns fler än ett */}
+            {isCCMEnabled && form.watch('is_ccm') && creditCards.length > 1 && (
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-sm">Kort</Label>
+                <div className="flex flex-wrap gap-2">
+                  {creditCards.map(card => {
+                    const active = (selectedCardId ?? defaultCard?.id) === card.id
+                    return (
+                      <button
+                        key={card.id}
+                        type="button"
+                        onClick={() => setSelectedCardId(card.id)}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                          active
+                            ? "bg-hb-terracotta text-white"
+                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        )}
+                      >
+                        <CreditCard className="w-3.5 h-3.5" />
+                        {card.name}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             )}
 

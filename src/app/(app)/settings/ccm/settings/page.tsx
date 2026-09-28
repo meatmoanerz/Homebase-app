@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { LoadingPage } from '@/components/shared/loading-spinner'
 import { motion } from 'framer-motion'
 import { ArrowLeft, CreditCard, Info } from 'lucide-react'
@@ -23,7 +22,6 @@ export default function CCMSettingsPage() {
   const { data: user, isLoading } = useUser()
 
   const [ccmEnabled, setCcmEnabled] = useState(false)
-  const [invoiceBreakDate, setInvoiceBreakDate] = useState('1')
   const [saving, setSaving] = useState(false)
   const [initialized, setInitialized] = useState(false)
 
@@ -31,7 +29,6 @@ export default function CCMSettingsPage() {
   useEffect(() => {
     if (user && !initialized) {
       setCcmEnabled(user.ccm_enabled || false)
-      setInvoiceBreakDate((user.ccm_invoice_break_date || 1).toString())
       setInitialized(true)
     }
   }, [user, initialized])
@@ -49,7 +46,6 @@ export default function CCMSettingsPage() {
       .from('profiles')
       .update({
         ccm_enabled: ccmEnabled,
-        ccm_invoice_break_date: parseInt(invoiceBreakDate),
       })
       .eq('id', user.id)
 
@@ -128,25 +124,10 @@ export default function CCMSettingsPage() {
               />
             </div>
 
-            {/* Invoice Break Date */}
+            {/* Brytdatum och förfallodag ställs in per kort */}
             {ccmEnabled && (
-              <div className="space-y-2 pt-4 border-t">
-                <Label>Fakturabrytdatum</Label>
-                <Select value={invoiceBreakDate} onValueChange={setInvoiceBreakDate}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
-                      <SelectItem key={day} value={day.toString()}>
-                        Den {day}:e varje månad
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Utgifter efter detta datum hamnar på nästa månads faktura
-                </p>
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                Brytdatum, förfallodag och standardkort ställs in per kort i Kreditkortshanteraren.
               </div>
             )}
 
@@ -185,7 +166,7 @@ export default function CCMSettingsPage() {
                   2
                 </div>
                 <div>
-                  <p className="font-medium text-sm">Ange fakturabelopp</p>
+                  <p className="font-medium text-sm">Ange fakturabelopp per kort</p>
                   <p className="text-xs text-muted-foreground">
                     När fakturan kommer, ange det faktiska beloppet
                   </p>

@@ -21,10 +21,11 @@ import { useHouseholdIncomeDetails } from '@/hooks/use-incomes'
 import { useHouseholdMonthlyIncomes } from '@/hooks/use-monthly-incomes'
 import { useCreateBudget, useUpdateBudget, useDeleteBudget, usePreviousBudget, useBudgetByPeriod } from '@/hooks/use-budgets'
 import { useUser, usePartner } from '@/hooks/use-user'
-import { useLoans } from '@/hooks/use-loans'
-import { useCCMInvoice } from '@/hooks/use-ccm-invoices'
-import { useCCMExpenses, groupExpensesByInvoicePeriod } from '@/hooks/use-expenses'
-import { calculatePaymentSplit } from '@/lib/utils/ccm-split'
+import { useLoans, getLoanTotalsForPeriod } from '@/hooks/use-loans'
+import { useCCMInvoices } from '@/hooks/use-ccm-invoices'
+import { useCCMExpenses } from '@/hooks/use-expenses'
+import { useCreditCards } from '@/hooks/use-credit-cards'
+import { getCreditCardAmountsForBudget } from '@/lib/utils/credit-cards'
 import { formatCurrency, formatPercentage } from '@/lib/utils/formatters'
 import { formatPeriodDisplay, getCurrentBudgetPeriod, getNextPeriods } from '@/lib/utils/budget-period'
 import { toast } from 'sonner'
@@ -45,7 +46,8 @@ import {
   ExternalLink,
   Lock,
   CreditCard,
-  Trash2
+  Trash2,
+  ArrowDownToLine
 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
@@ -82,7 +84,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
   const { data: partner } = usePartner()
   const { data: householdData, isLoading: incomesLoading } = useHouseholdIncomeDetails()
   const { fixed, variable, savings, isLoading: categoriesLoading } = useCategoriesByType()
-  const { data: loans } = useLoans()
+  const { data: loans, isLoading: loansLoading } = useLoans()
 
   // Get monthly incomes for the selected period (preferred over static incomes)
   const createBudget = useCreateBudget()
@@ -118,10 +120,10 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
   // Monthly incomes for the selected period (preferred over static incomes)
   const { data: monthlyIncomes, isLoading: monthlyIncomesLoading } = useHouseholdMonthlyIncomes(period)
 
-  // CCM invoice and expenses for auto-filling "Kreditkort" budget item with split
-  const { data: ccmInvoice } = useCCMInvoice(period)
-  const invoiceBreakDate = user?.ccm_invoice_break_date || 1
-  const { data: ccmExpenses = [] } = useCCMExpenses(invoiceBreakDate)
+  // Kreditkort: fakturor (alla kort) som betalas i perioden, med split per person
+  const { data: ccmInvoices = [], isLoading: ccmInvoicesLoading } = useCCMInvoices()
+  const { data: ccmExpenses = [], isLoading: ccmExpensesLoading } = useCCMExpenses()
+  const { data: creditCards = [], isLoading: creditCardsLoading } = useCreditCards()
   
   // Check if selected period already has a saved budget (only relevant in /new)
   const { data: existingPeriodBudget, isLoading: checkingExistingBudget } = useBudgetByPeriod(
@@ -148,20 +150,42 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
     return map
   }, [previousBudget])
 
-  // Calculate loan totals for auto-filling budget
+  // Lånens ränta + amortering för den valda perioden (projicerat från lånens
+  // nuvarande läge — se getLoanAmountForPeriod)
   const loanTotals = useMemo(() => {
-    if (!loans || loans.length === 0) return { totalInterest: 0, totalAmortization: 0 }
+    if (!loans || loans.length === 0) return { totalInterest: 0, totalAmortization: 0, loanCount: 0 }
+    return getLoanTotalsForPeriod(loans, period)
+  }, [loans, period])
 
-    const totalInterest = loans.reduce((sum, loan) => {
-      return sum + Math.round(loan.current_balance * (loan.interest_rate / 100 / 12))
-    }, 0)
+  // Kreditkortsfakturor som betalas under perioden (alla kort)
+  const creditCardTotals = useMemo(() => {
+    if (!user) return null
+    return getCreditCardAmountsForBudget({
+      budgetPeriod: period,
+      cards: creditCards,
+      expenses: ccmExpenses,
+      invoices: ccmInvoices,
+      userId: user.id,
+      partnerId: partner?.id ?? null,
+      salaryDay,
+    })
+  }, [period, creditCards, ccmExpenses, ccmInvoices, user, partner, salaryDay])
 
-    const totalAmortization = loans.reduce((sum, loan) => {
-      return sum + loan.monthly_amortization
-    }, 0)
-
-    return { totalInterest, totalAmortization }
-  }, [loans])
+  const buildCreditCardItem = useCallback((): BudgetItemState | null => {
+    if (!creditCardTotals || creditCardTotals.total <= 0) return null
+    if (partner) {
+      return {
+        total: creditCardTotals.total,
+        userAmount: creditCardTotals.userAmount,
+        partnerAmount: creditCardTotals.partnerAmount,
+        isSplit: false,
+        hasExplicitSplit: creditCardTotals.userAmount !== creditCardTotals.partnerAmount,
+        // Fakturan betalas från kontot i perioden → kassaflöde, inte CCM
+        is_ccm: false,
+      }
+    }
+    return { total: creditCardTotals.total, isSplit: false, hasExplicitSplit: false, is_ccm: false }
+  }, [creditCardTotals, partner])
 
   // Helper: Map budget items from partner's category IDs to current user's category IDs by matching names
   const mapBudgetItemsToCurrentCategories = useCallback((
@@ -366,23 +390,11 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         else if (cat.name === 'Amortering' && loanTotals.totalAmortization > 0) {
           defaultValue = loanTotals.totalAmortization
         }
-        // Auto-fill "Kreditkort" from CCM invoice with per-partner split
-        else if (cat.name === 'Kreditkort' && ccmInvoice?.actual_amount && ccmInvoice.actual_amount > 0) {
-          defaultValue = ccmInvoice.actual_amount
-
-          if (user && partner) {
-            const grouped = groupExpensesByInvoicePeriod(ccmExpenses, invoiceBreakDate)
-            const periodExpenses = grouped.get(period) || []
-            const split = calculatePaymentSplit(periodExpenses, defaultValue, user.id, partner.id)
-
-            items[cat.id] = {
-              total: defaultValue,
-              userAmount: Math.round(split.userAmount),
-              partnerAmount: Math.round(split.partnerAmount),
-              isSplit: false,
-              hasExplicitSplit: true,
-              is_ccm: true,
-            }
+        // Auto-fill "Kreditkort" from fakturor som betalas i perioden (alla kort)
+        else if (cat.name === 'Kreditkort') {
+          const ccItem = buildCreditCardItem()
+          if (ccItem) {
+            items[cat.id] = ccItem
             return
           }
         }
@@ -391,7 +403,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           total: defaultValue,
           isSplit: false,
           hasExplicitSplit: false,
-          is_ccm: cat.name === 'Kreditkort',
+          is_ccm: false,
         }
       })
       setBudgetItems(items)
@@ -426,7 +438,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
     }
     
     setPeriodChanged(false)
-  }, [period, periodChanged, initialized, existingBudget, fixed, variable, savings, getDraftKey, householdData, ccmInvoice, ccmExpenses, invoiceBreakDate, user, partner])
+  }, [period, periodChanged, initialized, existingBudget, fixed, variable, savings, getDraftKey, householdData, loanTotals, buildCreditCardItem])
 
   // Initialize incomes from database
   // Prefer monthly incomes for the period if they exist, otherwise fall back to static incomes
@@ -587,23 +599,11 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         else if (cat.name === 'Amortering' && loanTotals.totalAmortization > 0) {
           defaultValue = loanTotals.totalAmortization
         }
-        // Auto-fill "Kreditkort" from CCM invoice with per-partner split
-        else if (cat.name === 'Kreditkort' && ccmInvoice?.actual_amount && ccmInvoice.actual_amount > 0) {
-          defaultValue = ccmInvoice.actual_amount
-
-          if (user && partner) {
-            const grouped = groupExpensesByInvoicePeriod(ccmExpenses, invoiceBreakDate)
-            const periodExpenses = grouped.get(period) || []
-            const split = calculatePaymentSplit(periodExpenses, defaultValue, user.id, partner.id)
-
-            items[cat.id] = {
-              total: defaultValue,
-              userAmount: Math.round(split.userAmount),
-              partnerAmount: Math.round(split.partnerAmount),
-              isSplit: false,
-              hasExplicitSplit: true,
-              is_ccm: true,
-            }
+        // Auto-fill "Kreditkort" from fakturor som betalas i perioden (alla kort)
+        else if (cat.name === 'Kreditkort') {
+          const ccItem = buildCreditCardItem()
+          if (ccItem) {
+            items[cat.id] = ccItem
             return
           }
         }
@@ -612,14 +612,14 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           total: defaultValue,
           isSplit: false,
           hasExplicitSplit: false,
-          is_ccm: cat.name === 'Kreditkort',
+          is_ccm: false,
         }
       })
       setBudgetItems(items)
       setInitialized(true)
       setDraftLoaded(true)
     }
-  }, [existingBudget, fixed, variable, savings, categoriesLoading, initialized, period, householdData, loanTotals, ccmInvoice, ccmExpenses, invoiceBreakDate, user, partner])
+  }, [existingBudget, fixed, variable, savings, categoriesLoading, initialized, period, householdData, loanTotals, buildCreditCardItem])
 
   // Calculations
   const userIncome = useMemo(() => 
@@ -795,6 +795,51 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         },
       }
     })
+  }
+
+  // "Hämta värde" — fyller raden med beloppet från Lån / Kreditkortshanteraren
+  // för den period budgeten gäller.
+  const FETCHABLE_CATEGORIES = ['Ränta bolån', 'Amortering', 'Kreditkort']
+  const fetchLoading = loansLoading || ccmInvoicesLoading || ccmExpensesLoading || creditCardsLoading
+
+  const fetchValue = (cat: Category) => {
+    const periodName = formatPeriodDisplay(period)
+    if (fetchLoading) {
+      toast.info('Hämtar data — försök igen om en sekund')
+      return
+    }
+
+    if (cat.name === 'Ränta bolån' || cat.name === 'Amortering') {
+      const value = cat.name === 'Ränta bolån' ? loanTotals.totalInterest : loanTotals.totalAmortization
+      if (loanTotals.loanCount === 0) {
+        toast.error('Inga lån registrerade')
+        return
+      }
+      // Delas lika — ingen explicit split
+      updateItem(cat.id, value)
+      toast.success(`${cat.name} ${periodName}: ${formatCurrency(value)} (${loanTotals.loanCount} lån)`)
+      return
+    }
+
+    if (cat.name === 'Kreditkort') {
+      const ccItem = buildCreditCardItem()
+      if (!ccItem || !creditCardTotals) {
+        toast.info(`Ingen kreditkortsfaktura betalas i ${periodName}`)
+        return
+      }
+      setBudgetItems(prev => ({
+        ...prev,
+        [cat.id]: { ...ccItem, is_ccm: prev[cat.id]?.is_ccm ?? false },
+      }))
+      const detail = creditCardTotals.parts
+        .map(p => `${p.card.name} ${formatCurrency(p.amount)}${p.source === 'registrerat' ? ' (registrerat)' : ''}`)
+        .join(' + ')
+      toast.success(`Kreditkort ${periodName}: ${formatCurrency(creditCardTotals.total)}`, {
+        description: partner
+          ? `${detail} · ${user?.first_name || 'Du'} ${formatCurrency(creditCardTotals.userAmount)}, ${partner.first_name || 'Partner'} ${formatCurrency(creditCardTotals.partnerAmount)}`
+          : detail,
+      })
+    }
   }
 
   const toggleSection = (section: 'income' | 'fixed' | 'variable' | 'savings') => {
@@ -1282,6 +1327,8 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         showPreviousValues={showPreviousValues && !periodAlreadyHasBudget}
         readOnly={periodAlreadyHasBudget}
         ccmEnabled={user?.ccm_enabled}
+        fetchableCategories={FETCHABLE_CATEGORIES}
+        onFetchValue={fetchValue}
       />
 
       {/* Variable Expenses */}
@@ -1312,6 +1359,8 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         showPreviousValues={showPreviousValues && !periodAlreadyHasBudget}
         readOnly={periodAlreadyHasBudget}
         ccmEnabled={user?.ccm_enabled}
+        fetchableCategories={FETCHABLE_CATEGORIES}
+        onFetchValue={fetchValue}
       />
 
       {/* Savings */}
@@ -1592,6 +1641,9 @@ interface CategorySectionProps {
   showPreviousValues: boolean
   readOnly?: boolean
   ccmEnabled?: boolean
+  /** Kategorinamn som har en "Hämta värde"-knapp */
+  fetchableCategories?: string[]
+  onFetchValue?: (category: Category) => void
 }
 
 function CategorySection({
@@ -1615,6 +1667,8 @@ function CategorySection({
   showPreviousValues,
   readOnly = false,
   ccmEnabled = false,
+  fetchableCategories = [],
+  onFetchValue,
 }: CategorySectionProps) {
   return (
     <motion.div
@@ -1691,6 +1745,19 @@ function CategorySection({
                           </AnimatePresence>
                         </div>
                         
+                        {/* Hämta värde från Lån / Kreditkortshanteraren för perioden */}
+                        {!readOnly && onFetchValue && fetchableCategories.includes(cat.name) && (
+                          <button
+                            type="button"
+                            onClick={() => onFetchValue(cat)}
+                            className="p-1.5 rounded-md transition-colors shrink-0 bg-hb-sage/25 text-hb-cognac hover:bg-hb-sage/40 active:scale-95"
+                            title="Hämta värde för perioden"
+                            aria-label={`Hämta värde för ${cat.name}`}
+                          >
+                            <ArrowDownToLine className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
                         {/* CCM toggle button - only show if CCM enabled and not read-only */}
                         {ccmEnabled && !readOnly && onToggleCCM && (
                           <button

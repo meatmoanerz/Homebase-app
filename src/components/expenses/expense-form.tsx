@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { useDefaultCreditCard } from '@/hooks/use-credit-cards'
 import { useCreateExpense } from '@/hooks/use-expenses'
 import { useCategoriesByType } from '@/hooks/use-categories'
 import { useActiveTemporaryBudgets, useUpdateTemporaryBudgetSpent } from '@/hooks/use-temporary-budgets'
@@ -52,6 +53,7 @@ export function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   const dateInputRef = useRef<HTMLInputElement>(null)
 
   const isCCMEnabled = user?.ccm_enabled || false
+  const { data: defaultCard } = useDefaultCreditCard()
 
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
@@ -486,7 +488,7 @@ export function ExpenseForm({ onSuccess }: ExpenseFormProps) {
                 Betald med kreditkort
               </Label>
               <p className="text-xs text-muted-foreground">
-                Registreras som CCM-utgift
+                {defaultCard ? `Registreras på ${defaultCard.name}` : 'Registreras som CCM-utgift'}
               </p>
             </div>
           </div>

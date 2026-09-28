@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Loan, LoanWithGroup, LoanInterestHistory, Category } from '@/types'
 import type { InsertTables, UpdateTables } from '@/types/database'
+import { format } from 'date-fns'
+import { getPeriodDates } from '@/lib/utils/budget-period'
 
 // Extended type for loans with owner information
 export interface LoanWithOwner extends LoanWithGroup {
@@ -384,6 +386,87 @@ export function calculateLoanSummary(loan: Loan) {
   }
 }
 
+
+// ---------------------------------------------------------------------------
+// Period-aware loan amounts
+//
+// Banken drar ränta + amortering ~27–28:e varje månad. Sista dagen i månaden
+// räknas lånen om automatiskt (pg_cron: recalc_loans_month_end) — månadens
+// amortering dras från skulden. Efter omräkningen visar lånet alltså beloppen
+// för NÄSTA dragning. En dragning den 28:e ligger efter lönedagen (25:e) och
+// hör därför till budgetperioden månaden efter.
+//
+//   last_amortization_date 2026-08-xx  → dragning 28 sep → budget 2026-10
+//   last_amortization_date 2026-09-30  → dragning 28 okt → budget 2026-11
+// ---------------------------------------------------------------------------
+
+function addMonthsToPeriod(period: string, delta: number): string {
+  const [y, m] = period.split('-').map(Number)
+  const d = new Date(y, m - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+function periodDiff(from: string, to: string): number {
+  const [fy, fm] = from.split('-').map(Number)
+  const [ty, tm] = to.split('-').map(Number)
+  return (ty - fy) * 12 + (tm - fm)
+}
+
+/** Budgetperiod (YYYY-MM) som lånets nuvarande saldo/ränta avser. */
+export function getLoanStatePeriod(loan: Pick<Loan, 'last_amortization_date'>, today: Date = new Date()): string {
+  const last = loan.last_amortization_date
+  if (last) {
+    return addMonthsToPeriod(last.slice(0, 7), 2)
+  }
+  const current = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+  return addMonthsToPeriod(current, 1)
+}
+
+/** Kalendermånad (YYYY-MM) då dragningen för en budgetperiod sker. */
+export function getLoanPaymentMonth(budgetPeriod: string): string {
+  return addMonthsToPeriod(budgetPeriod, -1)
+}
+
+export interface LoanPeriodAmount {
+  loanId: string
+  balance: number
+  interest: number
+  amortization: number
+}
+
+/**
+ * Ränta och amortering för en given budgetperiod. Utgår från lånets nuvarande
+ * läge och räknar fram/bak med månadsamorteringen om perioden ligger före
+ * eller efter den period lånet just nu avser.
+ */
+export function getLoanAmountForPeriod(loan: Loan, budgetPeriod: string): LoanPeriodAmount {
+  const statePeriod = getLoanStatePeriod(loan)
+  const diff = periodDiff(statePeriod, budgetPeriod)
+  const amort = Number(loan.monthly_amortization) || 0
+  const current = Number(loan.current_balance) || 0
+  let balance = current - amort * diff
+  if (diff < 0 && loan.original_amount) balance = Math.min(balance, Number(loan.original_amount))
+  balance = Math.max(0, balance)
+
+  return {
+    loanId: loan.id,
+    balance,
+    interest: Math.round(balance * (Number(loan.interest_rate) / 100 / 12)),
+    amortization: Math.min(amort, balance),
+  }
+}
+
+/** Summa ränta + amortering för en budgetperiod (lån med include_in_budget). */
+export function getLoanTotalsForPeriod(loans: Loan[], budgetPeriod: string) {
+  const included = loans.filter(l => l.include_in_budget !== false)
+  const amounts = included.map(l => getLoanAmountForPeriod(l, budgetPeriod))
+  return {
+    totalInterest: amounts.reduce((s, a) => s + a.interest, 0),
+    totalAmortization: amounts.reduce((s, a) => s + a.amortization, 0),
+    loanCount: included.length,
+  }
+}
+
 // Type for loan group
 interface LoanGroupBasic {
   id: string
@@ -405,13 +488,10 @@ export function useCreateExpensesFromLoans() {
       loans,
       period,
       date,
-      mode = 'register',
     }: {
       loans: LoanWithGroup[]
       period: string
       date: string
-      /** 'calculate' = only amortize balances + recompute; 'register' = also create expense transactions */
-      mode?: 'calculate' | 'register'
     }) => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
@@ -461,10 +541,17 @@ export function useCreateExpensesFromLoans() {
         amortizationCategory = newCat
       }
 
-      // Calculate proper end of month date for the period
-      const [year, month] = period.split('-').map(Number)
-      const lastDayOfMonth = new Date(year, month, 0).getDate()
-      const periodEndDate = `${period}-${lastDayOfMonth.toString().padStart(2, '0')}`
+      // Budgetperiodens datum (lönedag → lönedag). Dragningen ~28:e hamnar i
+      // perioden efter kalendermånaden, så dubblettkontrollen måste använda
+      // budgetperioden — inte kalendermånaden.
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('salary_day')
+        .eq('id', user.id)
+        .single() as { data: { salary_day: number | null } | null }
+      const { startDate, endDate } = getPeriodDates(period, profile?.salary_day || 25)
+      const periodStartDate = format(startDate, 'yyyy-MM-dd')
+      const periodEndDate = format(endDate, 'yyyy-MM-dd')
 
       // Check for existing loan expenses in this period to prevent duplicates.
       // We match against the loan categories so CSV-imported interest/amortization
@@ -473,7 +560,7 @@ export function useCreateExpensesFromLoans() {
         .from('expenses')
         .select('id, description, category_id, amount')
         .eq('user_id', user.id)
-        .gte('date', `${period}-01`)
+        .gte('date', periodStartDate)
         .lte('date', periodEndDate)
         .in('category_id', [interestCategory?.id, amortizationCategory?.id].filter(Boolean))
 
@@ -493,8 +580,6 @@ export function useCreateExpensesFromLoans() {
         ) ?? false
       }
 
-      const periodStart = `${period}-01`
-
       const expenses: Array<{
         user_id: string
         category_id: string
@@ -505,90 +590,37 @@ export function useCreateExpensesFromLoans() {
         is_ccm: boolean
       }> = []
 
-      const loansToUpdate: Array<{ id: string; newBalance: number }> = []
-
+      // Saldot räknas om automatiskt sista dagen i månaden (pg_cron) — här
+      // bokförs bara periodens belopp, projicerat till vald budgetperiod.
       for (const loan of loans) {
         const loanTypeName = getLoanTypeName(loan)
         const interestDescription = `${loanTypeName} - ${loan.name} (Ränta)`
         const amortizationDescription = `${loanTypeName} - ${loan.name} (Amortering)`
 
-        const monthlyInterest = Math.round(loan.current_balance * (loan.interest_rate / 100 / 12))
-        const amortization = loan.monthly_amortization
+        const { interest: monthlyInterest, amortization } = getLoanAmountForPeriod(loan, period)
 
-        // Only create transactions in 'register' mode, and only when not already booked
-        if (mode === 'register') {
-          if (monthlyInterest > 0 && interestCategory && !alreadyRegistered(interestCategory.id, interestDescription, monthlyInterest)) {
-            expenses.push({
-              user_id: user.id,
-              category_id: interestCategory.id,
-              amount: monthlyInterest,
-              description: interestDescription,
-              date,
-              cost_assignment: loan.is_shared ? 'shared' : 'personal',
-              is_ccm: false,
-            })
-          }
-
-          if (amortization > 0 && amortizationCategory && !alreadyRegistered(amortizationCategory.id, amortizationDescription, amortization)) {
-            expenses.push({
-              user_id: user.id,
-              category_id: amortizationCategory.id,
-              amount: amortization,
-              description: amortizationDescription,
-              date,
-              cost_assignment: loan.is_shared ? 'shared' : 'personal',
-              is_ccm: false,
-            })
-          }
-        }
-
-        // Balance reduction is decoupled from expense creation and guarded by
-        // last_amortization_date so it happens exactly once per period — in both
-        // modes, and even if the amortization was imported via CSV.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const lastAmort = (loan as any).last_amortization_date as string | null | undefined
-        const alreadyAmortizedThisPeriod = !!lastAmort && lastAmort >= periodStart
-        if (amortization > 0 && !alreadyAmortizedThisPeriod) {
-          const newBalance = Math.max(0, loan.current_balance - amortization)
-          loansToUpdate.push({ id: loan.id, newBalance })
-        }
-      }
-
-      // Insert expenses (register mode only)
-      if (expenses.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: insertError } = await (supabase.from('expenses') as any).insert(expenses)
-        if (insertError) {
-          throw new Error(`Kunde inte skapa utgifter: ${insertError.message}`)
-        }
-      }
-
-      // Update loan balances
-      let loansUpdatedCount = 0
-      for (const loanUpdate of loansToUpdate) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: loanUpdateError } = await (supabase.from('loans') as any)
-          .update({
-            current_balance: loanUpdate.newBalance,
-            last_amortization_date: date,
+        if (monthlyInterest > 0 && interestCategory && !alreadyRegistered(interestCategory.id, interestDescription, monthlyInterest)) {
+          expenses.push({
+            user_id: user.id,
+            category_id: interestCategory.id,
+            amount: monthlyInterest,
+            description: interestDescription,
+            date,
+            cost_assignment: loan.is_shared ? 'shared' : 'personal',
+            is_ccm: false,
           })
-          .eq('id', loanUpdate.id)
-
-        if (loanUpdateError) {
-          console.error(`Failed to update loan ${loanUpdate.id}:`, loanUpdateError)
-        } else {
-          loansUpdatedCount++
         }
-      }
 
-      if (mode === 'calculate') {
-        return {
-          created: 0,
-          skipped: 0,
-          loansUpdated: loansUpdatedCount,
-          message: loansUpdatedCount > 0
-            ? `${loansUpdatedCount} lån omberäknade`
-            : 'Inget att omberäkna — redan gjort för perioden',
+        if (amortization > 0 && amortizationCategory && !alreadyRegistered(amortizationCategory.id, amortizationDescription, amortization)) {
+          expenses.push({
+            user_id: user.id,
+            category_id: amortizationCategory.id,
+            amount: amortization,
+            description: amortizationDescription,
+            date,
+            cost_assignment: loan.is_shared ? 'shared' : 'personal',
+            is_ccm: false,
+          })
         }
       }
 
@@ -596,15 +628,19 @@ export function useCreateExpensesFromLoans() {
         return {
           created: 0,
           skipped: loans.length * 2,
-          loansUpdated: loansUpdatedCount,
           message: 'Alla utgifter finns redan för denna period',
         }
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: insertError } = await (supabase.from('expenses') as any).insert(expenses)
+      if (insertError) {
+        throw new Error(`Kunde inte skapa utgifter: ${insertError.message}`)
       }
 
       return {
         created: expenses.length,
         skipped: (loans.length * 2) - expenses.length,
-        loansUpdated: loansUpdatedCount,
       }
     },
     onSuccess: () => {

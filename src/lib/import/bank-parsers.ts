@@ -39,7 +39,7 @@ export interface NormalizedTransaction {
   date: string // YYYY-MM-DD
   description: string
   amount: number // positive for expenses, negative for refunds/income
-  bank: 'SEB' | 'Swedbank' | 'Amex'
+  bank: 'SEB' | 'Swedbank' | 'Amex' | 'Norwegian'
   /** Card member first name (Amex only) — used to show who made the purchase */
   cardholder?: string | null
   /** Original raw row for debugging / preserving notes */
@@ -49,7 +49,7 @@ export interface NormalizedTransaction {
 export interface BankParseResult {
   transactions: NormalizedTransaction[]
   errors: string[]
-  detectedBank: 'SEB' | 'Swedbank' | 'Amex' | 'Unknown'
+  detectedBank: 'SEB' | 'Swedbank' | 'Amex' | 'Norwegian' | 'Unknown'
 }
 
 // ----- Date helpers -----
@@ -378,4 +378,89 @@ export function parseBankCsv(
         detectedBank: 'Unknown',
       }
   }
+}
+
+// ----- Bank Norwegian (Excel .xlsx) -----
+//
+// Kolumner: TransactionDate, Text, Type, Currency Amount, Currency Rate,
+// Currency, Amount, Merchant Area, Merchant Category, BookDate, ValueDate
+//
+// * Köp/uttag har NEGATIVT belopp → vänds till positivt (utgift).
+// * Type "Betalning" (Inbetalning) = betalningen av fakturan → exkluderas.
+// * Övriga positiva belopp (krediteringar/returer) → negativt belopp (retur).
+// * Datum = BookDate: det är bokföringsdatumet som avgör vilken faktura köpet
+//   hamnar på (samma problem som Amex auktoriserings- vs bokföringsdatum).
+
+/** .xlsx är en zip-fil — börjar med "PK\x03\x04". */
+export function isXlsxBuffer(buffer: ArrayBuffer): boolean {
+  const b = new Uint8Array(buffer.slice(0, 4))
+  return b[0] === 0x50 && b[1] === 0x4b && b[2] === 0x03 && b[3] === 0x04
+}
+
+function cellToIsoDate(value: unknown): string | null {
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    // Excel-datum läses som UTC-midnatt
+    return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, '0')}-${String(value.getUTCDate()).padStart(2, '0')}`
+  }
+  if (typeof value === 'string') return parseSwedishDate(value)
+  return null
+}
+
+function cellToNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') return parseSwedishAmount(value)
+  return null
+}
+
+export function parseNorwegianRows(rows: unknown[][]): BankParseResult {
+  const transactions: NormalizedTransaction[] = []
+  const errors: string[] = []
+
+  const headerIndex = rows.findIndex(r => r.some(c => typeof c === 'string' && c.trim().toLowerCase() === 'transactiondate'))
+  if (headerIndex === -1) {
+    return { transactions, errors: ['Hittade inte kolumnen TransactionDate — är det en Norwegian-export?'], detectedBank: 'Unknown' }
+  }
+  const header = rows[headerIndex].map(c => (typeof c === 'string' ? c.trim().toLowerCase() : ''))
+  const col = (name: string) => header.indexOf(name)
+  const iTx = col('transactiondate')
+  const iBook = col('bookdate')
+  const iText = col('text')
+  const iType = col('type')
+  const iAmount = col('amount')
+
+  if (iText === -1 || iAmount === -1) {
+    return { transactions, errors: ['Norwegian-filen saknar kolumnerna Text eller Amount'], detectedBank: 'Norwegian' }
+  }
+
+  rows.slice(headerIndex + 1).forEach((row, idx) => {
+    const type = iType >= 0 && typeof row[iType] === 'string' ? (row[iType] as string).trim() : ''
+    const text = typeof row[iText] === 'string' ? (row[iText] as string).trim() : String(row[iText] ?? '').trim()
+    if (!text && row.every(c => c === null || c === '')) return
+
+    // Betalningen av fakturan är ingen utgift
+    if (type.toLowerCase() === 'betalning' || /^inbetalning/i.test(text)) return
+
+    const date = cellToIsoDate(iBook >= 0 ? row[iBook] : null) ?? cellToIsoDate(iTx >= 0 ? row[iTx] : null)
+    const raw = cellToNumber(row[iAmount])
+    if (!date || raw === null || raw === 0) {
+      errors.push(`Rad ${headerIndex + idx + 2}: kunde inte läsa datum/belopp`)
+      return
+    }
+
+    transactions.push({
+      date,
+      description: text.replace(/\s+/g, ' '),
+      amount: Math.round(-raw * 100) / 100,
+      bank: 'Norwegian',
+    })
+  })
+
+  return { transactions, errors, detectedBank: 'Norwegian' }
+}
+
+/** Läser en Norwegian .xlsx-export. Excel-läsaren laddas bara vid behov. */
+export async function parseBankXlsx(buffer: ArrayBuffer): Promise<BankParseResult> {
+  const { readSheet } = await import('read-excel-file/universal')
+  const rows = (await readSheet(buffer)) as unknown[][]
+  return parseNorwegianRows(rows)
 }

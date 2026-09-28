@@ -21,8 +21,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Landmark, Plus, TrendingDown, Percent, Wallet, ChevronDown, Receipt, Loader2 } from 'lucide-react'
-import { useAllLoans, useCreateExpensesFromLoans } from '@/hooks/use-loans'
+import { ArrowLeft, Landmark, Plus, TrendingDown, Percent, Wallet, ChevronDown, Receipt, Loader2, CalendarClock } from 'lucide-react'
+import { useAllLoans, useCreateExpensesFromLoans, getLoanStatePeriod, getLoanPaymentMonth } from '@/hooks/use-loans'
 import { useLoanGroups } from '@/hooks/use-loan-groups'
 import { useUser } from '@/hooks/use-user'
 import { LoanForm, LoanCard } from '@/components/loans'
@@ -50,7 +50,7 @@ export default function LoansSettingsPage() {
   const { data: loanGroups } = useLoanGroups()
   const createExpensesFromLoans = useCreateExpensesFromLoans()
 
-  const handleCreateExpenses = async (mode: 'calculate' | 'register') => {
+  const handleCreateExpenses = async () => {
     if (!ownLoans || ownLoans.length === 0) return
 
     try {
@@ -58,17 +58,14 @@ export default function LoansSettingsPage() {
         loans: ownLoans,
         period: currentPeriod.period,
         date: expenseDate,
-        mode,
       })
 
       setCreateExpensesOpen(false)
 
-      if (mode === 'calculate') {
-        toast.success(result.message || 'Belopp omberäknade')
-      } else if (result.created === 0) {
+      if (result.created === 0) {
         toast.info(result.message || 'Inga nya utgifter skapades')
       } else {
-        toast.success(`${result.created} utgifter skapade!${result.loansUpdated && result.loansUpdated > 0 ? ` ${result.loansUpdated} lån uppdaterade.` : ''}`)
+        toast.success(`${result.created} utgifter skapade!`)
       }
     } catch (error) {
       console.error('Failed to create expenses from loans:', error)
@@ -113,6 +110,10 @@ export default function LoansSettingsPage() {
   }, 0) ?? 0
 
   const totalMonthlyCost = totalMonthlyAmortization + totalMonthlyInterest
+
+  // Vilken dragning visade belopp avser (räknas om sista dagen i månaden)
+  const amortizingLoan = loans?.find(l => l.monthly_amortization > 0 && l.last_amortization_date)
+  const statePeriod = amortizingLoan ? getLoanStatePeriod(amortizingLoan) : null
 
   // Group loans by loan_group name (to merge groups with same name from user and partner)
   const groupedLoans = loans?.reduce((acc, loan) => {
@@ -194,6 +195,17 @@ export default function LoansSettingsPage() {
           </Card>
         </motion.div>
       ) : null}
+
+      {/* Which payment the amounts refer to */}
+      {statePeriod && (
+        <div className="flex items-start gap-2 text-xs text-muted-foreground px-1 -mt-3">
+          <CalendarClock className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+          <span>
+            Beloppen avser dragningen i <span className="font-medium text-foreground">{formatPeriodDisplay(getLoanPaymentMonth(statePeriod)).split(' ')[0]}</span>
+            {' '}(budget {formatPeriodDisplay(statePeriod)}). Räknas om automatiskt sista dagen varje månad.
+          </span>
+        </div>
+      )}
 
       {/* Average Interest Rate */}
       {loans && loans.length > 0 && (
@@ -479,12 +491,11 @@ export default function LoansSettingsPage() {
             <AlertDialogDescription asChild>
               <div className="space-y-3">
                 <p>
-                  För <strong>{formatPeriodDisplay(currentPeriod.period)}</strong> baserat på dina {ownLoans?.length || 0} lån. Välj vad du vill göra:
+                  Bokför ränta och amortering för <strong>{formatPeriodDisplay(currentPeriod.period)}</strong> som utgifter, baserat på dina {ownLoans?.length || 0} lån.
                 </p>
-                <ul className="text-sm space-y-1.5 pl-1">
-                  <li>• <strong>Bara beräkna nya belopp</strong> — drar av amorteringen från skulden och räknar om räntan. Skapar inga transaktioner.</li>
-                  <li>• <strong>Beräkna + registrera</strong> — gör samma sak och bokför dessutom ränta och amortering som utgifter.</li>
-                </ul>
+                <p className="text-sm">
+                  Skulden räknas om automatiskt sista dagen varje månad — det här steget skapar bara transaktionerna.
+                </p>
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-foreground mb-1.5">
                     Datum för utgifter (vid registrering)
@@ -504,7 +515,7 @@ export default function LoansSettingsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-col gap-2">
             <Button
-              onClick={() => handleCreateExpenses('register')}
+              onClick={handleCreateExpenses}
               disabled={createExpensesFromLoans.isPending}
               className="w-full bg-hb-cognac hover:bg-hb-cognac/90"
             >
@@ -514,16 +525,8 @@ export default function LoansSettingsPage() {
                   Arbetar...
                 </>
               ) : (
-                'Beräkna + registrera'
+                'Registrera utgifter'
               )}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleCreateExpenses('calculate')}
-              disabled={createExpensesFromLoans.isPending}
-              className="w-full"
-            >
-              Bara beräkna nya belopp
             </Button>
             <AlertDialogCancel className="w-full mt-0">Avbryt</AlertDialogCancel>
           </AlertDialogFooter>
