@@ -11,7 +11,7 @@ import { parseHomebaseCsv, getCsvTemplate, type CsvParseResult } from '@/lib/imp
 import { parseBankCsv, parseBankXlsx, isXlsxBuffer, decodeCsvBuffer, type BankParseResult } from '@/lib/import/bank-parsers'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { useUser } from '@/hooks/use-user'
-import { useImportBatches, useStagingRows, useToggleBatchPin, useMarkBatchOpened, useDeleteBatch, useCompleteAmexBatch, type StagingBatch, type StagingRow } from '@/hooks/use-import-staging'
+import { useImportBatches, useStagingRows, useToggleBatchPin, useMarkBatchOpened, useDeleteBatch, useCompleteAmexBatch, useCompleteBankBatch, type StagingBatch, type StagingRow } from '@/hooks/use-import-staging'
 import { usePartner } from '@/hooks/use-user'
 import { UtlaggSplitDialog, type UtlaggSplit } from '@/components/ccm/utlagg-dialog'
 import { deriveCostAssignment } from '@/hooks/use-utlagg'
@@ -63,6 +63,7 @@ export default function ImportPage() {
   const markBatchOpened = useMarkBatchOpened()
   const deleteBatch = useDeleteBatch()
   const completeAmexBatch = useCompleteAmexBatch()
+  const completeBankBatch = useCompleteBankBatch()
 
   const [mode, setMode] = useState<ImportMode>('bank')
   const [step, setStep] = useState<Step>('choose')
@@ -358,6 +359,24 @@ export default function ImportPage() {
     }
 
     setImportingStaging(true)
+    if (stagingRows.some((row) => row.bank_sync_transaction_id)) {
+      try {
+        const imported = await completeBankBatch.mutateAsync({
+          batchId: activeBatchId, rows: stagingRows.map(getMergedRow),
+        })
+        setStagingEdits({})
+        setActiveBatchId(null)
+        setStep('done')
+        setImportedCount(imported)
+        toast.success(`${imported} utgifter importerade från bankimporten`)
+      } catch (error) {
+        console.error('Bank import error:', error)
+        toast.error('Importen kunde inte sparas. Dina ändringar finns kvar; försök igen.')
+      } finally {
+        setImportingStaging(false)
+      }
+      return
+    }
     if (stagingRows.some((row) => row.amex_sync_transaction_id)) {
       try {
         const imported = await completeAmexBatch.mutateAsync({
@@ -1075,7 +1094,7 @@ function BatchCard({
             </div>
             <div className="min-w-0">
               <div className="text-sm font-medium">
-                {batch.source === 'amex_auto' ? 'Amex autoimport' : (batch.bank || 'AI-import')} — {batch.row_count} transaktioner
+                {batch.source === 'amex_auto' ? 'Amex autoimport' : batch.source === 'bank_auto' ? 'Bankimport (SEB/Swedbank)' : (batch.bank || 'AI-import')} — {batch.row_count} transaktioner
               </div>
               <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
                 <Clock className="w-3 h-3" />
