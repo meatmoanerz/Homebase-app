@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { usePerspective, type Perspective } from '@/hooks/use-perspective'
 import { Check } from 'lucide-react'
+import { NotificationBell } from '@/components/layout/notification-bell'
 
 const TITLES: Record<string, string> = {
   '/dashboard': 'Översikt',
@@ -79,6 +80,8 @@ export function MobileHeader() {
           <h1 className="font-serif text-[22px] font-medium tracking-tight text-foreground">
             {pageTitle(pathname)}
           </h1>
+          <div className="flex items-center gap-1.5">
+          <NotificationBell />
           <button
             onClick={() => setSheetOpen(true)}
             className="flex items-center gap-1.5 bg-card border border-border rounded-full pl-3 pr-1 py-1 text-xs font-medium text-muted-foreground active:scale-95 transition-transform"
@@ -94,6 +97,7 @@ export function MobileHeader() {
               {currentInitial}
             </div>
           </button>
+          </div>
         </div>
       </header>
 

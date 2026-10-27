@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -18,12 +19,19 @@ interface BottomSheetProps {
   className?: string
 }
 
+const noopSubscribe = () => () => {}
+
 /**
  * Mobile-first sheet that slides up from the bottom; a centred panel on
  * desktop. Sits below Dialog (z-150) so an edit dialog opened from inside
  * it appears on top.
  */
 export function BottomSheet({ open, onOpenChange, title, subtitle, children, toolbar, footer, className }: BottomSheetProps) {
+  // Portal to <body>: ancestors with backdrop-filter (header, sidebar)
+  // would otherwise become the containing block for the fixed panel.
+  // True on the client, false during SSR — without a setState-in-effect.
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false)
+
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -38,7 +46,9 @@ export function BottomSheet({ open, onOpenChange, title, subtitle, children, too
     }
   }, [open, onOpenChange])
 
-  return (
+  if (!mounted) return null
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -97,6 +107,7 @@ export function BottomSheet({ open, onOpenChange, title, subtitle, children, too
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }

@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils/cn'
 import { Home, Wallet, ListChecks, Settings, Plus, BarChart3 } from 'lucide-react'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { usePerspective } from '@/hooks/use-perspective'
+import { NotificationBell } from '@/components/layout/notification-bell'
 
 const navItems = [
   { href: '/dashboard',     icon: Home,      label: 'Översikt'     },
@@ -82,11 +83,12 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 border-r border-border bg-secondary/60 backdrop-blur-sm z-40 p-4">
       {/* Logo */}
-      <div className="px-3 pb-7">
+      <div className="px-3 pb-7 flex items-center justify-between">
         <Link href="/dashboard" className="font-serif font-medium text-[22px] tracking-tight text-foreground inline-flex items-baseline gap-1.5">
           homebase
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-hb-cognac -translate-y-0.5" />
         </Link>
+        <NotificationBell className="-mr-2" />
       </div>
 
       {/* Navigation */}
