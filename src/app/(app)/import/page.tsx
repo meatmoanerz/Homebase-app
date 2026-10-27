@@ -586,7 +586,7 @@ export default function ImportPage() {
               key={batch.batch_id}
               batch={batch}
               onOpen={async () => {
-                if (batch.source === 'amex_auto' && !batch.opened_at) {
+                if ((batch.source === 'amex_auto' || batch.source === 'norwegian_auto') && !batch.opened_at) {
                   await markBatchOpened.mutateAsync(batch.batch_id)
                 }
                 setActiveBatchId(batch.batch_id)
@@ -1094,7 +1094,7 @@ function BatchCard({
             </div>
             <div className="min-w-0">
               <div className="text-sm font-medium">
-                {batch.source === 'amex_auto' ? 'Amex autoimport' : batch.source === 'bank_auto' ? 'Bankimport (SEB/Swedbank)' : (batch.bank || 'AI-import')} — {batch.row_count} transaktioner
+                {batch.source === 'amex_auto' ? 'Amex autoimport' : batch.source === 'norwegian_auto' ? 'Norwegian autoimport' : batch.source === 'bank_auto' ? 'Bankimport (SEB/Swedbank)' : (batch.bank || 'AI-import')} — {batch.row_count} transaktioner
               </div>
               <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
                 <Clock className="w-3 h-3" />

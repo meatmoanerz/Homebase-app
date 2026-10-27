@@ -5,14 +5,21 @@ import { normalizeMerchant, parseWalletAmount, stockholmToday } from '@/lib/amex
 
 export const runtime = 'nodejs'
 
-// Receives one Apple Pay purchase from the iPhone Shortcuts "Transaktion"
-// automation and puts it in the Amex autoimport inbox for review.
+// Receives one Apple Pay purchase from the iPhone Shortcuts "Plånbok"
+// automation and puts it in the card's autoimport inbox for review.
+// The token identifies the phone; the URL identifies the card.
 //
-// POST /api/wallet/amex
+// POST /api/wallet/amex | /api/wallet/norwegian
 // Authorization: Bearer <device token>
 // Body (JSON or form): { merchant: string, amount: string | number }
 
 const DOUBLE_FIRE_WINDOW_MS = 2 * 60 * 1000
+
+// URL-segment → expenses.bank. Bank-värdet styr vilket kreditkort utgiften får i CCM.
+const WALLET_CARDS: Record<string, string> = {
+  amex: 'Amex',
+  norwegian: 'Norwegian',
+}
 
 function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex')
@@ -39,7 +46,11 @@ function fail(status: number, error: string) {
   return NextResponse.json({ ok: false, error }, { status })
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ card: string }> }) {
+  const { card } = await params
+  const bank = WALLET_CARDS[card.toLowerCase()]
+  if (!bank) return fail(404, 'Okänt kort')
+
   const auth = request.headers.get('authorization') ?? ''
   const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : ''
   if (!token) return fail(401, 'Token saknas')
@@ -71,13 +82,15 @@ export async function POST(request: NextRequest) {
   const now = new Date()
   const date = stockholmToday(now)
   const fingerprint = sha256(
-    ['wallet', date, description.toLocaleUpperCase('sv-SE'), parsed.amount.toFixed(2), device.cardholder].join('|')
+    // Amex keeps its original fingerprint so existing rows still dedupe.
+    [bank === 'Amex' ? 'wallet' : `wallet-${card.toLowerCase()}`, date, description.toLocaleUpperCase('sv-SE'), parsed.amount.toFixed(2), device.cardholder].join('|')
   )
 
   const { data: existing, error: existingError } = await admin
     .from('amex_sync_transactions')
     .select('occurrence_index, first_seen_at')
     .eq('user_id', device.user_id)
+    .eq('bank', bank)
     .eq('fingerprint', fingerprint)
     .order('occurrence_index', { ascending: false })
   if (existingError) return fail(500, 'Kunde inte läsa inkorgen')
@@ -95,6 +108,7 @@ export async function POST(request: NextRequest) {
     description,
     amount: parsed.amount,
     cardholder: device.cardholder,
+    bank,
     status: 'unreviewed',
     first_seen_at: now.toISOString(),
     last_seen_at: now.toISOString(),
@@ -103,18 +117,19 @@ export async function POST(request: NextRequest) {
 
   await admin.from('wallet_ingest_tokens').update({ last_used_at: now.toISOString() }).eq('id', device.id)
 
-  const { data: batch, error: batchError } = await admin.rpc('rebuild_amex_review_batch', {
+  const { data: batch, error: batchError } = await admin.rpc('rebuild_wallet_review_batch', {
     p_user_id: device.user_id,
+    p_bank: bank,
   })
   if (batchError) {
     // The row is safely in the inbox; it will be staged on the next rebuild.
-    console.error('[Wallet Amex] rebuild failed:', batchError)
+    console.error(`[Wallet ${bank}] rebuild failed:`, batchError)
   }
 
   return NextResponse.json({
     ok: true,
     staged: batch?.staged ?? null,
     batchLocked: batch?.batchLocked ?? null,
-    message: `Sparat: ${merchant} ${parsed.amount.toFixed(2).replace('.', ',')} ${parsed.currency === 'SEK' ? 'kr' : parsed.currency}`,
+    message: `Sparat (${bank}): ${merchant} ${parsed.amount.toFixed(2).replace('.', ',')} ${parsed.currency === 'SEK' ? 'kr' : parsed.currency}`,
   })
 }
