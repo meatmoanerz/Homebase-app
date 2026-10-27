@@ -12,7 +12,7 @@ export function ShowMyMonthCard() {
       transition={{ delay: 0.3 }}
     >
       <Link
-        href="/report"
+        href="/analys"
         className="block bg-card border border-border rounded-2xl px-4 py-3.5 shadow-sm hover:bg-secondary/40 transition-colors"
       >
         <div className="flex items-center justify-between">
@@ -21,9 +21,9 @@ export function ShowMyMonthCard() {
               <BarChart3 className="w-[18px] h-[18px] text-hb-cognac-deep" />
             </div>
             <div>
-              <div className="font-medium text-sm tracking-tight">Visa min månad</div>
+              <div className="font-medium text-sm tracking-tight">Analys</div>
               <div className="text-[11px] text-muted-foreground mt-0.5">
-                Detaljerad månadsrapport med insikter
+                Trender, kategorier och insikter — månad, år eller all tid
               </div>
             </div>
           </div>

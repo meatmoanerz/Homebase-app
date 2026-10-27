@@ -25,7 +25,7 @@ const TITLES: Record<string, string> = {
   '/settings/household-categories': 'Hushållskostnader',
   '/settings/mappings': 'Kategoriregler',
   '/import': 'Importera',
-  '/report': 'Månadsrapport',
+  '/analys': 'Analys',
   '/help': 'Hjälp',
   '/privacy': 'Integritet',
 }

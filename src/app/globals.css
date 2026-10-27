@@ -19,6 +19,10 @@
   --hb-rust: #a14a30;
   --hb-amber: #c9842f;
   --hb-green: #4e8a5a;
+  /* Chart series (validated: CVD-safe, ≥3:1 on card) */
+  --chart-spend: #b5712c;
+  --chart-income: #2279b5;
+  --chart-muted: #d9ccb8;
   --hb-tim: #6a9fc1;
   --hb-tim-soft: #d9e6ee;
   --hb-amanda: #c8826d;
@@ -78,6 +82,9 @@
   --hb-rust: #c8826d;
   --hb-amber: #d4a574;
   --hb-green: #7fb88a;
+  --chart-spend: #c47f3a;
+  --chart-income: #3d93c8;
+  --chart-muted: #4a3f36;
   --hb-tim: #7eb3d6;
   --hb-tim-soft: #1e2f3d;
   --hb-amanda: #d59986;
@@ -152,6 +159,9 @@
   --color-hb-rust: var(--hb-rust);
   --color-hb-amber: var(--hb-amber);
   --color-hb-green: var(--hb-green);
+  --color-chart-spend: var(--chart-spend);
+  --color-chart-income: var(--chart-income);
+  --color-chart-muted: var(--chart-muted);
   --color-hb-tim: var(--hb-tim);
   --color-hb-tim-soft: var(--hb-tim-soft);
   --color-hb-amanda: var(--hb-amanda);
@@ -346,3 +356,11 @@ input[type="number"] {
 }
 .keyboard-open .keyboard-hide   { display: none !important; }
 .keyboard-open .keyboard-adjust { bottom: 0 !important; }
+
+/* Horizontal chip rows that scroll without a visible scrollbar */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

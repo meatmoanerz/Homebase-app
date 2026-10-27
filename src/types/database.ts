@@ -103,6 +103,7 @@ export type Database = {
           is_shared_expense: boolean
           shared_with: string | null
           linked_savings_goal_id: string | null
+          excludes_from_expense_total: boolean
           created_at: string
           updated_at: string
         }
@@ -117,6 +118,7 @@ export type Database = {
           is_shared_expense?: boolean
           shared_with?: string | null
           linked_savings_goal_id?: string | null
+          excludes_from_expense_total?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -131,6 +133,7 @@ export type Database = {
           is_shared_expense?: boolean
           shared_with?: string | null
           linked_savings_goal_id?: string | null
+          excludes_from_expense_total?: boolean
           created_at?: string
           updated_at?: string
         }

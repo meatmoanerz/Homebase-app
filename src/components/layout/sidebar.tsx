@@ -3,12 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
-import { Home, Wallet, ListChecks, Settings, Plus } from 'lucide-react'
+import { Home, Wallet, ListChecks, Settings, Plus, BarChart3 } from 'lucide-react'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { usePerspective } from '@/hooks/use-perspective'
 
 const navItems = [
   { href: '/dashboard',     icon: Home,      label: 'Översikt'     },
+  { href: '/analys',        icon: BarChart3, label: 'Analys'       },
   { href: '/expenses/list', icon: ListChecks, label: 'Utgifter'    },
   { href: '/budget',        icon: Wallet,    label: 'Budget'       },
   { href: '/expenses',      icon: Plus,      label: 'Ny utgift'    },
