@@ -18,6 +18,7 @@
   --hb-sage: #9aa580;
   --hb-rust: #a14a30;
   --hb-amber: #c9842f;
+  --hb-green: #4e8a5a;
   --hb-tim: #6a9fc1;
   --hb-tim-soft: #d9e6ee;
   --hb-amanda: #c8826d;
@@ -76,6 +77,7 @@
   --hb-sage: #7a8a4e;
   --hb-rust: #c8826d;
   --hb-amber: #d4a574;
+  --hb-green: #7fb88a;
   --hb-tim: #7eb3d6;
   --hb-tim-soft: #1e2f3d;
   --hb-amanda: #d59986;
@@ -149,6 +151,7 @@
   --color-hb-sage: var(--hb-sage);
   --color-hb-rust: var(--hb-rust);
   --color-hb-amber: var(--hb-amber);
+  --color-hb-green: var(--hb-green);
   --color-hb-tim: var(--hb-tim);
   --color-hb-tim-soft: var(--hb-tim-soft);
   --color-hb-amanda: var(--hb-amanda);

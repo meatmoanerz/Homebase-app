@@ -273,6 +273,7 @@ export default function ImportPage() {
           is_ccm: row.onCreditCard,
           is_refund: row.amount < 0,
           bank: row.bank,
+          import_source: 'csv',
           ...(utlagg && {
             is_group_purchase: true,
             group_purchase_total: row.amount,
@@ -419,6 +420,7 @@ export default function ImportPage() {
           is_ccm: row.is_ccm,
           is_refund: budgetAmount < 0,
           bank: row.bank,
+          import_source: 'csv',
           ...(isUtlagg && {
             is_group_purchase: true,
             group_purchase_total: row.amount,
@@ -497,7 +499,9 @@ export default function ImportPage() {
           </p>
           {(step === 'choose' || step === 'upload') && (
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              <span>Senaste transaktionsdatum:</span>
+              <span title="Senaste transaktionsdatum som lästs in från en bankfil (CSV/Excel). Automatiska importer räknas inte.">
+                Senaste datum från bankfil:
+              </span>
               {latestDatesError ? (
                 <span>Kunde inte hämta datum</span>
               ) : latestDatesPending ? (

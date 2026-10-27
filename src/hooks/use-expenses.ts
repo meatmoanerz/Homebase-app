@@ -86,11 +86,15 @@ export function useRecentExpenses(limit: number = 5) {
 
 const importBanks = ['SEB', 'Swedbank', 'Amex', 'Norwegian'] as const
 
+/**
+ * Latest transaction date per bank among expenses that came from a
+ * transaction file — tells from which date the next bank file must be downloaded.
+ */
 export function useLatestImportedTransactionDates(userId?: string) {
   const supabase = createClient()
 
   return useQuery({
-    queryKey: ['dashboard', 'latest-imported-transaction-dates', userId],
+    queryKey: ['dashboard', 'latest-csv-transaction-dates', userId],
     enabled: !!userId,
     queryFn: async () => {
       if (!userId) throw new Error('Not authenticated')
@@ -108,6 +112,9 @@ export function useLatestImportedTransactionDates(userId?: string) {
           .select('date')
           .eq('user_id', userId)
           .eq('bank', bank)
+          // Only transaction files (CSV/Excel read in by the app or by Claude):
+          // auto-synced rows must not hide a gap in the downloaded bank files.
+          .eq('import_source', 'csv')
           .order('date', { ascending: false })
           .limit(1)
           .maybeSingle()
@@ -260,6 +267,7 @@ export function useCreateExpense() {
         bank: newExpense.bank || null,
         is_refund: newExpense.is_refund || false,
         credit_card_id: newExpense.credit_card_id || null,
+        import_source: newExpense.import_source ?? null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         category: category || (newExpense.category_id ? {

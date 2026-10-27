@@ -350,6 +350,7 @@ export type Database = {
           bank: string | null
           is_refund: boolean
           credit_card_id: string | null
+          import_source: 'csv' | 'auto' | null
           created_at: string
           updated_at: string
         }
@@ -378,6 +379,7 @@ export type Database = {
           bank?: string | null
           is_refund?: boolean
           credit_card_id?: string | null
+          import_source?: 'csv' | 'auto' | null
           created_at?: string
           updated_at?: string
         }
@@ -406,6 +408,7 @@ export type Database = {
           bank?: string | null
           is_refund?: boolean
           credit_card_id?: string | null
+          import_source?: 'csv' | 'auto' | null
           created_at?: string
           updated_at?: string
         }

@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { cn } from '@/lib/utils/cn'
+import { getBudgetStatus, budgetStatusBarClass } from '@/lib/utils/budget-status'
 
 interface SpendHeroProps {
   /** Spend tracking total this period (excl. credit-card invoice category) */
@@ -67,7 +68,7 @@ export function SpendHero({ spent, budget, income, cashOut, hasBudget }: SpendHe
               <div
                 className={cn(
                   'h-full rounded-full transition-all duration-500',
-                  overBudget ? 'bg-destructive' : spentRatio > 80 ? 'bg-hb-amber' : 'bg-hb-olive'
+                  budgetStatusBarClass(getBudgetStatus(spent, budget))
                 )}
                 style={{ width: `${spentRatio}%` }}
               />

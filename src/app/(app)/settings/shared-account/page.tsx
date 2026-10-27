@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Wallet, Calculator, Info, Save } from 'lucide-react'
+import { ArrowLeft, Wallet, Calculator, Info, Save, ChevronDown } from 'lucide-react'
 import { useBudgets, useBudget } from '@/hooks/use-budgets'
 import { useCategories } from '@/hooks/use-categories'
 import { useUser, usePartner } from '@/hooks/use-user'
@@ -36,6 +36,7 @@ export default function SharedAccountPage() {
 
   const [selectedPeriod, setSelectedPeriod] = useState(currentPeriod.period)
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
+  const [categoriesOpen, setCategoriesOpen] = useState(false)
 
   // The active default (effective-dated) for the viewed period
   const activeDefault = useMemo(
@@ -250,15 +251,33 @@ export default function SharedAccountPage() {
       {(allItemsList.length > 0 || unbudgetedDefaults.length > 0) && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Wallet className="w-4 h-4 text-hb-cognac" />
-                Kategorier
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Välj vilka kategorier som ska ingå i gemensamma kontot
-              </CardDescription>
+            <CardHeader className={cn(categoriesOpen ? 'pb-2' : 'pb-4')}>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 text-left"
+                onClick={() => setCategoriesOpen((open) => !open)}
+                aria-expanded={categoriesOpen}
+              >
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-hb-cognac" />
+                    Kategorier
+                  </CardTitle>
+                  <CardDescription className="text-xs mt-1">
+                    {categoriesOpen
+                      ? 'Välj vilka kategorier som ska ingå i gemensamma kontot'
+                      : `${totals.selectedCount} valda · tryck för att ändra`}
+                  </CardDescription>
+                </div>
+                <ChevronDown
+                  className={cn(
+                    'w-5 h-5 shrink-0 text-muted-foreground transition-transform',
+                    categoriesOpen && 'rotate-180'
+                  )}
+                />
+              </button>
             </CardHeader>
+            {categoriesOpen && (
             <CardContent className="space-y-4">
               {/* Action buttons */}
               <div className="flex flex-wrap gap-2">
@@ -321,6 +340,7 @@ export default function SharedAccountPage() {
                 </div>
               )}
             </CardContent>
+            )}
           </Card>
         </motion.div>
       )}

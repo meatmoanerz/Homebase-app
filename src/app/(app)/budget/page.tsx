@@ -14,6 +14,7 @@ import { getCurrency, formatCurrencyAmount, convertFromSEK } from '@/lib/utils/c
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, ChevronRight, ChevronDown, Calendar, Target, Archive, FolderOpen } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { getBudgetStatus, budgetStatusBarClass } from '@/lib/utils/budget-status'
 import type { TemporaryBudgetWithCategories } from '@/types'
 import { sumBudgetSplit } from '@/lib/utils/budget-split'
 
@@ -243,7 +244,7 @@ function BudgetCard({ budget, index, isCurrent, salaryDay, hasPartner, userName,
           <div
             className={cn(
               'h-full rounded-full transition-all duration-500',
-              isOver ? 'bg-destructive' : spentRatio > 80 ? 'bg-hb-amber' : 'bg-hb-olive'
+              budgetStatusBarClass(getBudgetStatus(totalSpent, budgetedExpenses))
             )}
             style={{ width: `${Math.min(spentRatio, 100)}%` }}
           />

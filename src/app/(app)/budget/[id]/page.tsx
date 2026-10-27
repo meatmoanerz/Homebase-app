@@ -30,9 +30,11 @@ import {
   UserCheck,
   ChevronRight,
   ChevronDown,
-  Banknote
+  Banknote,
+  CheckCircle2
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { getBudgetStatus, budgetStatusBarClass, budgetStatusTextClass } from '@/lib/utils/budget-status'
 import type { BudgetItem, Category, ExpenseWithCategory } from '@/types'
 import { budgetAmountForView, type SplittableBudgetItem } from '@/lib/utils/budget-split'
 import {
@@ -432,8 +434,9 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
                 <span>{formatCurrency(totals.totalActual)} / {formatCurrency(totals.totalBudgeted)}</span>
               </div>
               <Progress
-                value={Math.min(100, (totals.totalActual / totals.totalBudgeted) * 100)}
+                value={totals.totalBudgeted > 0 ? Math.min(100, (totals.totalActual / totals.totalBudgeted) * 100) : 0}
                 className="h-2 bg-white/20"
+                indicatorClassName={budgetStatusBarClass(getBudgetStatus(totals.totalActual, totals.totalBudgeted), 'bg-hb-cognac')}
               />
             </div>
           </CardContent>
@@ -715,7 +718,8 @@ function BudgetSection({
   onCategoryClick,
   getItemBudget,
 }: BudgetSectionProps) {
-  const isOverBudget = actualTotal > budgetedTotal
+  const sectionStatus = getBudgetStatus(actualTotal, budgetedTotal)
+  const isOverBudget = sectionStatus === 'over'
 
   return (
     <motion.div
@@ -738,7 +742,7 @@ function BudgetSection({
             <div className="text-right">
               <p className={cn(
                 "text-sm font-semibold",
-                isOverBudget && "text-destructive"
+                budgetStatusTextClass(sectionStatus)
               )}>
                 {formatCurrency(actualTotal)} / {formatCurrency(budgetedTotal)}
               </p>
@@ -756,7 +760,7 @@ function BudgetSection({
             const actual = actualSpending[item.category_id || ''] || 0
             const budgeted = getItemBudget(item)
             const itemPercentage = budgeted > 0 ? (actual / budgeted) * 100 : (actual > 0 ? 100 : 0)
-            const itemOverBudget = actual > budgeted
+            const itemStatus = getBudgetStatus(actual, budgeted)
 
             return (
               <div
@@ -770,9 +774,12 @@ function BudgetSection({
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">{item.name}</span>
                   <div className="flex items-center gap-2">
+                    {itemStatus === 'complete' && (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-hb-green" aria-label="Klar" />
+                    )}
                     <span className={cn(
                       "font-medium",
-                      itemOverBudget && "text-destructive"
+                      budgetStatusTextClass(itemStatus)
                     )}>
                       {formatCurrency(actual)} / {formatCurrency(budgeted)}
                     </span>
@@ -783,10 +790,8 @@ function BudgetSection({
                 </div>
                 <Progress
                   value={Math.min(itemPercentage, 100)}
-                  className={cn(
-                    "h-1.5",
-                    itemOverBudget && "[&>div]:bg-destructive"
-                  )}
+                  className="h-1.5"
+                  indicatorClassName={budgetStatusBarClass(itemStatus, 'bg-hb-cognac')}
                 />
               </div>
             )
