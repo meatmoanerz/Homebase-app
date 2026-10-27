@@ -129,6 +129,7 @@ export default function DashboardPage() {
       categoryIds: null,
       incomeFor: () => null,
       categoryMeta: new Map(),
+      coverageRows: person === 'all' ? rows : toRows(allExpenses, salaryDay, 'all', user?.id),
     })
     return result.historyPeriods.length >= 2 ? result : null
   }, [isCurrentPeriod, allExpenses, salaryDay, person, user?.id, currentPeriod.period, loans, recurring])

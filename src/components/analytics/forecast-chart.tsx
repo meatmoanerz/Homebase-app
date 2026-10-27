@@ -25,6 +25,8 @@ export interface ForecastPoint {
   low: number | null
   high: number | null
   income: number | null
+  /** History month left out of the forecast (too little data). */
+  incomplete?: boolean
 }
 
 interface ForecastChartProps {
@@ -60,6 +62,7 @@ function ForecastTooltip({ active, payload, showIncome }: { active?: boolean; pa
         <Row label="Spann" value={`${formatCurrency(p.low)} – ${formatCurrency(p.high)}`} />
       )}
       {showIncome && p.income != null && <Row label="Inkomst" value={formatCurrency(p.income)} />}
+      {p.incomplete && <div className="text-muted-foreground mt-1">Ofullständig — används inte i prognosen</div>}
     </div>
   )
 }
@@ -125,7 +128,11 @@ export function ForecastChart({ data, showIncome = false, height = 220 }: Foreca
             <Bar dataKey="actual" stackId="s" fill="var(--chart-spend)" maxBarSize={26} isAnimationActive={false}>
               {chartData.map((d) => (
                 // Round the top only when no forecast segment sits on it.
-                <Cell key={d.period} radius={d.forecast > 0 ? 0 : ([4, 4, 0, 0] as unknown as number)} />
+                <Cell
+                  key={d.period}
+                  fill={d.incomplete ? 'var(--chart-muted)' : 'var(--chart-spend)'}
+                  radius={d.forecast > 0 ? 0 : ([4, 4, 0, 0] as unknown as number)}
+                />
               ))}
             </Bar>
             <Bar

@@ -79,6 +79,9 @@ export interface ForecastResult {
   months: ForecastMonth[]
   categories: CategoryForecast[]
   historyPeriods: string[]
+  /** Complete periods left out because they had too little data. */
+  excludedPeriods: string[]
+  coverage: PeriodCoverage[]
   enoughForTrends: boolean
 }
 
@@ -99,6 +102,19 @@ interface ForecastInput {
   incomeFor: (period: string) => number | null
   /** Category id → display data, for recurring-only categories. */
   categoryMeta: Map<string, { name: string; costType: string | null; isInvoice: boolean }>
+  /**
+   * Unfiltered household rows used to judge which months have complete data.
+   * Defaults to `rows`; pass the full set so a category filter or a single
+   * person's view doesn't make a complete month look empty.
+   */
+  coverageRows?: AnalyticsRow[]
+}
+
+export interface PeriodCoverage {
+  period: string
+  count: number
+  days: number
+  reliable: boolean
 }
 
 export function median(values: number[]): number {
@@ -118,18 +134,19 @@ function stdev(values: number[]): number {
   return Math.sqrt(values.reduce((s, v) => s + (v - m) ** 2, 0) / (values.length - 1))
 }
 
-/** Least-squares line through the values (x = 0..n-1). */
-export function linearTrend(values: number[]): { slope: number; intercept: number; r2: number } {
+/** Least-squares line through the points (x defaults to 0..n-1). */
+export function linearTrend(values: number[], xs?: number[]): { slope: number; intercept: number; r2: number } {
   const n = values.length
   if (n < 2) return { slope: 0, intercept: values[0] ?? 0, r2: 0 }
-  const xm = (n - 1) / 2
+  const x = xs ?? values.map((_, i) => i)
+  const xm = mean(x)
   const ym = mean(values)
   let sxy = 0
   let sxx = 0
   let syy = 0
-  values.forEach((y, x) => {
-    sxy += (x - xm) * (y - ym)
-    sxx += (x - xm) ** 2
+  values.forEach((y, i) => {
+    sxy += (x[i] - xm) * (y - ym)
+    sxx += (x[i] - xm) ** 2
     syy += (y - ym) ** 2
   })
   const slope = sxx ? sxy / sxx : 0
@@ -139,31 +156,64 @@ export function linearTrend(values: number[]): { slope: number; intercept: numbe
 
 /**
  * A trend worth showing: a reasonably good fit (R² ≥ 0.35) and a slope of at
- * least 50 kr and 3 % of the average per month.
+ * least 50 kr and 3 % of the average per month. `xs` are month positions, so
+ * skipped (incomplete) months keep their real distance in time.
  */
-export function detectTrend(values: number[]): Trend | null {
+export function detectTrend(values: number[], xs?: number[]): Trend | null {
   if (values.length < MIN_TREND_MONTHS) return null
   const window = values.slice(-TREND_WINDOW)
+  const windowX = xs?.slice(-TREND_WINDOW)
   const avg = mean(window)
   if (avg <= 0) return null
-  const { slope, r2 } = linearTrend(window)
+  const { slope, r2 } = linearTrend(window, windowX)
   if (r2 < 0.35 || Math.abs(slope) < Math.max(50, avg * 0.03)) return null
   return { slope, pctPerMonth: slope / avg, r2, months: window.length, direction: slope > 0 ? 'up' : 'down' }
 }
 
+/** Share of the typical month a period must reach to count as complete. */
+export const COVERAGE_THRESHOLD = 0.5
+const COVERAGE_LOOKBACK = 24
+
 /**
- * Complete periods usable as history: before the running period, from the
- * first one with meaningful data (a half-imported first month would drag
- * every average down).
+ * Data completeness per finished period. A month counts as complete when it
+ * has at least half of the typical number of transactions AND half of the
+ * typical number of days with transactions, where "typical" is the median
+ * over all months that have data. It measures how complete the import is,
+ * not how much was spent: a cheap but fully imported month still counts,
+ * a half-imported or empty one does not. The reference follows the data, so
+ * the rule adapts as more banks and cards are imported.
  */
-function historyPeriods(rows: AnalyticsRow[], earliest: string | null, current: string): string[] {
+export function assessCoverage(rows: AnalyticsRow[], earliest: string | null, current: string): PeriodCoverage[] {
   if (!earliest || earliest >= current) return []
-  const all = periodsBetween(earliest, shiftPeriod(current, -1))
-  const totals = new Map<string, number>()
-  for (const r of rows) totals.set(r.period, (totals.get(r.period) || 0) + r.expense.amount)
-  const typical = median(all.map((p) => totals.get(p) || 0).filter((v) => v > 0))
-  const firstFull = all.findIndex((p) => (totals.get(p) || 0) >= typical * 0.25)
-  return firstFull < 0 ? [] : all.slice(firstFull).slice(-TREND_WINDOW)
+  const periods = periodsBetween(earliest, shiftPeriod(current, -1)).slice(-COVERAGE_LOOKBACK)
+  const counts = new Map<string, number>()
+  const days = new Map<string, Set<string>>()
+  for (const r of rows) {
+    counts.set(r.period, (counts.get(r.period) || 0) + 1)
+    let d = days.get(r.period)
+    if (!d) {
+      d = new Set()
+      days.set(r.period, d)
+    }
+    d.add(r.expense.date)
+  }
+  const withData = periods.filter((p) => (counts.get(p) || 0) > 0)
+  const refCount = median(withData.map((p) => counts.get(p) || 0))
+  const refDays = median(withData.map((p) => days.get(p)?.size || 0))
+  // With very little history there is no meaningful "typical" month yet.
+  const judge = withData.length >= 3
+  return periods.map((p) => {
+    const count = counts.get(p) || 0
+    const dayCount = days.get(p)?.size || 0
+    const reliable = count > 0 && (!judge || (count >= refCount * COVERAGE_THRESHOLD && dayCount >= refDays * COVERAGE_THRESHOLD))
+    return { period: p, count, days: dayCount, reliable }
+  })
+}
+
+/** Months between two periods (2026-02 → 2026-06 = 4). */
+function monthIndex(period: string): number {
+  const [y, m] = period.split('-').map(Number)
+  return y * 12 + (m - 1)
 }
 
 const isInterestCategory = (name: string) => /ränta/i.test(name) && /(bolån|lån)/i.test(name)
@@ -171,7 +221,12 @@ const isAmortisationCategory = (name: string) => /amortering/i.test(name)
 
 export function buildForecast(input: ForecastInput): ForecastResult {
   const { rows, currentPeriod, periodProgress, horizon } = input
-  const history = historyPeriods(rows, input.earliestPeriod, currentPeriod)
+  const coverage = assessCoverage(input.coverageRows ?? rows, input.earliestPeriod, currentPeriod)
+  const history = coverage.filter((c) => c.reliable).map((c) => c.period).slice(-TREND_WINDOW)
+  const excludedPeriods = coverage
+    .filter((c) => !c.reliable && (history.length === 0 || c.period >= history[0]))
+    .map((c) => c.period)
+  const historyX = history.map(monthIndex)
   const historySet = new Set(history)
   const progress = Math.min(1, Math.max(0, periodProgress))
 
@@ -292,15 +347,22 @@ export function buildForecast(input: ForecastInput): ForecastResult {
       const recent = series.slice(-VARIABLE_WINDOW)
       const base = mean(recent)
       const spread = stdev(recent) * 0.8
-      trend = detectTrend(series)
+      trend = detectTrend(series, historyX)
       method = trend ? 'trend' : 'mean'
       // A trend starts from the fitted end point, not the 6-month mean.
-      const fit = trend ? linearTrend(series.slice(-TREND_WINDOW)) : null
-      const start = fit ? fit.intercept + fit.slope * (Math.min(series.length, TREND_WINDOW) - 1) : base
-      let drift = 0
+      const fit = trend ? linearTrend(series.slice(-TREND_WINDOW), historyX.slice(-TREND_WINDOW)) : null
+      // Fitted value at the last complete month, then stepped forward from there.
+      const start = fit ? fit.intercept + fit.slope * historyX[historyX.length - 1] : base
+      // Damped steps from the last complete month to the target month.
+      const lastX = historyX[historyX.length - 1]
+      const currentX = monthIndex(currentPeriod)
+      const drift = (steps: number) => {
+        let d = 0
+        for (let j = 0; j < steps; j++) d += (trend?.slope ?? 0) * TREND_DAMPING ** j
+        return d
+      }
       ahead = Array.from({ length: horizon }, (_, i) => {
-        if (trend) drift += trend.slope * TREND_DAMPING ** i
-        const value = Math.max(0, trend ? start + drift : base)
+        const value = Math.max(0, trend ? start + drift(currentX + i + 1 - lastX) : base)
         const widen = 1 + 0.15 * i
         return { value, low: Math.max(0, value - spread * widen), high: value + spread * widen }
       })
@@ -382,5 +444,12 @@ export function buildForecast(input: ForecastInput): ForecastResult {
     })
   }
 
-  return { months, categories, historyPeriods: history, enoughForTrends: history.length >= MIN_TREND_MONTHS }
+  return {
+    months,
+    categories,
+    historyPeriods: history,
+    excludedPeriods,
+    coverage,
+    enoughForTrends: history.length >= MIN_TREND_MONTHS,
+  }
 }

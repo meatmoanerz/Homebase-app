@@ -10,6 +10,7 @@ import { shiftPeriod } from '@/lib/utils/budget-period'
 import { formatPeriodShort } from '@/lib/analytics/format'
 import { getBudgetStatus, budgetStatusBarClass } from '@/lib/utils/budget-status'
 import {
+  COVERAGE_THRESHOLD,
   MIN_TREND_MONTHS,
   type CategoryForecast,
   type ForecastResult,
@@ -53,6 +54,7 @@ export function AnalyticsForecastView({
   const chartData = useMemo<ForecastPoint[]>(() => [
     ...historyTotals.slice(-6).map((h) => ({
       period: h.period, kind: 'history' as const, actual: h.value, forecast: 0, low: null, high: null, income: h.income,
+      incomplete: !forecast.historyPeriods.includes(h.period),
     })),
     {
       period: current.period, kind: 'current' as const, actual: current.actual,
@@ -61,7 +63,7 @@ export function AnalyticsForecastView({
     ...future.map((m) => ({
       period: m.period, kind: 'future' as const, actual: 0, forecast: m.spend, low: m.low, high: m.high, income: m.income,
     })),
-  ], [historyTotals, current, future])
+  ], [historyTotals, current, future, forecast.historyPeriods])
 
   const futureSpend = future.reduce((s, m) => s + m.spend, 0)
   const futureIncome = future.every((m) => m.income != null) ? future.reduce((s, m) => s + (m.income ?? 0), 0) : null
@@ -206,9 +208,15 @@ export function AnalyticsForecastView({
       )}
 
       <p className="text-[11px] text-muted-foreground px-1 leading-relaxed">
-        Prognosen bygger på {forecast.historyPeriods.length} hela månader: fasta kostnader som median av de senaste tre,
-        ränta och amortering från lånen, rörliga som snitt av de senaste sex med spann efter hur mycket månaderna
-        varierat{forecast.enoughForTrends ? ' och tydliga trender (dämpade framåt)' : ''}.
+        Prognosen bygger på {forecast.historyPeriods.length} hela månader ({periodList(forecast.historyPeriods)}): fasta
+        kostnader som median av de senaste tre, ränta och amortering från lånen, rörliga som snitt av de senaste sex med
+        spann efter hur mycket månaderna varierat{forecast.enoughForTrends ? ' och tydliga trender (dämpade framåt)' : ''}.
+        {forecast.excludedPeriods.length > 0 && (
+          <>
+            {' '}Utelämnade: {periodList(forecast.excludedPeriods)} — för få transaktioner eller dagar med köp jämfört med en
+            typisk månad (under {Math.round(COVERAGE_THRESHOLD * 100)} %), troligen ofullständigt importerade.
+          </>
+        )}
       </p>
 
       <CategoryForecastSheet category={selected} onOpenChange={(o) => !o && setSelected(null)} />
@@ -374,4 +382,18 @@ function CategoryForecastSheet({ category, onOpenChange }: { category: CategoryF
       )}
     </BottomSheet>
   )
+}
+
+/** "feb, jun–okt" — consecutive months collapsed into ranges. */
+function periodList(periods: string[]): string {
+  const parts: string[] = []
+  let runStart = 0
+  for (let i = 1; i <= periods.length; i++) {
+    if (i < periods.length && periods[i] === shiftPeriod(periods[i - 1], 1)) continue
+    const first = formatPeriodShort(periods[runStart])
+    const last = formatPeriodShort(periods[i - 1])
+    parts.push(i - 1 === runStart ? first : `${first}–${last}`)
+    runStart = i
+  }
+  return parts.join(', ')
 }

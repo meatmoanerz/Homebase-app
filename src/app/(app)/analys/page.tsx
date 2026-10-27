@@ -23,7 +23,7 @@ import { useBudgets } from '@/hooks/use-budgets'
 import { useAllExpenses, usePeriodIncomes } from '@/hooks/use-analytics'
 import { useAllLoans } from '@/hooks/use-loans'
 import { useActiveRecurringExpenses } from '@/hooks/use-recurring-expenses'
-import { buildForecast } from '@/lib/analytics/forecast'
+import { assessCoverage, buildForecast } from '@/lib/analytics/forecast'
 import { AnalyticsForecastView, type ForecastHorizon } from '@/components/analytics/analytics-forecast-view'
 import { ExpenseEditDialog } from '@/components/expenses/expense-edit-dialog'
 import { AssignmentPill } from '@/components/shared/assignment-pill'
@@ -224,6 +224,14 @@ export default function AnalysPage() {
 
   const categories = useMemo(() => categoryTotals(rows, prevRows), [rows, prevRows])
 
+  // Data completeness is judged on the whole household, unfiltered: months
+  // with too little imported data are left out of averages and forecasts.
+  const coverageRows = useMemo(() => toRows(expenses, salaryDay, 'all', user?.id), [expenses, salaryDay, user?.id])
+  const completePeriods = useMemo(
+    () => new Set(assessCoverage(coverageRows, earliestPeriod, currentPeriod).filter((c) => c.reliable).map((c) => c.period)),
+    [coverageRows, earliestPeriod, currentPeriod]
+  )
+
   // ---- Framåt (forecast) ----
   const forecastIncomePeriods = useMemo(
     () => (view === 'forecast' ? periodsBetween(shiftPeriod(currentPeriod, -12), shiftPeriod(currentPeriod, horizon)) : []),
@@ -260,8 +268,9 @@ export default function AnalysPage() {
       categoryIds: catFilter,
       incomeFor: forecastIncomeFor,
       categoryMeta,
+      coverageRows,
     })
-  }, [view, allRows, catFilter, currentPeriod, earliestPeriod, salaryDay, horizon, loans, recurring, forecastIncomes, person, categoryMeta])
+  }, [view, coverageRows, allRows, catFilter, currentPeriod, earliestPeriod, salaryDay, horizon, loans, recurring, forecastIncomes, person, categoryMeta])
   const forecastHistory = useMemo(() => {
     if (!forecast) return []
     const totals = totalsByPeriod(catFilter ? allRows.filter((r) => catFilter.has(r.expense.category_id || '')) : allRows)
@@ -285,7 +294,7 @@ export default function AnalysPage() {
 
   const insights = useMemo<Insight[]>(() => {
     const historyPeriods = periodsBetween(shiftPeriod(periods[0] ?? currentPeriod, -6), shiftPeriod(periods[0] ?? currentPeriod, -1))
-      .filter((p) => !earliestPeriod || p >= earliestPeriod)
+      .filter((p) => completePeriods.has(p))
     return buildInsights({
       rows,
       categories,
@@ -299,7 +308,7 @@ export default function AnalysPage() {
       variableBudget,
       income: rangeIncome,
     })
-  }, [rows, categories, compLabel, allRows, catFilter, periods, currentPeriod, earliestPeriod, periodProgress, total, variableSpent, variableBudget, rangeIncome])
+  }, [rows, categories, compLabel, allRows, catFilter, periods, currentPeriod, completePeriods, periodProgress, total, variableSpent, variableBudget, rangeIncome])
 
   const topMerchants = useMemo(
     () => merchantTotals(rows).sort((a, b) => b.total - a.total).slice(0, 5),
