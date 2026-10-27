@@ -11,6 +11,19 @@ export function formatCurrency(amount: number, currency: string = 'SEK'): string
 }
 
 /**
+ * Format a unit price: öre below 20 kr ("3,17 kr" per egg), whole kronor above.
+ */
+export function formatPrice(amount: number): string {
+  const decimals = Math.abs(amount) < 20 ? 2 : 0
+  return new Intl.NumberFormat('sv-SE', {
+    style: 'currency',
+    currency: 'SEK',
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(amount)
+}
+
+/**
  * Format a number with Swedish locale
  */
 export function formatNumber(num: number, decimals: number = 0): string {

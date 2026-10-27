@@ -3,7 +3,7 @@
 import { Link2, Link2Off } from 'lucide-react'
 import { BottomSheet } from '@/components/shared/bottom-sheet'
 import { formatCurrency, formatDate } from '@/lib/utils/formatters'
-import { displayName, productGroup, quantityLabel, type ExpenseLike, type ReceiptHead, type ReceiptLine } from '@/lib/receipts/receipt-analytics'
+import { displayName, isWeighed, productGroup, quantityLabel, type ExpenseLike, type ReceiptHead, type ReceiptLine } from '@/lib/receipts/receipt-analytics'
 import { cn } from '@/lib/utils/cn'
 
 interface ReceiptSheetProps {
@@ -89,8 +89,8 @@ export function ReceiptSheet({ receipt, lines, matchedExpense, onOpenChange, onS
               >
                 <span className="truncate">
                   {displayName(l)}
-                  {quantityLabel(l.quantity, l.product?.unit) && (
-                    <span className="text-muted-foreground"> {quantityLabel(l.quantity, l.product?.unit)}</span>
+                  {quantityLabel(l.quantity, isWeighed(l) ? 'kg' : l.product?.unit) && (
+                    <span className="text-muted-foreground"> {quantityLabel(l.quantity, isWeighed(l) ? 'kg' : l.product?.unit)}</span>
                   )}
                 </span>
                 <span className="shrink-0">{formatCurrency(Number(l.total_price))}</span>

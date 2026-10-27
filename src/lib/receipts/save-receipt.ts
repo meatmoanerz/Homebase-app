@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ParsedReceipt } from '@/lib/receipts/parse-receipt'
+import { packageFromName, type PackageSize } from '@/lib/receipts/package-size'
 
 /**
  * Stores a parsed receipt: finds or creates the store, skips duplicates,
@@ -79,6 +80,21 @@ export async function saveParsedReceipt(db: Db, userId: string, parsed: ParsedRe
       .not('product_id', 'is', null)
     for (const l of lineRows ?? []) if (l.article_number && !byArticle.has(l.article_number)) byArticle.set(l.article_number, l.product_id)
   }
+  // Pack sizes known from earlier lines of the same article.
+  const sizeByArticle = new Map<string, PackageSize>()
+  if (articleNumbers.length > 0) {
+    const { data: sized } = await db
+      .from('receipt_items')
+      .select('article_number, package_size, package_unit')
+      .eq('user_id', userId)
+      .in('article_number', articleNumbers)
+      .in('package_unit', ['l', 'st', 'kg'])
+    for (const l of sized ?? []) {
+      if (l.article_number && !(l.package_unit === 'kg' && Number(l.package_size) === 1)) {
+        sizeByArticle.set(l.article_number, { size: Number(l.package_size), unit: l.package_unit })
+      }
+    }
+  }
   const { data: aliasNames } = await db.from('product_aliases').select('raw_name_pattern, product_id').eq('user_id', userId)
   const { data: productNames } = await db.from('products').select('id, name').eq('user_id', userId)
   const byName = new Map<string, string>()
@@ -101,8 +117,16 @@ export async function saveParsedReceipt(db: Db, userId: string, parsed: ParsedRe
 
   let linkedProducts = 0
   const items = parsed.lines.map((l) => {
-    const productId = (l.article_number && byArticle.get(l.article_number)) || byName.get(l.name.toLowerCase()) || null
+    const productId = l.is_deposit ? null : (l.article_number && byArticle.get(l.article_number)) || byName.get(l.name.toLowerCase()) || null
     if (productId) linkedProducts++
+    // Sold by weight/volume: the quantity is the amount. Otherwise the pack size
+    // from the receipt, an earlier line of the article, or the name.
+    const pack: PackageSize | null =
+      l.unit === 'kg' || l.unit === 'l'
+        ? { size: 1, unit: l.unit }
+        : l.package_size && l.package_size > 0 && l.package_unit
+          ? { size: l.package_size, unit: l.package_unit }
+          : (l.article_number && sizeByArticle.get(l.article_number)) || (l.is_deposit ? null : packageFromName(l.name))
     return {
       user_id: userId,
       receipt_id: receipt.id,
@@ -114,6 +138,8 @@ export async function saveParsedReceipt(db: Db, userId: string, parsed: ParsedRe
       total_price: round2(l.total_price),
       discount_amount: round2(l.discount_amount),
       is_deposit: l.is_deposit,
+      package_size: pack?.size ?? null,
+      package_unit: pack?.unit ?? null,
       needs_review: totalsMismatch,
     }
   })

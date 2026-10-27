@@ -65,7 +65,15 @@ Härleds från `cost_assignment`. Det finns inga andel-kolumner per person i
 ## Kvitton (`receipts`, `receipt_items`, `products`, `stores`, `product_aliases`)
 
 - `receipt_items.total_price` är efter rabatt, `discount_amount` positivt,
-  `unit_price` ordinarie pris per st/kg. Vägda varor: `quantity` i kg.
+  `unit_price` ordinarie pris per st/kg. Vägda varor (även färdigpackat med
+  kilopris): `quantity` i kg.
+- `receipt_items.package_size` + `package_unit` (`kg`/`l`/`st`): vad EN
+  `quantity` innehåller. Vägda varor `1, 'kg'`; "Ägg 6-pack" `6, 'st'`;
+  okänd storlek `NULL, NULL` (då jämförs priset bara inom samma artikel).
+  Båda NULL eller båda satta (check-constraint).
+- Produkt = det man köper ("Smör"); artikel = butikens artikelnummer
+  ("Smör NS 82%"). Flera artiklar kopplas till samma `product_id`. Pant
+  kopplas aldrig till en produkt.
 - `products.product_group` (text, NULL = gissas från namnet): `barn`, `fisk`,
   `snacks`, `kott`, `mejeri`, `frukt`, `brod`, `dryck`, `skafferi`, `hem`,
   `blommor`, `ovrigt`.

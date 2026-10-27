@@ -7,6 +7,20 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-10-27 — Jämförpris, produkter med flera artiklar, artikelbyten
+
+- `receipt_items.package_size/package_unit`: priser jämförs per kg/l/st.
+  Backfill: vägda rader `1 kg`, 9 färdigpackade vägda varor (Wagyu, Brie,
+  Paprika …) fick vikten uträknad, storlekar lästa ur namnen ("380G",
+  "6-pack"). Pant avkopplad från produkter; 5 felkopplingar rättade
+  (Smörgåsrån≠Smör m.fl.), Smör Osaltat och två äggartiklar kopplade.
+- Vara i appen: snittpris över alla varianter → varianter (artiklar) med egen
+  historik, storlek, "inte samma vara" och "lägg till variant". Artikelbyten
+  (liknande namn, gamla artikeln inte köpt sedan) visas i grafen och översikten.
+- `06-kvitton.md`: storlek/vikt-regler, steg för att koppla nya artiklar till
+  befintliga produkter (`product_name`), mallen lär sig alias och ärver
+  storlek från tidigare rader av samma artikel.
+
 ## 2026-10-27 — Kvitton via Claude-appen (utan API)
 
 Nytt `06-kvitton.md`: dela kvittot till Claude-appen i projektet, Claude läser

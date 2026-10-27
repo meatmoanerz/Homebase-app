@@ -14,19 +14,22 @@ import {
   Link2,
   Repeat,
   ShoppingBasket,
+  ArrowRightLeft,
 } from 'lucide-react'
 import { useReceipts, useReceiptLines } from '@/hooks/use-receipts'
 import { useAllExpenses } from '@/hooks/use-analytics'
-import { formatCurrency, formatDate } from '@/lib/utils/formatters'
+import { formatCurrency, formatDate, formatPrice } from '@/lib/utils/formatters'
 import { formatChange, formatPeriodShort } from '@/lib/analytics/format'
 import { periodsBetween } from '@/lib/analytics/analytics'
 import {
   groupTotals,
+  perLabel,
   matchReceiptsToExpenses,
   monthlyTotals,
   productKey,
   productStats,
   weekdayPattern,
+  type ArticleSwitch,
   type ProductStat,
   type ReceiptHead,
   type ReceiptLine,
@@ -34,7 +37,7 @@ import {
 import { AnalyticsTrendChart } from '@/components/analytics/analytics-trend-chart'
 import { Sparkline } from '@/components/analytics/analytics-forecast-view'
 import { BottomSheet } from '@/components/shared/bottom-sheet'
-import { ProductSheet, unitLabel } from '@/components/receipts/product-sheet'
+import { ProductSheet } from '@/components/receipts/product-sheet'
 import { ReceiptSheet } from '@/components/receipts/receipt-sheet'
 import { ReceiptUploadButton } from '@/components/receipts/receipt-upload-button'
 import { ReceiptsPageSkeleton } from '@/components/shared/page-skeletons'
@@ -122,6 +125,15 @@ export default function ReceiptsPage() {
         .slice(0, 5),
     [products]
   )
+  // The store replaced an article with another one of the same product.
+  const switches = useMemo(
+    () =>
+      products
+        .flatMap((p) => p.switches.filter((s) => s.replaced).map((s) => ({ product: p, s })))
+        .sort((a, b) => b.s.date.localeCompare(a.s.date))
+        .slice(0, 5),
+    [products]
+  )
   const staples = useMemo(
     () => products.filter((p) => p.count >= 3 && p.group.key !== 'pant').sort((a, b) => b.count - a.count).slice(0, 6),
     [products]
@@ -148,8 +160,19 @@ export default function ReceiptsPage() {
         icon: TrendingUp,
         tone: 'warning',
         title: `${up.name} har blivit dyrare`,
-        text: `${formatChange(up.priceChange)} mot tidigare snitt — senast ${formatCurrency(up.purchases[up.purchases.length - 1].unitPrice)} ${unitLabel(up.unit)}.`,
+        text: `${formatChange(up.priceChange)} mot tidigare snitt — senast ${formatPrice(up.latestPrice ?? 0)}${perLabel(up.basis)}.`,
         onClick: () => setOpenProductKey(up.key),
+      })
+    }
+    const recentSwitch = switches.find((x) => now - Date.parse(x.s.date) < 120 * 86_400_000)
+    if (recentSwitch) {
+      out.push({
+        id: 'switch',
+        icon: ArrowRightLeft,
+        tone: 'warning',
+        title: `${recentSwitch.product.name}: ny artikel`,
+        text: `${recentSwitch.s.from.name} har ersatts av ${recentSwitch.s.to.name} (${formatDate(recentSwitch.s.date, 'medium')})${switchChange(recentSwitch.s)}.`,
+        onClick: () => setOpenProductKey(recentSwitch.product.key),
       })
     }
     const due = staples
@@ -196,7 +219,7 @@ export default function ReceiptsPage() {
       })
     }
     return out
-  }, [groups, priceMovers, staples, receipts, groceryExpenses, matches, stats.discount, now])
+  }, [groups, priceMovers, switches, staples, receipts, groceryExpenses, matches, stats.discount, now])
 
   const visibleProducts = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -349,7 +372,7 @@ export default function ReceiptsPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
               <h2 className="font-serif text-[19px] font-medium tracking-tight">Prisrörelser</h2>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Senaste pris mot tidigare snitt</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Jämförpris (kr/kg, kr/l) eller samma artikel, mot tidigare snitt</p>
               {priceMovers.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-6 text-center">Inga tydliga prisändringar än — kräver flera köp av samma vara.</p>
               ) : (
@@ -381,8 +404,8 @@ export default function ReceiptsPage() {
                           </span>
                         </span>
                         <span className="text-right shrink-0">
-                          <span className="block font-serif text-[15px] font-medium">{formatCurrency(p.avgPrice)}</span>
-                          <span className="block text-[10px] text-muted-foreground">snitt {unitLabel(p.unit)}</span>
+                          <span className="block font-serif text-[15px] font-medium">{formatPrice(p.avgPrice)}</span>
+                          <span className="block text-[10px] text-muted-foreground">snitt{perLabel(p.basis)}</span>
                         </span>
                       </button>
                     </li>
@@ -391,6 +414,39 @@ export default function ReceiptsPage() {
               )}
             </section>
           </div>
+
+          {switches.length > 0 && (
+            <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
+              <h2 className="font-serif text-[19px] font-medium tracking-tight">Artikelbyten</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">När butiken ersatt en vara med en annan artikel av samma produkt</p>
+              <ul className="mt-2 -mx-1">
+                {switches.map(({ product: p, s }) => (
+                  <li key={`${p.key}-${s.to.key}`}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenProductKey(p.key)}
+                      className="w-full flex items-center justify-between gap-3 px-1 py-2 rounded-xl hover:bg-secondary/50 text-left"
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-[14px] font-medium truncate">{p.name}</span>
+                        <span className="block text-[11px] text-muted-foreground truncate">
+                          {s.from.name} → {s.to.name}
+                        </span>
+                      </span>
+                      <span className="text-right shrink-0">
+                        <span className="block text-[12px]">{formatDate(s.date, 'medium')}</span>
+                        {s.priceChange != null && (
+                          <span className={cn('block text-[11px] font-medium', s.priceChange > 0.02 ? 'text-destructive' : s.priceChange < -0.02 ? 'text-hb-green' : 'text-muted-foreground')}>
+                            {formatChange(s.priceChange)}{s.perPack ? ' /förp' : ''}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </>
       )}
 
@@ -495,6 +551,7 @@ export default function ReceiptsPage() {
       />
       <ProductSheet
         product={openProduct}
+        allProducts={products}
         onOpenChange={(o) => !o && setOpenProductKey(null)}
         onLinked={(id) => setOpenProductKey(`p:${id}`)}
       />
@@ -526,31 +583,43 @@ export default function ReceiptsPage() {
 
 function ProductRow({ product, onClick, showChange, spark }: { product: ProductStat; onClick: () => void; showChange?: boolean; spark?: boolean }) {
   const change = product.priceChange
+  const prices = product.purchases.filter((p) => p.price != null).map((p) => p.price!)
+  const variants = product.articles.length
   return (
     <li>
       <button type="button" onClick={onClick} className="w-full flex items-center gap-3 px-1 py-2.5 rounded-xl hover:bg-secondary/40 text-left">
         <span className="flex-1 min-w-0">
-          <span className="block text-[14px] font-medium truncate">{product.name}</span>
+          <span className="flex items-center gap-1.5">
+            <span className="text-[14px] font-medium truncate">{product.name}</span>
+            {product.switches.some((s) => s.replaced) && (
+              <ArrowRightLeft className="w-3 h-3 text-hb-amber shrink-0" aria-label="Butiken har bytt artikel" />
+            )}
+          </span>
           <span className="block text-[11px] text-muted-foreground truncate">
-            {product.group.label} · {product.count} köp · {formatCurrency(product.total)}
+            {product.group.label} · {product.count} köp{variants > 1 && ` · ${variants} varianter`} · {formatCurrency(product.total)}
           </span>
         </span>
-        {spark && product.purchases.length >= 2 && (
-          <Sparkline values={product.purchases.map((p) => p.unitPrice)} up={(change ?? 0) > 0} width={56} height={22} zeroBased={false} />
+        {spark && prices.length >= 2 && (
+          <Sparkline values={prices} up={(change ?? 0) > 0} width={56} height={22} zeroBased={false} />
         )}
         <span className="text-right shrink-0 min-w-[64px]">
-          <span className="block font-serif text-[14px] font-medium">{formatCurrency(product.purchases[product.purchases.length - 1].unitPrice)}</span>
+          <span className="block font-serif text-[14px] font-medium">{formatPrice(product.avgPrice)}</span>
           {showChange && change != null ? (
             <span className={cn('block text-[11px] font-medium', change > 0.02 ? 'text-destructive' : change < -0.02 ? 'text-hb-green' : 'text-muted-foreground')}>
               {formatChange(change)}
             </span>
           ) : (
-            <span className="block text-[10px] text-muted-foreground">{unitLabel(product.unit)}</span>
+            <span className="block text-[10px] text-muted-foreground">snitt{perLabel(product.basis)}</span>
           )}
         </span>
       </button>
     </li>
   )
+}
+
+function switchChange(s: ArticleSwitch): string {
+  if (s.priceChange == null || Math.abs(s.priceChange) < 0.02) return ''
+  return ` — ${Math.round(Math.abs(s.priceChange) * 100)} % ${s.priceChange > 0 ? 'dyrare' : 'billigare'} ${s.perPack ? 'per förpackning' : `per ${s.to.basis}`}`
 }
 
 function InsightCard({ insight }: { insight: ReceiptInsight }) {
