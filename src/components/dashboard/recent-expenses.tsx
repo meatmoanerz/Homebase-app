@@ -56,7 +56,7 @@ export function RecentExpenses({ expenses }: RecentExpensesProps) {
       <div className="flex items-baseline justify-between pb-3">
         <h2 className="font-serif text-[20px] font-medium tracking-tight">Senaste</h2>
         <Link
-          href="/expenses/list"
+          href="/analys"
           className="text-xs text-hb-cognac-deep font-medium tracking-wide hover:underline"
         >
           Alla →

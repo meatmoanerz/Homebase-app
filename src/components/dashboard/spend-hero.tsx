@@ -3,6 +3,8 @@
 import { motion } from 'framer-motion'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { cn } from '@/lib/utils/cn'
+import Link from 'next/link'
+import { Telescope, ChevronRight } from 'lucide-react'
 import { getBudgetStatus, budgetStatusBarClass } from '@/lib/utils/budget-status'
 
 interface SpendHeroProps {
@@ -15,6 +17,12 @@ interface SpendHeroProps {
   /** Direct withdrawals (excl. credit-card purchases) */
   cashOut: number
   hasBudget: boolean
+  /** Projected landing for the running period (null when not the current period). */
+  forecast?: { spend: number; low: number; high: number } | null
+  /** Days left until next salary (running period only). */
+  daysLeft?: number | null
+  /** e.g. "Tims andel" when the perspective is a single person. */
+  scopeLabel?: string | null
 }
 
 /**
@@ -28,7 +36,7 @@ interface SpendHeroProps {
  * Shown for context but never as the headline, to avoid the false
  * comfort of credit-card purchases not moving the big number.
  */
-export function SpendHero({ spent, budget, income, cashOut, hasBudget }: SpendHeroProps) {
+export function SpendHero({ spent, budget, income, cashOut, hasBudget, forecast, daysLeft, scopeLabel }: SpendHeroProps) {
   const remaining = budget - spent
   const overBudget = hasBudget && remaining < 0
   const spentRatio = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0
@@ -50,8 +58,11 @@ export function SpendHero({ spent, budget, income, cashOut, hasBudget }: SpendHe
       />
 
       <div className="relative">
-        <div className="label-caps text-muted-foreground mt-0.5">
-          {primaryLabel}
+        <div className="flex items-center justify-between gap-2 mt-0.5">
+          <div className="label-caps text-muted-foreground">{primaryLabel}</div>
+          {scopeLabel && (
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">{scopeLabel}</span>
+          )}
         </div>
         <div
           className={cn(
@@ -75,8 +86,29 @@ export function SpendHero({ spent, budget, income, cashOut, hasBudget }: SpendHe
             </div>
             <div className="mt-1.5 text-[12px] text-muted-foreground">
               {formatCurrency(spent)} av {formatCurrency(budget)} spenderat
+              {daysLeft != null && ` · ${daysLeft} ${daysLeft === 1 ? 'dag' : 'dagar'} till lön`}
             </div>
           </>
+        )}
+
+        {forecast && (
+          <Link
+            href="/analys?view=forecast"
+            className="mt-3 flex items-center gap-2.5 rounded-2xl bg-secondary/50 hover:bg-secondary px-3 py-2.5 transition-colors"
+          >
+            <Telescope className="w-4 h-4 text-hb-cognac-deep shrink-0" />
+            <span className="flex-1 text-[13px]">
+              Landar på <span className="font-semibold">~{formatCurrency(forecast.spend)}</span>
+              {hasBudget && (
+                <span className={cn('ml-1', forecast.spend > budget * 1.05 ? 'text-destructive' : 'text-muted-foreground')}>
+                  {forecast.spend <= budget
+                    ? `· ~${formatCurrency(budget - forecast.spend)} kvar`
+                    : `· ~${formatCurrency(forecast.spend - budget)} över`}
+                </span>
+              )}
+            </span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+          </Link>
         )}
 
         {/* Secondary: cash flow */}

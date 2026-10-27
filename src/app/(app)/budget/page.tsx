@@ -14,6 +14,7 @@ import { getCurrency, formatCurrencyAmount, convertFromSEK } from '@/lib/utils/c
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, ChevronRight, ChevronDown, Calendar, Target, Archive, FolderOpen } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { calcTotalSpend, calcPersonSpend } from '@/lib/utils/spend-calc'
 import { getBudgetStatus, budgetStatusBarClass } from '@/lib/utils/budget-status'
 import type { TemporaryBudgetWithCategories } from '@/types'
 import { sumBudgetSplit } from '@/lib/utils/budget-split'
@@ -178,16 +179,12 @@ function BudgetCard({ budget, index, isCurrent, salaryDay, hasPartner, userName,
 
   const { totalSpent, userSpent, partnerSpent } = useMemo(() => {
     if (!expenses) return { totalSpent: 0, userSpent: 0, partnerSpent: 0 }
-    let total = 0, u = 0, p = 0
-    for (const e of expenses) {
-      total += e.amount
-      const a = e.cost_assignment || 'personal'
-      if (a === 'personal') u += e.amount
-      else if (a === 'partner') p += e.amount
-      else { u += e.amount / 2; p += e.amount / 2 }
+    return {
+      totalSpent: calcTotalSpend(expenses),
+      userSpent: calcPersonSpend(expenses, 'user', userId),
+      partnerSpent: calcPersonSpend(expenses, 'partner', userId),
     }
-    return { totalSpent: total, userSpent: u, partnerSpent: p }
-  }, [expenses])
+  }, [expenses, userId])
 
   const budgetedExpenses = (budget.total_expenses || 0) + (budget.total_savings || 0)
   // Per-person budget from explicit budget_item_assignments (50/50 fallback per item)

@@ -1,3 +1,6 @@
+import { personShare } from '@/lib/analytics/analytics'
+import type { CostAssignment } from '@/types'
+
 /**
  * Two parallel KPIs in Homebase — kept strictly separate.
  *
@@ -78,22 +81,20 @@ export function calcCashFlow(income: number, expenses: ExpenseForCalc[]): number
 
 /**
  * A person's share of total spend.
- *   - personal → 100% to that person
- *   - partner  → 100% to the partner
- *   - shared   → split (default 50/50)
- *
- * @param perspective 'user' sums personal + half of shared
- *                     'partner' sums partner + half of shared
+ *   - personal → 100% to the row's owner (user_id)
+ *   - partner  → 100% to the owner's partner
+ *   - shared   → 50/50
+ * cost_assignment is relative to the row owner, so the viewer's id is needed
+ * to tell whose "personal" a row is.
  */
 export function calcPersonSpend(
-  expenses: Array<ExpenseForCalc & { cost_assignment?: string | null }>,
-  perspective: 'user' | 'partner'
+  expenses: Array<ExpenseForCalc & { cost_assignment?: string | null; user_id?: string | null }>,
+  perspective: 'user' | 'partner',
+  viewerId: string | undefined
 ): number {
-  return expenses.reduce((sum, e) => {
-    const assignment = e.cost_assignment || 'personal'
-    if (assignment === 'shared') return sum + e.amount / 2
-    if (perspective === 'user' && assignment === 'personal') return sum + e.amount
-    if (perspective === 'partner' && assignment === 'partner') return sum + e.amount
-    return sum
-  }, 0)
+  const who = perspective === 'user' ? 'me' : 'partner'
+  return expenses.reduce(
+    (sum, e) => sum + e.amount * personShare({ user_id: e.user_id ?? '', cost_assignment: (e.cost_assignment ?? 'personal') as CostAssignment }, who, viewerId),
+    0
+  )
 }

@@ -27,52 +27,35 @@ export function IncomeReminderDialog() {
   const { data: hasIncome, isLoading: incomeLoading } = useHasIncomeForCurrentPeriod()
   const copyPreviousIncomes = useCopyPreviousPeriodIncomes()
 
-  const [isOpen, setIsOpen] = useState(false)
-  const [isDismissed, setIsDismissed] = useState(true)
+  // Period the reminder was dismissed for this session (sessionStorage).
+  const [dismissedPeriod, setDismissedPeriod] = useState<string | null>(() =>
+    typeof window === 'undefined' ? null : sessionStorage.getItem(REMINDER_DISMISSED_KEY)
+  )
+  const [closed, setClosed] = useState(false)
+  const [delayPassed, setDelayPassed] = useState(false)
 
   const salaryDay = user?.salary_day || 25
   const currentPeriod = getCurrentBudgetPeriod(salaryDay)
-  const today = new Date()
-  const dayOfMonth = today.getDate()
+  const isDismissed = dismissedPeriod === currentPeriod.period
 
-  // Check if salary day has passed in current period
-  const salaryDayPassed = dayOfMonth >= salaryDay
+  // The current budget period always starts on the (weekend-adjusted)
+  // salary day, so being in it means the salary has been paid: remind
+  // whenever the period has no income, unless dismissed this session.
+  const shouldShow = !userLoading && !incomeLoading && hasIncome === false && !isDismissed
 
-  // Check sessionStorage for dismissal
+  // Small delay to prevent a flash on initial load.
   useEffect(() => {
-    const dismissed = sessionStorage.getItem(REMINDER_DISMISSED_KEY)
-    if (dismissed === currentPeriod.period) {
-      setIsDismissed(true)
-    } else {
-      setIsDismissed(false)
-    }
-  }, [currentPeriod.period])
-
-  // Determine if dialog should show
-  useEffect(() => {
-    if (userLoading || incomeLoading || isDismissed) {
-      setIsOpen(false)
-      return
-    }
-
-    // Show dialog if:
-    // 1. User is loaded
-    // 2. Salary day has passed
-    // 3. No income registered for current period
-    // 4. Not dismissed this session
-    const shouldShow = !userLoading && !incomeLoading && salaryDayPassed && hasIncome === false && !isDismissed
-
-    // Small delay to prevent flash on initial load
-    const timeout = setTimeout(() => {
-      setIsOpen(shouldShow)
-    }, 1000)
-
+    if (!shouldShow) return
+    const timeout = setTimeout(() => setDelayPassed(true), 1000)
     return () => clearTimeout(timeout)
-  }, [userLoading, incomeLoading, salaryDayPassed, hasIncome, isDismissed])
+  }, [shouldShow])
+
+  const isOpen = shouldShow && delayPassed && !closed
+  const setIsOpen = (open: boolean) => setClosed(!open)
 
   const handleDismiss = () => {
     sessionStorage.setItem(REMINDER_DISMISSED_KEY, currentPeriod.period)
-    setIsDismissed(true)
+    setDismissedPeriod(currentPeriod.period)
     setIsOpen(false)
   }
 

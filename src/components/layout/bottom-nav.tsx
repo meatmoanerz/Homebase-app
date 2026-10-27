@@ -15,11 +15,11 @@ function HomeIcon({ className }: { className?: string }) {
   )
 }
 
-function ListIcon({ className }: { className?: string }) {
+function ChartIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-      <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+      <path d="M3 3v18h18"/>
+      <path d="M8 16v-4"/><path d="M13 16V8"/><path d="M18 16v-6"/>
     </svg>
   )
 }
@@ -54,7 +54,7 @@ function PlusIcon({ className }: { className?: string }) {
 
 const navItems = [
   { href: '/dashboard',    Icon: HomeIcon,     label: 'Översikt',  matchPath: '/dashboard' },
-  { href: '/expenses/list', Icon: ListIcon,    label: 'Utgifter',  matchPath: '/expenses'  },
+  { href: '/analys',       Icon: ChartIcon,    label: 'Analys',    matchPath: '/analys'    },
   { href: '/expenses',     Icon: PlusIcon,     label: 'Ny utgift', matchPath: null, isAdd: true },
   { href: '/budget',       Icon: WalletIcon,   label: 'Budget',    matchPath: '/budget'    },
   { href: '/settings',     Icon: SettingsIcon, label: 'Mer',       matchPath: '/settings'  },

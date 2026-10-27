@@ -5,6 +5,7 @@ import { Search } from 'lucide-react'
 import { BottomSheet } from '@/components/shared/bottom-sheet'
 import { ExpenseEditDialog } from '@/components/expenses/expense-edit-dialog'
 import { AssignmentPill } from '@/components/shared/assignment-pill'
+import { CategorizeInline } from '@/components/analytics/categorize-inline'
 import { AnalyticsTrendChart, type TrendPoint } from '@/components/analytics/analytics-trend-chart'
 import { formatCurrency, formatDate } from '@/lib/utils/formatters'
 import { formatChange, formatPeriodShort } from '@/lib/analytics/format'
@@ -169,8 +170,8 @@ export function AnalyticsDrilldownSheet({ data, onOpenChange, onSelectPeriod }: 
                     )}
                     <div className="bg-secondary/30 rounded-2xl divide-y divide-border/60 overflow-hidden">
                       {g.rows.map((r) => (
+                        <div key={r.expense.id}>
                         <button
-                          key={r.expense.id}
                           type="button"
                           onClick={() => setEditExpense(r.expense)}
                           className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-secondary/60 transition-colors"
@@ -190,6 +191,8 @@ export function AnalyticsDrilldownSheet({ data, onOpenChange, onSelectPeriod }: 
                             )}
                           </div>
                         </button>
+                        {!r.expense.category_id && <CategorizeInline expense={r.expense} />}
+                        </div>
                       ))}
                     </div>
                   </div>

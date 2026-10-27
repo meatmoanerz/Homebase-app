@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@/hooks/use-user'
+import { useImportBatches } from '@/hooks/use-import-staging'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -32,38 +33,39 @@ import {
 import { toast } from 'sonner'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
+/** Everyday money tools — the "Mer" hub's first section, as tiles. */
+const economyItems = [
+  { href: '/import', label: 'Importera', icon: FileSearch, description: 'Transaktioner att granska', badge: 'import' as const },
+  { href: '/savings', label: 'Sparmål', icon: Target, description: 'Mål och framsteg' },
+  { href: '/settings/loans', label: 'Lån', icon: Landmark, description: 'Saldo och amortering' },
+  { href: '/receipts', label: 'Kvitton', icon: Receipt, description: 'Inköp och priser' },
+  { href: '/settings/shared-account', label: 'Gemensamt konto', icon: Wallet, description: 'Månadens överföring' },
+  { href: '/settings/ccm', label: 'Kreditkort', icon: CreditCard, description: 'Fakturor och kort' },
+]
+
 const menuItems = [
   {
     title: 'Konto',
     items: [
       { href: '/settings/profile', label: 'Profil', icon: User, description: 'Namn, löndag, inkomster' },
-      { href: '/settings/notifications', label: 'Notiser', icon: Bell, description: 'Påminnelser för transaktionsimport' },
-      { href: '/settings/categories', label: 'Kategorier', icon: FolderOpen, description: 'Hantera kostnadskategorier' },
-    ]
-  },
-  {
-    title: 'Ekonomi',
-    items: [
-      { href: '/import', label: 'Importera transaktioner', icon: FileSearch, description: 'Ladda upp transaktioner från din bank' },
-      { href: '/settings/mappings', label: 'Kategoriregler', icon: Sparkles, description: 'Auto-kategorisering vid import' },
-      { href: '/receipts', label: 'Kvitton', icon: Receipt, description: 'Inköp och prisanalys' },
-      { href: '/settings/loans', label: 'Lån', icon: Landmark, description: 'Lån och skulder' },
-      { href: '/settings/ccm', label: 'Kreditkortshanterare', icon: CreditCard, description: 'CCM-inställningar' },
-      { href: '/savings', label: 'Sparmål', icon: Target, description: 'Dina besparingsmål' },
-      { href: '/settings/shared-account', label: 'Gemensamt konto', icon: Wallet, description: 'Beräkna överföring' },
-      { href: '/settings/household-categories', label: 'Hushållskostnader', icon: Home, description: 'Kategorier för hushållskostnader' },
-    ]
-  },
-  {
-    title: 'Delning',
-    items: [
       { href: '/settings/partner', label: 'Partner', icon: Users, description: 'Koppla ihop konton' },
+      { href: '/settings/notifications', label: 'Notiser', icon: Bell, description: 'Påminnelser för transaktionsimport' },
+    ]
+  },
+  {
+    title: 'Kategorier',
+    items: [
+      { href: '/settings/categories', label: 'Kategorier', icon: FolderOpen, description: 'Hantera kostnadskategorier' },
+      { href: '/settings/mappings', label: 'Kategoriregler', icon: Sparkles, description: 'Auto-kategorisering vid import' },
+      { href: '/settings/household-categories', label: 'Hushållskostnader', icon: Home, description: 'Kategorier för hushållskostnader' },
     ]
   },
 ]
 
 export default function SettingsPage() {
   const { data: user, isLoading } = useUser()
+  const { data: batches = [] } = useImportBatches()
+  const pendingImports = batches.reduce((sum, b) => sum + b.row_count, 0)
   const router = useRouter()
   const supabase = createClient()
 
@@ -108,29 +110,32 @@ export default function SettingsPage() {
         </Card>
       </motion.div>
 
-      {/* Theme Selector */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-      >
-        <h2 className="text-sm font-semibold text-muted-foreground mb-2 px-1">
-          Utseende
-        </h2>
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-hb-sage/20 flex items-center justify-center">
-                <Palette className="w-5 h-5 text-hb-cognac" aria-hidden="true" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">Tema</p>
-                <p className="text-xs text-muted-foreground">Välj ljust, mörkt eller systemval</p>
-              </div>
-            </div>
-            <ThemeToggle />
-          </CardContent>
-        </Card>
+      {/* Economy tools */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+        <h2 className="text-sm font-semibold text-muted-foreground mb-2 px-1">Ekonomi</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+          {economyItems.map((item) => {
+            const badge = item.badge === 'import' && pendingImports > 0 ? pendingImports : null
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="relative bg-card rounded-2xl shadow-sm p-3.5 hover:bg-muted/30 transition-colors"
+              >
+                <div className="w-9 h-9 rounded-xl bg-hb-sage/20 flex items-center justify-center">
+                  <item.icon className="w-[18px] h-[18px] text-hb-cognac" aria-hidden="true" />
+                </div>
+                <p className="font-medium text-sm mt-2.5">{item.label}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{item.description}</p>
+                {badge != null && (
+                  <span className="absolute top-3 right-3 min-w-[20px] h-5 px-1.5 rounded-full bg-hb-terracotta text-white text-[11px] font-semibold grid place-items-center">
+                    {badge > 99 ? '99+' : badge}
+                  </span>
+                )}
+              </Link>
+            )
+          })}
+        </div>
       </motion.div>
 
       {/* Menu Sections */}
@@ -142,7 +147,7 @@ export default function SettingsPage() {
           transition={{ delay: 0.1 + sectionIndex * 0.05 }}
         >
           <h2 className="text-sm font-semibold text-muted-foreground mb-2 px-1">
-            {section.title}
+            {sectionIndex === 0 ? `Inställningar · ${section.title}` : section.title}
           </h2>
           <Card className="border-0 shadow-sm">
             <CardContent className="p-0 divide-y divide-border">
@@ -168,6 +173,31 @@ export default function SettingsPage() {
           </Card>
         </motion.div>
       ))}
+
+      {/* Theme Selector */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+      >
+        <h2 className="text-sm font-semibold text-muted-foreground mb-2 px-1">
+          Utseende
+        </h2>
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-hb-sage/20 flex items-center justify-center">
+                <Palette className="w-5 h-5 text-hb-cognac" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">Tema</p>
+                <p className="text-xs text-muted-foreground">Välj ljust, mörkt eller systemval</p>
+              </div>
+            </div>
+            <ThemeToggle />
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Other Links */}
       <motion.div

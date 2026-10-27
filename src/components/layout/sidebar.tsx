@@ -3,18 +3,20 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
-import { Home, Wallet, ListChecks, Settings, Plus, BarChart3 } from 'lucide-react'
+import { Home, Wallet, Settings, Plus, BarChart3, Inbox, Target, Landmark } from 'lucide-react'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { usePerspective } from '@/hooks/use-perspective'
 import { NotificationBell } from '@/components/layout/notification-bell'
 
 const navItems = [
-  { href: '/dashboard',     icon: Home,      label: 'Översikt'     },
-  { href: '/analys',        icon: BarChart3, label: 'Analys'       },
-  { href: '/expenses/list', icon: ListChecks, label: 'Utgifter'    },
-  { href: '/budget',        icon: Wallet,    label: 'Budget'       },
-  { href: '/expenses',      icon: Plus,      label: 'Ny utgift'    },
-  { href: '/settings',      icon: Settings,  label: 'Inställningar'},
+  { href: '/dashboard',       icon: Home,       label: 'Översikt'      },
+  { href: '/analys',          icon: BarChart3,  label: 'Analys'        },
+  { href: '/budget',          icon: Wallet,     label: 'Budget'        },
+  { href: '/expenses',        icon: Plus,       label: 'Ny utgift'     },
+  { href: '/import',          icon: Inbox,      label: 'Importera'     },
+  { href: '/savings',         icon: Target,     label: 'Sparmål'       },
+  { href: '/settings/loans',  icon: Landmark,   label: 'Lån'           },
+  { href: '/settings',        icon: Settings,   label: 'Inställningar' },
 ]
 
 function PerspectiveAvatars() {
@@ -79,6 +81,11 @@ function PerspectiveAvatars() {
 
 export function Sidebar() {
   const pathname = usePathname()
+  // Longest matching href wins, so /settings/loans marks Lån, not Inställningar.
+  const activeHref = navItems
+    .map((i) => i.href)
+    .filter((href) => pathname === href || pathname.startsWith(href + '/'))
+    .sort((a, b) => b.length - a.length)[0]
 
   return (
     <aside className="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 border-r border-border bg-secondary/60 backdrop-blur-sm z-40 p-4">
@@ -94,8 +101,7 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex flex-col gap-0.5 flex-1" aria-label="Huvudnavigation">
         {navItems.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(item.href + '/')
+          const isActive = item.href === activeHref
           const Icon = item.icon
 
           return (

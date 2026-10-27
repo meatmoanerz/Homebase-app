@@ -957,7 +957,7 @@ export default function ImportPage() {
               Importera fler
             </button>
             <button
-              onClick={() => router.push('/expenses/list')}
+              onClick={() => router.push('/analys')}
               className="px-4 py-2 rounded-full bg-hb-nav text-hb-nav-foreground text-sm font-medium hover:opacity-90 transition-opacity"
             >
               Visa utgifter

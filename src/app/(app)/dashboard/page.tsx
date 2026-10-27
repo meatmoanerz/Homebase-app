@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { useExpensesByPeriod } from '@/hooks/use-expenses'
 import { useHouseholdIncome } from '@/hooks/use-incomes'
@@ -8,15 +8,24 @@ import { useMonthlyIncomeTotal } from '@/hooks/use-monthly-incomes'
 import { useBudgetByPeriod } from '@/hooks/use-budgets'
 import { useCategories } from '@/hooks/use-categories'
 import { getCurrentBudgetPeriod, formatPeriodDisplay, shiftPeriod, getPeriodDates } from '@/lib/utils/budget-period'
-import { KPICards } from '@/components/dashboard/kpi-cards'
 import { SpendHero } from '@/components/dashboard/spend-hero'
-import { BudgetOverview } from '@/components/dashboard/budget-overview'
 import { RecentExpenses } from '@/components/dashboard/recent-expenses'
-import { ShowMyMonthCard } from '@/components/dashboard/show-my-month-card'
 import { PersonBudgetBreakdown } from '@/components/dashboard/person-budget-breakdown'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
+import { TodoList } from '@/components/dashboard/todo-list'
+import { BudgetDeviations, type CategoryDeviation } from '@/components/dashboard/budget-deviations'
+import { MoneyShortcuts } from '@/components/dashboard/money-shortcuts'
 import { PeriodStrip } from '@/components/shared/period-strip'
-import { calcTotalSpend, calcCashOut, calcPersonSpend } from '@/lib/utils/spend-calc'
+import { calcCashOut, calcPersonSpend } from '@/lib/utils/spend-calc'
+import { sumBudgetSplit } from '@/lib/utils/budget-split'
+import { usePerspective } from '@/hooks/use-perspective'
+import { useAllExpenses } from '@/hooks/use-analytics'
+import { useAllLoans } from '@/hooks/use-loans'
+import { useActiveRecurringExpenses } from '@/hooks/use-recurring-expenses'
+import { budgetTotal, personShare, toRows } from '@/lib/analytics/analytics'
+import { buildForecast } from '@/lib/analytics/forecast'
+import { getBudgetPeriod, getDaysUntilSalary, getPeriodProgress } from '@/lib/utils/budget-period'
+import { splitBudgetItem } from '@/lib/utils/budget-split'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 
@@ -74,6 +83,8 @@ export default function DashboardPage() {
   }, [user, categories, setupDone, supabase, refetchCategories])
   const salaryDay = user?.salary_day || 25
   const currentPeriod = getCurrentBudgetPeriod(salaryDay)
+  const perspective = usePerspective((s) => s.perspective)
+  const person = hasPartner ? perspective : 'all'
 
   // Selected period for the overview — defaults to current, steppable with arrows
   const [selectedPeriod, setSelectedPeriod] = useState(currentPeriod.period)
@@ -85,63 +96,115 @@ export default function DashboardPage() {
   const { data: householdIncome } = useHouseholdIncome()
   const { data: monthlyIncomeTotal } = useMonthlyIncomeTotal(selectedPeriod)
   const { data: budget } = useBudgetByPeriod(selectedPeriod)
+  // Full history only feeds the running period's forecast.
+  const { data: allExpenses = [] } = useAllExpenses()
+  const { data: loans = [] } = useAllLoans()
+  const { data: recurring = [] } = useActiveRecurringExpenses()
+
+  const budgetItems = useMemo(() => budget?.budget_items ?? [], [budget])
+
+  // Amounts as seen from the chosen perspective (Alla / Du / Partner).
+  const scoped = useMemo(
+    () => expenses.map((e) => ({ ...e, amount: e.amount * personShare(e, person, user?.id) })),
+    [expenses, person, user?.id]
+  )
+
+  const forecast = useMemo(() => {
+    if (!isCurrentPeriod || allExpenses.length === 0) return null
+    const rows = toRows(allExpenses, salaryDay, person, user?.id)
+    const oldest = allExpenses[allExpenses.length - 1]
+    const result = buildForecast({
+      rows,
+      currentPeriod: currentPeriod.period,
+      earliestPeriod: oldest ? getBudgetPeriod(new Date(`${oldest.date}T00:00:00`), salaryDay).period : null,
+      periodProgress: getPeriodProgress(salaryDay) / 100,
+      horizon: 1,
+      loans: loans.map((l) => ({
+        current_balance: Number(l.current_balance),
+        interest_rate: Number(l.interest_rate),
+        monthly_amortization: Number(l.monthly_amortization),
+        include_in_budget: l.include_in_budget,
+      })),
+      recurring: recurring.map((r) => ({ category_id: r.category_id, amount: Number(r.amount), is_active: r.is_active })),
+      categoryIds: null,
+      incomeFor: () => null,
+      categoryMeta: new Map(),
+    })
+    return result.historyPeriods.length >= 2 ? result : null
+  }, [isCurrentPeriod, allExpenses, salaryDay, person, user?.id, currentPeriod.period, loans, recurring])
+
+  const deviations = useMemo<CategoryDeviation[]>(() => {
+    const actualByCategory = new Map<string, number>()
+    for (const e of scoped) {
+      const id = e.category_id || ''
+      actualByCategory.set(id, (actualByCategory.get(id) || 0) + e.amount)
+    }
+    const projectedByCategory = new Map(
+      (forecast?.categories ?? []).filter((c) => c.costType === 'Variable' && !c.isInvoice).map((c) => [c.id, c.current.projected])
+    )
+    const byCategory = new Map<string, CategoryDeviation>()
+    for (const item of budgetItems) {
+      if (!item.category_id) continue
+      const amount = person === 'all'
+        ? item.amount
+        : person === 'me'
+          ? splitBudgetItem(item, user?.id, partner?.id).user
+          : splitBudgetItem(item, user?.id, partner?.id).partner
+      const existing = byCategory.get(item.category_id)
+      if (existing) {
+        existing.budget += amount
+        continue
+      }
+      byCategory.set(item.category_id, {
+        categoryId: item.category_id,
+        name: item.category?.name || item.name,
+        budget: amount,
+        actual: actualByCategory.get(item.category_id) || 0,
+        projected: projectedByCategory.get(item.category_id) ?? null,
+      })
+    }
+    return [...byCategory.values()]
+  }, [scoped, budgetItems, forecast, person, user?.id, partner?.id])
 
   if (userLoading || expensesLoading) {
     return <DashboardSkeleton />
   }
 
-  // Calculate totals - prefer monthly income if available, otherwise use static household income
-  const monthlyTotal = monthlyIncomeTotal?.total_income ?? 0
+  // Income: monthly income for the period, else the static household income.
+  const monthlyTotal = person === 'me'
+    ? monthlyIncomeTotal?.user_income ?? 0
+    : person === 'partner'
+      ? monthlyIncomeTotal?.partner_income ?? 0
+      : monthlyIncomeTotal?.total_income ?? 0
   const totalIncome = monthlyTotal > 0
     ? monthlyTotal
-    : (householdIncome?.total_income ?? 0)
+    : person === 'all' ? (householdIncome?.total_income ?? 0) : 0
 
-  // SPEND TRACKING (main KPI): all expenses except the Kreditkort invoice
-  // category (excludes_from_expense_total). Underlying Amex purchases still
-  // count toward their own categories.
-  const totalSpent = calcTotalSpend(expenses)
+  // SPEND (main KPI): every expense in the period, credit-card invoice included.
+  const totalSpent = scoped.reduce((sum, e) => sum + e.amount, 0)
+  // CASH FLOW out (secondary): this period's credit-card purchases excluded.
+  const cashOut = calcCashOut(scoped)
 
-  // CASH FLOW out (secondary): only direct withdrawals — credit-card
-  // purchases are excluded since they hit a future invoice.
-  const cashOut = calcCashOut(expenses)
+  const budgetForPerson = budgetTotal(
+    budget ? [{ period: selectedPeriod, budget_items: budgetItems }] : [],
+    new Set([selectedPeriod]),
+    null,
+    person,
+    user?.id,
+    partner?.id
+  ).total
+  const hasBudget = budgetForPerson > 0
 
-  // Per-person share of total spend (personal 100%, shared 50/50, partner 0 for user)
-  const userSpent = calcPersonSpend(expenses, 'user')
-  const partnerSpent = calcPersonSpend(expenses, 'partner')
+  // Per person: assignment-based budget split, owner-aware spend.
+  const split = sumBudgetSplit(budgetItems, user?.id, partner?.id)
+  const userSpent = calcPersonSpend(expenses, 'user', user?.id)
+  const partnerSpent = calcPersonSpend(expenses, 'partner', user?.id)
 
-  // Calculate actual savings from expenses in savings categories
-  const actualSavings = expenses.reduce((sum, exp) => {
-    if (exp.category?.cost_type === 'Savings') {
-      return sum + exp.amount
-    }
-    return sum
-  }, 0)
-
-  // Calculate budget amounts by type
-  const budgetItems = {
-    fixed: budget?.budget_items
-      ?.filter(item => item.type === 'fixedExpense')
-      .reduce((sum, item) => sum + item.amount, 0) || 0,
-    variable: budget?.budget_items
-      ?.filter(item => item.type === 'variableExpense')
-      .reduce((sum, item) => sum + item.amount, 0) || 0,
-    savings: budget?.budget_items
-      ?.filter(item => item.type === 'savings')
-      .reduce((sum, item) => sum + item.amount, 0) || 0,
-  }
-
-  // KPIs are always budget-based, never income-based
-  const hasBudget = !!(budget && (budgetItems.fixed + budgetItems.variable + budgetItems.savings) > 0)
-  const totalBudgetedExpenses = budgetItems.fixed + budgetItems.variable + budgetItems.savings
-  // Without a budget, there is no "available to spend" — show spend only
-  const availableToSpend = hasBudget ? totalBudgetedExpenses : 0
-
-  const savingsRate = totalIncome > 0 
-    ? (budgetItems.savings / totalIncome) * 100 
-    : 0
+  const currentForecast = forecast?.months[0] ?? null
+  const scopeLabel = person === 'me' ? `${user?.first_name || 'Din'}s andel` : person === 'partner' ? `${partner?.first_name || 'Partner'}s andel` : null
 
   return (
-    <div className="px-4 md:px-8 pt-2 md:pt-4 pb-4 space-y-5">
+    <div className="px-4 md:px-8 pt-2 md:pt-4 pb-4 space-y-5 max-w-3xl md:mx-auto">
       {/* Desktop title (mobile shows in header) */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
@@ -163,68 +226,48 @@ export default function DashboardPage() {
         className="pt-1"
       />
 
-      {/* Hero: Spend tracking (primary) + cash flow (secondary) */}
+      {/* Hero: remaining + forecast (primary) and cash flow (secondary) */}
       <SpendHero
         spent={totalSpent}
-        budget={availableToSpend}
+        budget={budgetForPerson}
         income={totalIncome}
         cashOut={cashOut}
         hasBudget={hasBudget}
+        forecast={currentForecast ? { spend: currentForecast.spend, low: currentForecast.low, high: currentForecast.high } : null}
+        daysLeft={isCurrentPeriod ? getDaysUntilSalary(salaryDay) : null}
+        scopeLabel={scopeLabel}
       />
 
-      {/* KPI Cards */}
-      <KPICards
-        totalBudget={availableToSpend}
-        totalSpent={totalSpent}
-        savingsRate={savingsRate}
-        salaryDay={salaryDay}
-        hasBudget={hasBudget}
-        totalIncome={totalIncome}
-        actualSavings={actualSavings}
-      />
+      {/* What needs doing */}
+      {isCurrentPeriod && <TodoList />}
 
-      {/* Per-person breakdown - only show when partner is connected */}
-      {hasPartner && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-        >
+      {/* Categories that need attention */}
+      <BudgetDeviations items={deviations} hasBudget={hasBudget} />
+
+      {/* Per person — only in the household view */}
+      {hasPartner && person === 'all' && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <PersonBudgetBreakdown
             userName={user?.first_name || 'Du'}
             partnerName={partner?.first_name || 'Partner'}
             userSpent={userSpent}
             partnerSpent={partnerSpent}
-            userBudget={availableToSpend / 2}
-            partnerBudget={availableToSpend / 2}
+            userBudget={budgetItems.length > 0 ? split.user : 0}
+            partnerBudget={budgetItems.length > 0 ? split.partner : 0}
           />
         </motion.div>
       )}
 
-      {/* Budget Overview */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <BudgetOverview
-          expenses={expenses}
-          budgetItems={budgetItems}
-        />
-      </motion.div>
-
-      {/* Monthly Report CTA */}
-      <ShowMyMonthCard />
+      <MoneyShortcuts />
 
       {/* Recent Expenses */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 0.3 }}
       >
         <RecentExpenses expenses={expenses.slice(0, 5)} />
       </motion.div>
     </div>
   )
 }
-

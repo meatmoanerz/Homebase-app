@@ -15,11 +15,19 @@ import {
   Store,
   Receipt,
   ListFilter,
+  Search,
 } from 'lucide-react'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { usePerspective } from '@/hooks/use-perspective'
 import { useBudgets } from '@/hooks/use-budgets'
 import { useAllExpenses, usePeriodIncomes } from '@/hooks/use-analytics'
+import { useAllLoans } from '@/hooks/use-loans'
+import { useActiveRecurringExpenses } from '@/hooks/use-recurring-expenses'
+import { buildForecast } from '@/lib/analytics/forecast'
+import { AnalyticsForecastView, type ForecastHorizon } from '@/components/analytics/analytics-forecast-view'
+import { ExpenseEditDialog } from '@/components/expenses/expense-edit-dialog'
+import { AssignmentPill } from '@/components/shared/assignment-pill'
+import type { ExpenseWithCategory } from '@/types'
 import { getBudgetPeriod, getCurrentBudgetPeriod, getPeriodDates, getPeriodProgress, shiftPeriod } from '@/lib/utils/budget-period'
 import { addDays, differenceInCalendarDays, format, startOfDay } from 'date-fns'
 import { formatCurrency } from '@/lib/utils/formatters'
@@ -59,6 +67,15 @@ type DrillTarget =
   | { kind: 'filter' }
 
 const TIMEFRAMES: Timeframe[] = ['month', 'ytd', '12m', 'all']
+const RECENT_COUNT = 8
+
+type View = 'history' | 'forecast'
+
+/** Deep link: /analys?view=forecast opens the Framåt tab. */
+function initialView(): View {
+  if (typeof window === 'undefined') return 'history'
+  return new URLSearchParams(window.location.search).get('view') === 'forecast' ? 'forecast' : 'history'
+}
 
 export default function AnalysPage() {
   const { data: user, isLoading: userLoading } = useUser()
@@ -73,19 +90,32 @@ export default function AnalysPage() {
   const [categoryIds, setCategoryIds] = useState<Set<string>>(new Set())
   const [filterOpen, setFilterOpen] = useState(false)
   const [drill, setDrill] = useState<DrillTarget | null>(null)
+  const [view, setView] = useState<View>(initialView)
+  const [horizon, setHorizon] = useState<ForecastHorizon>(3)
+  const [query, setQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [editExpense, setEditExpense] = useState<ExpenseWithCategory | null>(null)
 
   const { data: expenses = [], isLoading: expensesLoading } = useAllExpenses()
   const { data: budgets = [] } = useBudgets()
+  const { data: loans = [] } = useAllLoans()
+  const { data: recurring = [] } = useActiveRecurringExpenses()
 
   const earliestPeriod = useMemo(() => {
     const oldest = expenses[expenses.length - 1]
     return oldest ? getBudgetPeriod(new Date(`${oldest.date}T00:00:00`), salaryDay).period : null
   }, [expenses, salaryDay])
 
-  const allRows = useMemo(
-    () => toRows(expenses, salaryDay, person, user?.id),
-    [expenses, salaryDay, person, user?.id]
-  )
+  // Free-text search narrows everything on the page (e.g. "ica" this year).
+  const searchTerm = query.trim().toLowerCase()
+  const allRows = useMemo(() => {
+    const rows = toRows(expenses, salaryDay, person, user?.id)
+    if (!searchTerm) return rows
+    // Match from the start of a word: "ica" finds "ICA NARA", not "AMERICAN".
+    const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}`, 'iu')
+    return rows.filter((r) => re.test(r.expense.description) || re.test(r.expense.category?.name ?? ''))
+  }, [expenses, salaryDay, person, user?.id, searchTerm])
 
   const categoryOptions = useMemo<CategoryOption[]>(() => {
     const map = new Map<string, CategoryOption>()
@@ -150,12 +180,15 @@ export default function AnalysPage() {
     if (!inc) return null
     return person === 'me' ? inc.user_income : person === 'partner' ? inc.partner_income : inc.total_income
   }
-  const showIncome = !catFilter
+  const showIncome = !catFilter && !searchTerm
   const rangeIncome = showIncome ? periods.reduce((s, p) => s + (incomeFor(p) ?? 0), 0) : 0
 
+  // A free-text search has no budget to compare against.
   const budget = useMemo(
-    () => budgetTotal(budgets, periodSet, catFilter, person, user?.id, partner?.id),
-    [budgets, periodSet, catFilter, person, user?.id, partner?.id]
+    () => searchTerm
+      ? { total: 0, budgetedPeriods: new Set<string>() }
+      : budgetTotal(budgets, periodSet, catFilter, person, user?.id, partner?.id),
+    [budgets, periodSet, catFilter, person, user?.id, partner?.id, searchTerm]
   )
 
   const budgetSpent = sumRows(rows.filter((r) => budget.budgetedPeriods.has(r.period)))
@@ -190,6 +223,65 @@ export default function AnalysPage() {
   }, [allRows, chartPeriods, catFilter, showIncome, incomes, person, periodSet])
 
   const categories = useMemo(() => categoryTotals(rows, prevRows), [rows, prevRows])
+
+  // ---- Framåt (forecast) ----
+  const forecastIncomePeriods = useMemo(
+    () => (view === 'forecast' ? periodsBetween(shiftPeriod(currentPeriod, -12), shiftPeriod(currentPeriod, horizon)) : []),
+    [view, currentPeriod, horizon]
+  )
+  const { data: forecastIncomes } = usePeriodIncomes(forecastIncomePeriods)
+  const categoryMeta = useMemo(
+    () => new Map(categoryOptions.map((c) => [c.id, { name: c.name, costType: c.costType, isInvoice: c.isInvoice }])),
+    [categoryOptions]
+  )
+  const forecast = useMemo(() => {
+    if (view !== 'forecast') return null
+    const forecastIncomeFor = (period: string) => {
+      const inc = forecastIncomes?.get(period)
+      if (!inc) return null
+      const v = person === 'me' ? inc.user_income : person === 'partner' ? inc.partner_income : inc.total_income
+      return v > 0 ? v : null
+    }
+    return buildForecast({
+      rows: catFilter ? allRows.filter((r) => catFilter.has(r.expense.category_id || '')) : allRows,
+      currentPeriod,
+      earliestPeriod,
+      periodProgress: getPeriodProgress(salaryDay) / 100,
+      horizon,
+      // Loans are household-level; the person split follows the history of
+      // the interest/amortisation categories inside buildForecast.
+      loans: loans.map((l) => ({
+        current_balance: Number(l.current_balance),
+        interest_rate: Number(l.interest_rate),
+        monthly_amortization: Number(l.monthly_amortization),
+        include_in_budget: l.include_in_budget,
+      })),
+      recurring: recurring.map((r) => ({ category_id: r.category_id, amount: Number(r.amount), is_active: r.is_active })),
+      categoryIds: catFilter,
+      incomeFor: forecastIncomeFor,
+      categoryMeta,
+    })
+  }, [view, allRows, catFilter, currentPeriod, earliestPeriod, salaryDay, horizon, loans, recurring, forecastIncomes, person, categoryMeta])
+  const forecastHistory = useMemo(() => {
+    if (!forecast) return []
+    const totals = totalsByPeriod(catFilter ? allRows.filter((r) => catFilter.has(r.expense.category_id || '')) : allRows)
+    return periodsBetween(shiftPeriod(currentPeriod, -6), shiftPeriod(currentPeriod, -1))
+      .filter((p) => !earliestPeriod || p >= earliestPeriod)
+      .map((p) => {
+        const inc = forecastIncomes?.get(p)
+        const income = inc ? (person === 'me' ? inc.user_income : person === 'partner' ? inc.partner_income : inc.total_income) : null
+        return { period: p, value: totals.get(p) || 0, income }
+      })
+  }, [forecast, allRows, catFilter, currentPeriod, earliestPeriod, forecastIncomes, person])
+  const currentBudget = useMemo(
+    () => budgetTotal(budgets, new Set([currentPeriod]), catFilter, person, user?.id, partner?.id).total,
+    [budgets, currentPeriod, catFilter, person, user?.id, partner?.id]
+  )
+
+  const recentRows = useMemo(
+    () => [...rows].sort((a, b) => b.expense.date.localeCompare(a.expense.date) || b.expense.created_at.localeCompare(a.expense.created_at)).slice(0, RECENT_COUNT),
+    [rows]
+  )
 
   const insights = useMemo<Insight[]>(() => {
     const historyPeriods = periodsBetween(shiftPeriod(periods[0] ?? currentPeriod, -6), shiftPeriod(periods[0] ?? currentPeriod, -1))
@@ -263,6 +355,7 @@ export default function AnalysPage() {
   }, [drill, allRows, periodSet, prevPeriods, prevCutoff, chartPeriods, catFilter, budgets, person, user?.id, partner?.id, timeframe, periods, compLabel, categoryOptions])
 
   const selectPeriod = (period: string) => {
+    setView('history')
     setTimeframe('month')
     setAnchor(period)
     setDrill(null)
@@ -290,35 +383,81 @@ export default function AnalysPage() {
               key={t}
               type="button"
               role="radio"
-              aria-checked={timeframe === t}
+              aria-checked={view === 'history' && timeframe === t}
               onClick={() => {
+                setView('history')
                 setTimeframe(t)
                 if (t === 'month') setAnchor(currentPeriod)
               }}
               className={cn(
-                'flex-1 py-1.5 rounded-full text-[13px] font-medium transition-all',
-                timeframe === t ? 'bg-hb-nav text-hb-nav-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                'flex-1 py-1.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap',
+                view === 'history' && timeframe === t ? 'bg-hb-nav text-hb-nav-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               )}
             >
               {TIMEFRAME_LABELS[t]}
             </button>
           ))}
+          <button
+            type="button"
+            role="radio"
+            aria-checked={view === 'forecast'}
+            onClick={() => setView('forecast')}
+            className={cn(
+              'flex-1 py-1.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap',
+              view === 'forecast' ? 'bg-hb-cognac text-white shadow-sm' : 'text-hb-cognac-deep hover:text-foreground'
+            )}
+          >
+            Framåt
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <PerspectiveSwitch className="flex-1" />
           <button
             type="button"
+            onClick={() => {
+              if (searchOpen) setQuery('')
+              setSearchOpen((v) => !v)
+            }}
+            aria-label={searchOpen ? 'Stäng sök' : 'Sök transaktioner'}
+            aria-pressed={searchOpen}
+            className={cn(
+              'w-8 h-8 grid place-items-center rounded-full border shrink-0 transition-colors',
+              searchTerm ? 'bg-hb-cognac/15 border-hb-cognac/40 text-hb-cognac-deep' : 'bg-card border-border text-muted-foreground',
+              !partner && 'ml-auto'
+            )}
+          >
+            {searchOpen ? <X className="w-3.5 h-3.5" /> : <Search className="w-3.5 h-3.5" />}
+          </button>
+          <button
+            type="button"
             onClick={() => setFilterOpen(true)}
             className={cn(
               'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors shrink-0',
-              catFilter ? 'bg-hb-cognac/15 border-hb-cognac/40 text-hb-cognac-deep' : 'bg-card border-border text-muted-foreground',
-              !partner && 'ml-auto'
+              catFilter ? 'bg-hb-cognac/15 border-hb-cognac/40 text-hb-cognac-deep' : 'bg-card border-border text-muted-foreground'
             )}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
             {catFilter ? `${catFilter.size} ${catFilter.size === 1 ? 'kategori' : 'kategorier'}` : 'Kategorier'}
           </button>
         </div>
+        {searchOpen && (
+          <div className="flex items-center gap-2.5 bg-card border border-border rounded-xl px-3 py-2">
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Sök butik, beskrivning eller kategori…"
+              className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+              enterKeyHint="search"
+            />
+            {query && (
+              <button type="button" onClick={() => setQuery('')} className="text-muted-foreground" aria-label="Rensa sökning">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
         {catFilter && (
           <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
             {[...catFilter].map((id) => (
@@ -348,6 +487,17 @@ export default function AnalysPage() {
         )}
       </div>
 
+      {view === 'forecast' && forecast ? (
+        <AnalyticsForecastView
+          forecast={forecast}
+          horizon={horizon}
+          onHorizonChange={setHorizon}
+          currentBudget={currentBudget}
+          showIncome={!catFilter && !searchTerm}
+          historyTotals={forecastHistory}
+        />
+      ) : (
+      <>
       {/* Hero */}
       <motion.section
         key={`${timeframe}-${anchor}`}
@@ -392,7 +542,7 @@ export default function AnalysPage() {
         <div className="text-[11px] text-muted-foreground mt-0.5">{periodRangeText(periods, salaryDay)}</div>
 
         <div className="label-caps text-muted-foreground mt-4">
-          {catFilter ? 'Spenderat i valda kategorier' : 'Spenderat'}
+          {searchTerm ? `Spenderat · "${query.trim()}"` : catFilter ? 'Spenderat i valda kategorier' : 'Spenderat'}
         </div>
         <div className="flex items-end gap-3 flex-wrap">
           <div className="font-serif-hero text-[40px] md:text-[46px] leading-[1.05] mt-1">{formatCurrency(total)}</div>
@@ -571,6 +721,58 @@ export default function AnalysPage() {
         </section>
       </div>
 
+      {/* Latest transactions (replaces the old Utgifter list) */}
+      <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-serif text-[19px] font-medium tracking-tight">Transaktioner</h2>
+          <span className="text-[11px] text-muted-foreground">Tryck för att redigera</span>
+        </div>
+        {recentRows.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">Inga transaktioner under perioden.</p>
+        ) : (
+          <ul className="mt-2 -mx-1 divide-y divide-border/60">
+            {recentRows.map((r) => (
+              <li key={r.expense.id}>
+                <button
+                  type="button"
+                  onClick={() => setEditExpense(r.expense)}
+                  className="w-full flex items-center gap-3 px-1 py-2.5 hover:bg-secondary/40 rounded-xl text-left"
+                >
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[14px] font-medium truncate">{r.expense.description}</span>
+                    <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-0.5">
+                      <span className="truncate">
+                        {new Date(`${r.expense.date}T00:00:00`).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
+                        {' · '}
+                        {r.expense.category?.name || 'Utan kategori'}
+                      </span>
+                      <AssignmentPill assignment={r.expense.cost_assignment} />
+                    </span>
+                  </span>
+                  <span className="font-serif text-[15px] font-medium shrink-0">{formatCurrency(r.value)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {rows.length > RECENT_COUNT && (
+          <button
+            type="button"
+            onClick={() => setDrill({ kind: 'filter' })}
+            className="w-full mt-1 py-2 text-xs font-medium text-hb-cognac-deep"
+          >
+            Visa alla {rows.length}
+          </button>
+        )}
+      </section>
+      </>
+      )}
+
+      <ExpenseEditDialog
+        expense={editExpense}
+        open={!!editExpense}
+        onOpenChange={(open) => !open && setEditExpense(null)}
+      />
       <CategoryFilterSheet
         open={filterOpen}
         onOpenChange={setFilterOpen}

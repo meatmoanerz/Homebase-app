@@ -12,11 +12,10 @@ import { NotificationBell } from '@/components/layout/notification-bell'
 const TITLES: Record<string, string> = {
   '/dashboard': 'Översikt',
   '/expenses': 'Ny utgift',
-  '/expenses/list': 'Utgifter',
   '/budget': 'Budget',
   '/receipts': 'Kvitton',
   '/savings': 'Sparmål',
-  '/settings': 'Inställningar',
+  '/settings': 'Mer',
   '/settings/profile': 'Profil',
   '/settings/categories': 'Kategorier',
   '/settings/loans': 'Lån',
