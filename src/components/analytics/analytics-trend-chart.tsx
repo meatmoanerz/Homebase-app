@@ -29,13 +29,16 @@ interface AnalyticsTrendChartProps {
   height?: number
   onSelectPeriod?: (period: string) => void
   selectedPeriod?: string | null
+  /** Name of the bar series in legend and tooltip. */
+  seriesLabel?: string
 }
 
 /** Short axis labels: 45 000 → "45 tkr", 1 200 000 → "1,2 mkr". */
 function formatAxis(v: number): string {
   if (v === 0) return '0'
   if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toLocaleString('sv-SE', { maximumFractionDigits: 1 })} mkr`
-  if (Math.abs(v) >= 1000) return `${Math.round(v / 1000)} tkr`
+  if (Math.abs(v) >= 10_000) return `${Math.round(v / 1000)} tkr`
+  if (Math.abs(v) >= 1000) return `${(v / 1000).toLocaleString('sv-SE', { maximumFractionDigits: 1 })} tkr`
   return String(Math.round(v))
 }
 
@@ -43,10 +46,12 @@ function TrendTooltip({
   active,
   payload,
   showIncome,
+  seriesLabel = 'Utgifter',
 }: {
   active?: boolean
   payload?: Array<{ payload: TrendPoint }>
   showIncome?: boolean
+  seriesLabel?: string
 }) {
   if (!active || !payload?.length) return null
   const p = payload[0].payload
@@ -55,7 +60,7 @@ function TrendTooltip({
       <div className="font-medium capitalize mb-1">{formatPeriodShort(p.period, true)}</div>
       <div className="flex items-center gap-2">
         <span className="w-2 h-2 rounded-sm bg-chart-spend" />
-        <span className="text-muted-foreground">Utgifter</span>
+        <span className="text-muted-foreground">{seriesLabel}</span>
         <span className="ml-auto font-medium">{formatCurrency(p.value)}</span>
       </div>
       {showIncome && p.income != null && (
@@ -75,6 +80,7 @@ export function AnalyticsTrendChart({
   height = 200,
   onSelectPeriod,
   selectedPeriod,
+  seriesLabel = 'Utgifter',
 }: AnalyticsTrendChartProps) {
   const withData = data.filter((d) => d.value > 0)
   const average = withData.length > 1 ? withData.reduce((s, d) => s + d.value, 0) / withData.length : null
@@ -83,7 +89,7 @@ export function AnalyticsTrendChart({
   return (
     <div>
       <div className="flex items-center gap-4 text-[11px] text-muted-foreground mb-2">
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-chart-spend" />Utgifter</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-chart-spend" />{seriesLabel}</span>
         {hasIncome && (
           <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded bg-chart-income" />Inkomst</span>
         )}
@@ -116,7 +122,7 @@ export function AnalyticsTrendChart({
             />
             <Tooltip
               cursor={{ fill: 'var(--secondary)', opacity: 0.6 }}
-              content={<TrendTooltip showIncome={hasIncome} />}
+              content={<TrendTooltip showIncome={hasIncome} seriesLabel={seriesLabel} />}
             />
             {average != null && (
               <ReferenceLine

@@ -1,391 +1,603 @@
 'use client'
 
-import { useState, useMemo, useEffect, useRef } from 'react'
-import { useReceipts, useProductSummary, useReceiptItems, usePriceHistory } from '@/hooks/use-receipts'
-import { formatCurrency, formatRelativeDate } from '@/lib/utils/formatters'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Receipt, Search, ChevronRight, X, Store, ShoppingBasket } from 'lucide-react'
-import { cn } from '@/lib/utils/cn'
+import { useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
+import {
+  Receipt,
+  Search,
+  X,
+  ChevronRight,
+  Sparkles,
+  TrendingUp,
+  CalendarDays,
+  Tag,
+  Link2,
+  Repeat,
+  ShoppingBasket,
+} from 'lucide-react'
+import { useReceipts, useReceiptLines } from '@/hooks/use-receipts'
+import { useAllExpenses } from '@/hooks/use-analytics'
+import { formatCurrency, formatDate } from '@/lib/utils/formatters'
+import { formatChange, formatPeriodShort } from '@/lib/analytics/format'
+import { periodsBetween } from '@/lib/analytics/analytics'
+import {
+  groupTotals,
+  matchReceiptsToExpenses,
+  monthlyTotals,
+  productKey,
+  productStats,
+  weekdayPattern,
+  type ProductStat,
+  type ReceiptHead,
+  type ReceiptLine,
+} from '@/lib/receipts/receipt-analytics'
+import { AnalyticsTrendChart } from '@/components/analytics/analytics-trend-chart'
+import { Sparkline } from '@/components/analytics/analytics-forecast-view'
+import { BottomSheet } from '@/components/shared/bottom-sheet'
+import { ProductSheet, unitLabel } from '@/components/receipts/product-sheet'
+import { ReceiptSheet } from '@/components/receipts/receipt-sheet'
 import { ReceiptsPageSkeleton } from '@/components/shared/page-skeletons'
+import { cn } from '@/lib/utils/cn'
 
-const PAGE_SIZE = 20
+type Tab = 'overview' | 'receipts' | 'products'
+type ProductSort = 'count' | 'total' | 'change'
 
-type TabType = 'receipts' | 'products'
-
-const tabs = [
-  { id: 'receipts' as const, label: 'Kvitton', icon: Receipt },
-  { id: 'products' as const, label: 'Prisanalys', icon: ShoppingBasket },
+const TABS: Array<{ value: Tab; label: string }> = [
+  { value: 'overview', label: 'Översikt' },
+  { value: 'receipts', label: 'Kvitton' },
+  { value: 'products', label: 'Varor' },
 ]
 
-export default function ReceiptsPage() {
-  const { data: receipts = [], isLoading: receiptsLoading } = useReceipts()
-  const { data: products = [], isLoading: productsLoading } = useProductSummary()
+const GROCERY_RE = /\bica\b|hemköp|coop|willys|lidl|city gross|mathem|tempo|matsmart|netto/i
 
-  const [activeTab, setActiveTab] = useState<TabType>('receipts')
-  const [productSearch, setProductSearch] = useState('')
+interface ReceiptInsight {
+  id: string
+  icon: typeof Sparkles
+  tone: 'good' | 'warning' | 'neutral'
+  title: string
+  text: string
+  onClick?: () => void
+}
+
+export default function ReceiptsPage() {
+  const { data: receiptRows = [], isLoading: receiptsLoading } = useReceipts(1000)
+  const { data: lines = [], isLoading: linesLoading } = useReceiptLines()
+  const { data: expenses = [] } = useAllExpenses()
+
+  const [tab, setTab] = useState<Tab>('overview')
+  const [query, setQuery] = useState('')
+  const [sort, setSort] = useState<ProductSort>('count')
+  const [groupFilter, setGroupFilter] = useState<string | null>(null)
   const [openReceiptId, setOpenReceiptId] = useState<string | null>(null)
-  const [openProductId, setOpenProductId] = useState<string | null>(null)
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
-  const sentinelRef = useRef<HTMLDivElement | null>(null)
+  const [openProductKey, setOpenProductKey] = useState<string | null>(null)
+  const [openGroupKey, setOpenGroupKey] = useState<string | null>(null)
+  // "Today" captured once per visit so render stays pure.
+  const [now] = useState(() => Date.now())
+
+  const receipts = receiptRows as unknown as ReceiptHead[]
+  const receiptById = useMemo(() => new Map(receipts.map((r) => [r.id, r])), [receipts])
+  const products = useMemo(() => productStats(lines, receiptById), [lines, receiptById])
+  const productByKey = useMemo(() => new Map(products.map((p) => [p.key, p])), [products])
+  const groups = useMemo(() => groupTotals(products), [products])
+  const linesByReceipt = useMemo(() => {
+    const map = new Map<string, ReceiptLine[]>()
+    for (const l of lines) map.set(l.receipt_id, [...(map.get(l.receipt_id) || []), l])
+    return map
+  }, [lines])
+
+  // Receipts ↔ card/bank purchases, and how much of the grocery shopping has a receipt.
+  const groceryExpenses = useMemo(() => {
+    if (receipts.length === 0) return []
+    const first = receipts.reduce((m, r) => (r.purchase_date < m ? r.purchase_date : m), receipts[0].purchase_date)
+    return expenses.filter((e) => e.date >= first && GROCERY_RE.test(e.description) && e.amount > 0)
+  }, [expenses, receipts])
+  const matches = useMemo(() => matchReceiptsToExpenses(receipts, groceryExpenses), [receipts, groceryExpenses])
 
   const stats = useMemo(() => {
-    const count = receipts.length
-    const total = receipts.reduce((s, r) => s + r.total_amount, 0)
-    const avg = count > 0 ? total / count : 0
-    return { count, total, avg }
+    const total = receipts.reduce((s, r) => s + Number(r.total_amount), 0)
+    const itemLines = lines.filter((l) => !l.is_deposit && !/^pant\b/i.test(l.raw_name))
+    const discount = lines.reduce((s, l) => s + Number(l.discount_amount || 0), 0)
+    return {
+      total,
+      count: receipts.length,
+      avgReceipt: receipts.length ? total / receipts.length : 0,
+      avgItems: receipts.length ? itemLines.length / receipts.length : 0,
+      discount,
+    }
+  }, [receipts, lines])
+
+  const monthly = useMemo(() => {
+    const totals = monthlyTotals(receipts)
+    const months = [...totals.keys()].sort()
+    if (months.length === 0) return []
+    return periodsBetween(months[0], months[months.length - 1]).map((m) => ({ period: m, value: totals.get(m) || 0, inRange: true }))
   }, [receipts])
 
-  // Search filters the FULL product list (everything is already loaded in memory)
-  const filteredProducts = useMemo(
+  const priceMovers = useMemo(
     () =>
-      products.filter((p) =>
-        p.product_name?.toLowerCase().includes(productSearch.toLowerCase())
-      ),
-    [products, productSearch]
+      products
+        .filter((p) => p.priceChange != null && Math.abs(p.priceChange) >= 0.05 && p.group.key !== 'pant')
+        .sort((a, b) => Math.abs(b.priceChange!) - Math.abs(a.priceChange!))
+        .slice(0, 5),
+    [products]
+  )
+  const staples = useMemo(
+    () => products.filter((p) => p.count >= 3 && p.group.key !== 'pant').sort((a, b) => b.count - a.count).slice(0, 6),
+    [products]
   )
 
-  // Reset pagination whenever the search query changes
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
-  }, [productSearch])
+  const insights = useMemo<ReceiptInsight[]>(() => {
+    const out: ReceiptInsight[] = []
+    const itemsTotal = groups.reduce((s, g) => s + g.total, 0)
+    const top = groups[0]
+    if (top && itemsTotal > 0) {
+      out.push({
+        id: 'top-group',
+        icon: ShoppingBasket,
+        tone: 'neutral',
+        title: `${top.group.label}: ${Math.round((top.total / itemsTotal) * 100)} % av kvittona`,
+        text: `${formatCurrency(top.total)} på ${top.count} köp — den största varugruppen.`,
+        onClick: () => setOpenGroupKey(top.group.key),
+      })
+    }
+    const up = priceMovers.find((p) => (p.priceChange ?? 0) > 0)
+    if (up) {
+      out.push({
+        id: 'price-up',
+        icon: TrendingUp,
+        tone: 'warning',
+        title: `${up.name} har blivit dyrare`,
+        text: `${formatChange(up.priceChange)} mot tidigare snitt — senast ${formatCurrency(up.purchases[up.purchases.length - 1].unitPrice)} ${unitLabel(up.unit)}.`,
+        onClick: () => setOpenProductKey(up.key),
+      })
+    }
+    const due = staples
+      .filter((p) => p.intervalDays != null)
+      .map((p) => ({ p, overdue: (now - Date.parse(p.lastDate)) / 86_400_000 - (p.intervalDays ?? 0) }))
+      .sort((a, b) => b.overdue - a.overdue)[0]
+    if (due && due.overdue > 0) {
+      out.push({
+        id: 'due',
+        icon: Repeat,
+        tone: 'neutral',
+        title: `Dags för ${due.p.name.toLowerCase()}?`,
+        text: `Brukar köpas var ${Math.round(due.p.intervalDays!)}:e dag, senast ${formatDate(due.p.lastDate, 'medium')}.`,
+        onClick: () => setOpenProductKey(due.p.key),
+      })
+    }
+    const weekday = weekdayPattern(receipts)
+    if (weekday) {
+      out.push({
+        id: 'weekday',
+        icon: CalendarDays,
+        tone: 'neutral',
+        title: `Du handlar oftast på ${weekday.label}`,
+        text: `${Math.round(weekday.share * 100)} % av kvittona. En större veckohandel brukar ge färre impulsköp än många små.`,
+      })
+    }
+    if (groceryExpenses.length > 0) {
+      const covered = matches.size
+      out.push({
+        id: 'coverage',
+        icon: Link2,
+        tone: covered / groceryExpenses.length < 0.5 ? 'warning' : 'good',
+        title: `Kvitto finns för ${covered} av ${groceryExpenses.length} matbutiksköp`,
+        text: 'Ju fler kvitton, desto säkrare prisanalys och varugrupper. Spara kvittot i Kivra/ICA-appen och be Claude läsa in det.',
+      })
+    }
+    if (stats.discount > 0) {
+      out.push({
+        id: 'discount',
+        icon: Tag,
+        tone: 'good',
+        title: `${formatCurrency(stats.discount)} sparat på rabatter`,
+        text: 'Erbjudanden och bonus som dragits på kvittona.',
+      })
+    }
+    return out
+  }, [groups, priceMovers, staples, receipts, groceryExpenses, matches, stats.discount, now])
 
-  // Only render a slice — grows as the user scrolls to the sentinel
-  const visibleProducts = filteredProducts.slice(0, visibleCount)
-  const hasMore = visibleCount < filteredProducts.length
+  const visibleProducts = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return products
+      .filter((p) => p.group.key !== 'pant')
+      .filter((p) => !groupFilter || p.group.key === groupFilter)
+      .filter((p) => !q || p.name.toLowerCase().includes(q))
+      .sort((a, b) =>
+        sort === 'count' ? b.count - a.count || b.total - a.total
+          : sort === 'total' ? b.total - a.total
+            : Math.abs(b.priceChange ?? 0) - Math.abs(a.priceChange ?? 0)
+      )
+  }, [products, query, groupFilter, sort])
 
-  useEffect(() => {
-    if (!hasMore) return
-    const el = sentinelRef.current
-    if (!el) return
+  const receiptsByMonth = useMemo(() => {
+    const map = new Map<string, ReceiptHead[]>()
+    for (const r of [...receipts].sort((a, b) => b.purchase_date.localeCompare(a.purchase_date))) {
+      const m = r.purchase_date.slice(0, 7)
+      map.set(m, [...(map.get(m) || []), r])
+    }
+    return [...map.entries()]
+  }, [receipts])
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setVisibleCount((c) => c + PAGE_SIZE)
-        }
-      },
-      { rootMargin: '200px' }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [hasMore, visibleProducts.length])
+  if (receiptsLoading || linesLoading) return <ReceiptsPageSkeleton />
 
-  const isEmpty = !receiptsLoading && receipts.length === 0 && products.length === 0
+  const openReceipt = openReceiptId ? receiptById.get(openReceiptId) ?? null : null
+  const openProduct = openProductKey ? productByKey.get(openProductKey) ?? null : null
+  const openGroup = openGroupKey ? groups.find((g) => g.group.key === openGroupKey) ?? null : null
+  const itemsTotal = groups.reduce((s, g) => s + g.total, 0)
 
-  // Show skeleton while primary data loads
-  if (receiptsLoading) return <ReceiptsPageSkeleton />
-
-  return (
-    <div className="px-4 md:px-8 pt-2 md:pt-4 pb-4 space-y-5">
-      {/* Desktop title */}
-      <div className="hidden md:block">
-        <h1 className="font-serif text-[32px] font-medium tracking-tight">Kvitton</h1>
-        <p className="text-sm text-muted-foreground mt-1">Inköp och prisanalys</p>
-      </div>
-
-      {isEmpty ? (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-card border border-border rounded-2xl p-8 md:p-12 text-center shadow-sm"
-        >
+  if (receipts.length === 0) {
+    return (
+      <div className="px-4 md:px-8 pt-2 md:pt-4 pb-4 max-w-3xl mx-auto">
+        <div className="bg-card border border-border rounded-3xl p-8 md:p-12 text-center shadow-sm mt-4">
           <div className="w-14 h-14 mx-auto rounded-2xl bg-hb-cognac/10 grid place-items-center mb-5">
             <Receipt className="w-7 h-7 text-hb-cognac" />
           </div>
           <h2 className="font-serif text-xl font-medium mb-2">Inga kvitton ännu</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-            Ladda upp kvitton från ICA, Hemköp och andra butiker så börjar appen
-            spåra priser över tid. Be Claude i chatten att läsa av ett kvittofoto
-            och spara raderna åt dig.
+            Be Claude i chatten läsa av ett kvittofoto eller ett digitalt kvitto (ICA/Kivra) och spara raderna. Då börjar
+            appen följa priser, varugrupper och dina basvaror.
           </p>
-        </motion.div>
-      ) : (
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-4 md:px-8 pt-2 md:pt-4 pb-4 space-y-4 max-w-3xl mx-auto">
+      <div className="hidden md:block">
+        <h1 className="font-serif text-[32px] font-medium tracking-tight">Kvitton</h1>
+        <p className="text-sm text-muted-foreground mt-1">Vad du handlar, vad det kostar och hur priserna rör sig</p>
+      </div>
+
+      <div className="sticky top-[63px] md:top-0 z-30 -mx-4 px-4 md:-mx-2 md:px-2 py-2 bg-background/95 backdrop-blur-md">
+        <div className="flex gap-1 bg-secondary rounded-full p-1" role="tablist">
+          {TABS.map((t) => (
+            <button
+              key={t.value}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.value}
+              onClick={() => setTab(t.value)}
+              className={cn(
+                'flex-1 py-1.5 rounded-full text-[13px] font-medium transition-all',
+                tab === t.value ? 'bg-hb-nav text-hb-nav-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {tab === 'overview' && (
         <>
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
-              <div className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-semibold">
-                Kvitton
-              </div>
-              <div className="font-serif text-[26px] font-medium tracking-tight mt-1.5">
-                {stats.count} st
-              </div>
-              <div className="text-[11px] text-muted-foreground mt-1">totalt</div>
+          <motion.section
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-card border border-border rounded-3xl px-5 py-5 md:px-6 shadow-sm"
+          >
+            <div className="label-caps text-muted-foreground">Handlat med kvitto</div>
+            <div className="font-serif-hero text-[40px] md:text-[46px] leading-[1.05] mt-1">{formatCurrency(stats.total)}</div>
+            <div className="text-[12px] text-muted-foreground mt-1">
+              {stats.count} kvitton · {formatDay(receipts[receipts.length - 1]?.purchase_date)} – {formatDay(receipts[0]?.purchase_date)}
             </div>
-            <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
-              <div className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-semibold">
-                Snitt/kvitto
-              </div>
-              <div className="font-serif text-[26px] font-medium tracking-tight mt-1.5">
-                {formatCurrency(stats.avg)}
-              </div>
-              <div className="text-[11px] text-muted-foreground mt-1">per inköp</div>
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              <Tile label="Snitt/kvitto" value={formatCurrency(stats.avgReceipt)} />
+              <Tile label="Varor/kvitto" value={stats.avgItems.toLocaleString('sv-SE', { maximumFractionDigits: 1 })} />
+              <Tile label="Unika varor" value={String(products.filter((p) => p.group.key !== 'pant').length)} />
             </div>
-          </div>
+          </motion.section>
 
-          {/* Tabs */}
-          <div className="flex gap-1 p-1 bg-muted/50 rounded-xl">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  'flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200',
-                  activeTab === tab.id
-                    ? 'bg-white dark:bg-card shadow-sm text-hb-cognac'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          {monthly.length > 1 && (
+            <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
+              <h2 className="font-serif text-[19px] font-medium tracking-tight mb-3">Per månad</h2>
+              <AnalyticsTrendChart data={monthly} height={170} seriesLabel="Kvitton" />
+            </section>
+          )}
 
-          <div>
-            {/* Receipts list */}
-            {activeTab === 'receipts' && (
-            <section>
-              <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-                {receipts.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                    Inga kvitton
-                  </div>
-                ) : (
-                  receipts.map((r) => (
-                    <div key={r.id}>
-                      <button
-                        onClick={() => setOpenReceiptId(openReceiptId === r.id ? null : r.id)}
-                        className="w-full flex items-center justify-between px-4 py-3.5 border-b border-border last:border-b-0 hover:bg-secondary/40 transition-colors text-left"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-secondary grid place-items-center flex-shrink-0">
-                            <Store className="w-4 h-4 text-muted-foreground" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-medium text-sm tracking-tight truncate">
-                              {r.store?.name || r.store?.chain || 'Okänd butik'}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground">
-                              {formatRelativeDate(r.purchase_date)} · {r.item_count} varor
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="font-serif text-[16px] font-medium tracking-tight">
-                            {formatCurrency(r.total_amount)}
-                          </span>
-                          <ChevronRight className={cn('w-4 h-4 text-muted-foreground/60 transition-transform', openReceiptId === r.id && 'rotate-90')} />
-                        </div>
-                      </button>
-                      <AnimatePresence>
-                        {openReceiptId === r.id && (
-                          <ReceiptItemsDrawer receiptId={r.id} />
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  ))
-                )}
+          {insights.length > 0 && (
+            <section className="space-y-2">
+              <h2 className="font-serif text-[19px] font-medium tracking-tight px-1 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-hb-cognac" />
+                Insikter
+              </h2>
+              <div className="grid gap-2 md:grid-cols-2">
+                {insights.slice(0, 6).map((i) => (
+                  <InsightCard key={i.id} insight={i} />
+                ))}
               </div>
             </section>
-            )}
+          )}
 
-            {/* Price analysis */}
-            {activeTab === 'products' && (
-            <section>
-              {filteredProducts.length > 0 && (
-                <div className="flex justify-end pb-2">
-                  <span className="text-[11px] text-muted-foreground">
-                    {filteredProducts.length} produkter
-                  </span>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2.5 bg-card border border-border rounded-xl px-3.5 py-2.5 mb-3">
-                <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Sök bland alla produkter…"
-                  value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
-                  className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
-                />
-                {productSearch && (
+          <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
+            <div className="flex items-baseline justify-between">
+              <h2 className="font-serif text-[19px] font-medium tracking-tight">Varugrupper</h2>
+              <span className="text-[11px] text-muted-foreground">automatiskt utifrån varunamn</span>
+            </div>
+            <ul className="mt-2 -mx-1">
+              {groups.map((g) => (
+                <li key={g.group.key}>
                   <button
-                    onClick={() => setProductSearch('')}
-                    className="text-muted-foreground hover:text-foreground"
-                    aria-label="Rensa sökning"
+                    type="button"
+                    onClick={() => setOpenGroupKey(g.group.key)}
+                    className="w-full text-left px-1 py-2 rounded-xl hover:bg-secondary/50 transition-colors"
                   >
-                    <X className="w-4 h-4" />
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-[14px] font-medium">{g.group.label}</span>
+                      <span className="flex items-center gap-1">
+                        <span className="font-serif text-[15px] font-medium">{formatCurrency(g.total)}</span>
+                        <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 bg-secondary rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-chart-spend" style={{ width: `${(g.total / (groups[0]?.total || 1)) * 100}%` }} />
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-1">
+                      {Math.round((g.total / (itemsTotal || 1)) * 100)} % · {g.count} köp
+                    </div>
                   </button>
-                )}
-              </div>
+                </li>
+              ))}
+            </ul>
+          </section>
 
-              {productsLoading ? (
-                <div className="space-y-2.5">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="bg-card border border-border rounded-2xl px-4 py-3.5 space-y-2 animate-pulse">
-                      <div className="flex justify-between">
-                        <div className="h-4 w-36 bg-border/60 rounded-lg" />
-                        <div className="h-3 w-10 bg-border/60 rounded" />
-                      </div>
-                      <div className="flex justify-between">
-                        <div className="h-3 w-24 bg-border/60 rounded" />
-                        <div className="h-3 w-20 bg-border/60 rounded" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : filteredProducts.length === 0 ? (
-                <div className="bg-card border border-border rounded-2xl px-4 py-8 text-center text-sm text-muted-foreground shadow-sm">
-                  {productSearch ? `Inga träffar för "${productSearch}"` : 'Inga produkter spårade ännu'}
-                </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
+              <h2 className="font-serif text-[19px] font-medium tracking-tight">Prisrörelser</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Senaste pris mot tidigare snitt</p>
+              {priceMovers.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">Inga tydliga prisändringar än — kräver flera köp av samma vara.</p>
               ) : (
-                <>
-                  <div className="space-y-2.5">
-                    {visibleProducts.map((p) => (
-                      <ProductCard
-                        key={p.product_id}
-                        product={p}
-                        isOpen={openProductId === p.product_id}
-                        onToggle={() => setOpenProductId(openProductId === p.product_id ? null : p.product_id)}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Infinite scroll sentinel */}
-                  {hasMore && (
-                    <div ref={sentinelRef} className="py-4 text-center">
-                      <span className="text-[11px] text-muted-foreground">Laddar fler…</span>
-                    </div>
-                  )}
-                </>
+                <ul className="mt-2 -mx-1">
+                  {priceMovers.map((p) => (
+                    <ProductRow key={p.key} product={p} onClick={() => setOpenProductKey(p.key)} showChange />
+                  ))}
+                </ul>
               )}
             </section>
-            )}
+            <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
+              <h2 className="font-serif text-[19px] font-medium tracking-tight">Basvaror</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Det du köper om och om igen</p>
+              {staples.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">Visas när en vara köpts minst tre gånger.</p>
+              ) : (
+                <ul className="mt-2 -mx-1">
+                  {staples.map((p) => (
+                    <li key={p.key}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenProductKey(p.key)}
+                        className="w-full flex items-center justify-between gap-3 px-1 py-2 rounded-xl hover:bg-secondary/50 text-left"
+                      >
+                        <span className="min-w-0">
+                          <span className="block text-[14px] font-medium truncate">{p.name}</span>
+                          <span className="block text-[11px] text-muted-foreground">
+                            {p.count} köp{p.intervalDays != null && ` · var ${Math.max(1, Math.round(p.intervalDays))}:e dag`}
+                          </span>
+                        </span>
+                        <span className="text-right shrink-0">
+                          <span className="block font-serif text-[15px] font-medium">{formatCurrency(p.avgPrice)}</span>
+                          <span className="block text-[10px] text-muted-foreground">snitt {unitLabel(p.unit)}</span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           </div>
         </>
       )}
-    </div>
-  )
-}
 
-function ReceiptItemsDrawer({ receiptId }: { receiptId: string }) {
-  const { data: items = [], isLoading } = useReceiptItems(receiptId)
-
-  return (
-    <motion.div
-      initial={{ height: 0, opacity: 0 }}
-      animate={{ height: 'auto', opacity: 1 }}
-      exit={{ height: 0, opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      className="bg-secondary/30 border-b border-border overflow-hidden"
-    >
-      <div className="px-4 py-2">
-        {isLoading ? (
-          <div className="text-xs text-muted-foreground py-2">Laddar varor…</div>
-        ) : (
-          items.map((item) => (
-            <div key={item.id} className="flex items-center justify-between py-1.5 text-[13px]">
-              <span className={cn('truncate', item.needs_review && 'text-hb-amber')}>
-                {item.raw_name}
-                {item.quantity > 1 && <span className="text-muted-foreground"> ×{item.quantity}</span>}
-              </span>
-              <span className="font-medium ml-2 flex-shrink-0">{formatCurrency(item.total_price)}</span>
-            </div>
-          ))
-        )}
-      </div>
-    </motion.div>
-  )
-}
-
-function ProductCard({
-  product,
-  isOpen,
-  onToggle,
-}: {
-  product: import('@/hooks/use-receipts').ProductSummary
-  isOpen: boolean
-  onToggle: () => void
-}) {
-  const { data: history = [] } = usePriceHistory(isOpen ? product.product_id : null)
-
-  // Trend: compare latest to average
-  const trend = product.avg_unit_price > 0
-    ? ((product.max_unit_price - product.min_unit_price) / product.avg_unit_price)
-    : 0
-
-  return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-      <button onClick={onToggle} className="w-full px-4 py-3.5 text-left hover:bg-secondary/40 transition-colors">
-        <div className="flex items-baseline justify-between">
-          <span className="font-serif text-[16px] font-medium tracking-tight">{product.product_name}</span>
-          <span className="text-[11px] text-muted-foreground">{product.purchase_count} köp</span>
-        </div>
-        <div className="flex items-center justify-between mt-1">
-          <span className="text-[12px] text-muted-foreground">
-            Snitt {formatCurrency(product.avg_unit_price)}
-          </span>
-          <span className="text-[12px] text-success font-medium">
-            Lägst {formatCurrency(product.min_unit_price)}
-          </span>
-        </div>
-      </button>
-
-      <AnimatePresence>
-        {isOpen && history.length > 0 && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="border-t border-border bg-secondary/30 overflow-hidden"
-          >
-            <div className="px-4 py-3">
-              <PriceSparkline history={history} />
-              <div className="mt-3 space-y-1">
-                {history.slice(-5).reverse().map((point, i) => (
-                  <div key={i} className="flex items-center justify-between text-[12px]">
-                    <span className="text-muted-foreground">
-                      {formatRelativeDate(point.purchase_date)} · {point.store_chain || point.store_name || '–'}
-                    </span>
-                    <span className="font-medium">{formatCurrency(point.effective_unit_price)}</span>
-                  </div>
-                ))}
+      {tab === 'receipts' && (
+        <div className="space-y-4">
+          {receiptsByMonth.map(([month, list]) => (
+            <section key={month}>
+              <div className="flex items-baseline justify-between px-1 mb-1.5">
+                <h2 className="font-serif text-[17px] font-medium tracking-tight capitalize">{formatPeriodShort(month, true)}</h2>
+                <span className="text-[12px] text-muted-foreground">{formatCurrency(list.reduce((s, r) => s + Number(r.total_amount), 0))}</span>
               </div>
+              <ul className="bg-card border border-border rounded-2xl shadow-sm divide-y divide-border overflow-hidden">
+                {list.map((r) => {
+                  const store = r.store?.chain || r.store?.name || '?'
+                  return (
+                    <li key={r.id}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenReceiptId(r.id)}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-secondary/40 transition-colors text-left"
+                      >
+                        <span className="w-9 h-9 rounded-xl bg-hb-cognac/12 text-hb-cognac-deep grid place-items-center font-serif text-[13px] font-semibold shrink-0">
+                          {store.slice(0, 3).toUpperCase()}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-[14px] font-medium truncate">{r.store?.name || store}</span>
+                          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                            {new Date(`${r.purchase_date}T12:00:00`).toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' })}
+                            {' · '}{r.item_count} varor
+                            {matches.has(r.id) && <Link2 className="w-3 h-3 text-hb-green" aria-label="Matchad mot utgift" />}
+                          </span>
+                        </span>
+                        <span className="font-serif text-[15px] font-medium shrink-0">{formatCurrency(Number(r.total_amount))}</span>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
+
+      {tab === 'products' && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2.5 bg-card border border-border rounded-xl px-3.5 py-2.5">
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Sök vara…"
+              className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+            />
+            {query && (
+              <button type="button" onClick={() => setQuery('')} aria-label="Rensa sökning" className="text-muted-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+            <Chip active={!groupFilter} onClick={() => setGroupFilter(null)}>Alla</Chip>
+            {groups.map((g) => (
+              <Chip key={g.group.key} active={groupFilter === g.group.key} onClick={() => setGroupFilter(groupFilter === g.group.key ? null : g.group.key)}>
+                {g.group.label}
+              </Chip>
+            ))}
+          </div>
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[12px] text-muted-foreground">{visibleProducts.length} varor</span>
+            <div className="flex gap-0.5 bg-secondary rounded-full p-0.5 text-[11px]">
+              {([['count', 'Oftast'], ['total', 'Mest kr'], ['change', 'Prisändring']] as const).map(([v, label]) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setSort(v)}
+                  className={cn('px-2.5 py-1 rounded-full transition-colors', sort === v ? 'bg-card shadow-sm font-medium' : 'text-muted-foreground')}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+          <ul className="bg-card border border-border rounded-2xl shadow-sm divide-y divide-border overflow-hidden px-3">
+            {visibleProducts.slice(0, 150).map((p) => (
+              <ProductRow key={p.key} product={p} onClick={() => setOpenProductKey(p.key)} showChange={sort === 'change'} spark />
+            ))}
+            {visibleProducts.length === 0 && <li className="py-8 text-center text-sm text-muted-foreground">Inga varor matchar.</li>}
+          </ul>
+        </div>
+      )}
+
+      <ReceiptSheet
+        receipt={openReceipt}
+        lines={openReceipt ? linesByReceipt.get(openReceipt.id) ?? [] : []}
+        matchedExpense={openReceipt ? matches.get(openReceipt.id) ?? null : null}
+        onOpenChange={(o) => !o && setOpenReceiptId(null)}
+        onSelectProduct={(line) => {
+          setOpenReceiptId(null)
+          setOpenProductKey(productKey(line))
+        }}
+      />
+      <ProductSheet product={openProduct} onOpenChange={(o) => !o && setOpenProductKey(null)} />
+      <BottomSheet
+        open={!!openGroup}
+        onOpenChange={(o) => !o && setOpenGroupKey(null)}
+        title={openGroup?.group.label}
+        subtitle={openGroup ? `${formatCurrency(openGroup.total)} · ${openGroup.count} köp` : undefined}
+      >
+        <ul className="-mx-1">
+          {products
+            .filter((p) => p.group.key === openGroupKey)
+            .sort((a, b) => b.total - a.total)
+            .map((p) => (
+              <ProductRow
+                key={p.key}
+                product={p}
+                onClick={() => {
+                  setOpenGroupKey(null)
+                  setOpenProductKey(p.key)
+                }}
+              />
+            ))}
+        </ul>
+      </BottomSheet>
     </div>
   )
 }
 
-function PriceSparkline({ history }: { history: import('@/hooks/use-receipts').PriceHistoryPoint[] }) {
-  if (history.length < 2) {
-    return <div className="text-[11px] text-muted-foreground">Behöver fler köp för graf</div>
-  }
-
-  const prices = history.map((h) => h.effective_unit_price)
-  const min = Math.min(...prices)
-  const max = Math.max(...prices)
-  const range = max - min || 1
-  const W = 200, H = 36
-
-  const points = prices.map((p, i) => {
-    const x = (i / (prices.length - 1)) * W
-    const y = H - ((p - min) / range) * H
-    return `${x},${y}`
-  }).join(' ')
-
-  const rising = prices[prices.length - 1] > prices[0]
-  const color = rising ? 'var(--hb-terracotta)' : 'var(--hb-olive)'
-
+function ProductRow({ product, onClick, showChange, spark }: { product: ProductStat; onClick: () => void; showChange?: boolean; spark?: boolean }) {
+  const change = product.priceChange
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full h-9">
-      <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={W} cy={H - ((prices[prices.length - 1] - min) / range) * H} r="3" fill={color} />
-    </svg>
+    <li>
+      <button type="button" onClick={onClick} className="w-full flex items-center gap-3 px-1 py-2.5 rounded-xl hover:bg-secondary/40 text-left">
+        <span className="flex-1 min-w-0">
+          <span className="block text-[14px] font-medium truncate">{product.name}</span>
+          <span className="block text-[11px] text-muted-foreground truncate">
+            {product.group.label} · {product.count} köp · {formatCurrency(product.total)}
+          </span>
+        </span>
+        {spark && product.purchases.length >= 2 && (
+          <Sparkline values={product.purchases.map((p) => p.unitPrice)} up={(change ?? 0) > 0} width={56} height={22} zeroBased={false} />
+        )}
+        <span className="text-right shrink-0 min-w-[64px]">
+          <span className="block font-serif text-[14px] font-medium">{formatCurrency(product.purchases[product.purchases.length - 1].unitPrice)}</span>
+          {showChange && change != null ? (
+            <span className={cn('block text-[11px] font-medium', change > 0.02 ? 'text-destructive' : change < -0.02 ? 'text-hb-green' : 'text-muted-foreground')}>
+              {formatChange(change)}
+            </span>
+          ) : (
+            <span className="block text-[10px] text-muted-foreground">{unitLabel(product.unit)}</span>
+          )}
+        </span>
+      </button>
+    </li>
   )
+}
+
+function InsightCard({ insight }: { insight: ReceiptInsight }) {
+  const Icon = insight.icon
+  const body = (
+    <>
+      <div
+        className={cn(
+          'w-8 h-8 rounded-xl grid place-items-center shrink-0',
+          insight.tone === 'warning' && 'bg-hb-amber/15 text-hb-amber',
+          insight.tone === 'good' && 'bg-hb-green/15 text-hb-green',
+          insight.tone === 'neutral' && 'bg-hb-cognac/12 text-hb-cognac-deep'
+        )}
+      >
+        <Icon className="w-4 h-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[14px] font-medium">{insight.title}</div>
+        <div className="text-[12px] text-muted-foreground mt-0.5 leading-snug">{insight.text}</div>
+      </div>
+      {insight.onClick && <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0 self-center" />}
+    </>
+  )
+  const cls = 'flex gap-3 bg-card border border-border rounded-2xl px-3.5 py-3 shadow-sm text-left w-full'
+  return insight.onClick ? (
+    <button type="button" onClick={insight.onClick} className={cn(cls, 'hover:bg-secondary/40 transition-colors')}>{body}</button>
+  ) : (
+    <div className={cls}>{body}</div>
+  )
+}
+
+function Tile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-secondary/50 rounded-2xl px-3 py-2.5">
+      <div className="text-[11px] text-muted-foreground truncate">{label}</div>
+      <div className="font-serif-kpi text-[15px] mt-0.5">{value}</div>
+    </div>
+  )
+}
+
+function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'rounded-full border px-3 py-1 text-[12px] whitespace-nowrap transition-colors',
+        active ? 'bg-hb-nav text-hb-nav-foreground border-hb-nav' : 'bg-card border-border text-muted-foreground hover:text-foreground'
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
+function formatDay(date: string | undefined): string {
+  return date ? new Date(`${date}T12:00:00`).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
 }

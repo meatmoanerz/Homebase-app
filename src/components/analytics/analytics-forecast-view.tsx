@@ -305,10 +305,23 @@ function TrendBadge({ trend }: { trend: Trend }) {
 }
 
 /** Tiny inline line of monthly values; the last point is marked. */
-export function Sparkline({ values, up, width = 72, height = 26 }: { values: number[]; up?: boolean; width?: number; height?: number }) {
+export function Sparkline({
+  values,
+  up,
+  width = 72,
+  height = 26,
+  zeroBased = true,
+}: {
+  values: number[]
+  up?: boolean
+  width?: number
+  height?: number
+  /** false: scale to the values' own range (prices), so small moves show. */
+  zeroBased?: boolean
+}) {
   if (values.length < 2) return null
-  const max = Math.max(...values, 1)
-  const min = Math.min(...values, 0)
+  const max = zeroBased ? Math.max(...values, 1) : Math.max(...values)
+  const min = zeroBased ? Math.min(...values, 0) : Math.min(...values)
   const x = (i: number) => (i / (values.length - 1)) * (width - 4) + 2
   const y = (v: number) => height - 3 - ((v - min) / (max - min || 1)) * (height - 6)
   const points = values.map((v, i) => `${x(i)},${y(v)}`).join(' ')

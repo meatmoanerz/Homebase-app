@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import type { ReceiptLine } from '@/lib/receipts/receipt-analytics'
 
 export interface Receipt {
   id: string
@@ -17,42 +18,6 @@ export interface Receipt {
     name: string
     chain: string | null
   } | null
-}
-
-export interface ReceiptItem {
-  id: string
-  receipt_id: string
-  product_id: string | null
-  raw_name: string
-  article_number: string | null
-  quantity: number
-  unit_price: number | null
-  total_price: number
-  discount_amount: number
-  is_deposit: boolean
-  needs_review: boolean
-}
-
-export interface ProductSummary {
-  product_id: string
-  product_name: string
-  purchase_count: number
-  avg_unit_price: number
-  min_unit_price: number
-  max_unit_price: number
-  last_purchased: string
-}
-
-export interface PriceHistoryPoint {
-  product_id: string
-  product_name: string
-  purchase_date: string
-  store_chain: string | null
-  store_name: string | null
-  quantity: number
-  unit_price: number | null
-  total_price: number
-  effective_unit_price: number
 }
 
 export function useReceipts(limit = 50) {
@@ -73,59 +38,30 @@ export function useReceipts(limit = 50) {
   })
 }
 
-export function useReceiptItems(receiptId: string | null) {
+/**
+ * Every receipt line with its product, for the insights on the Kvitton page
+ * (small data: tens of receipts, hundreds of lines). Paginated past the
+ * 1000-row PostgREST cap just in case.
+ */
+export function useReceiptLines() {
   const supabase = createClient()
 
   return useQuery({
-    queryKey: ['receipt-items', receiptId],
-    queryFn: async (): Promise<ReceiptItem[]> => {
-      if (!receiptId) return []
-      const { data, error } = await supabase
-        .from('receipt_items')
-        .select('*')
-        .eq('receipt_id', receiptId)
-        .order('total_price', { ascending: false })
-
-      if (error) throw error
-      return (data as ReceiptItem[]) || []
+    queryKey: ['receipt-items', 'all'],
+    queryFn: async (): Promise<ReceiptLine[]> => {
+      const all: ReceiptLine[] = []
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase
+          .from('receipt_items')
+          .select('id, receipt_id, product_id, raw_name, quantity, unit_price, total_price, discount_amount, is_deposit, product:products(id, name, unit)')
+          .order('id', { ascending: true })
+          .range(from, from + 999)
+        if (error) throw error
+        all.push(...((data || []) as unknown as ReceiptLine[]))
+        if (!data || data.length < 1000) break
+      }
+      return all
     },
-    enabled: !!receiptId,
-  })
-}
-
-export function useProductSummary() {
-  const supabase = createClient()
-
-  return useQuery({
-    queryKey: ['product-summary'],
-    queryFn: async (): Promise<ProductSummary[]> => {
-      const { data, error } = await supabase
-        .from('v_product_summary')
-        .select('*')
-        .order('purchase_count', { ascending: false })
-
-      if (error) throw error
-      return (data as ProductSummary[]) || []
-    },
-  })
-}
-
-export function usePriceHistory(productId: string | null) {
-  const supabase = createClient()
-
-  return useQuery({
-    queryKey: ['price-history', productId],
-    queryFn: async (): Promise<PriceHistoryPoint[]> => {
-      if (!productId) return []
-      const { data, error } = await supabase
-        .from('v_price_history')
-        .select('*')
-        .eq('product_id', productId)
-        .order('purchase_date', { ascending: true })
-
-      if (error) throw error
-      return (data as PriceHistoryPoint[]) || []
-    },
-    enabled: !!productId,
+    staleTime: 5 * 60 * 1000,
   })
 }
