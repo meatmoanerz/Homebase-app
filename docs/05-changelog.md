@@ -7,6 +7,19 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-10-27 — Kvittoläsning, varugrupper, snabbare start, prognoströskel
+
+- Kvitton läses av med Claude (Opus 5.5, strukturerad JSON): uppladdning i
+  appen (`/api/receipts/upload`) och dela-genväg från Kivra/ICA
+  (`/api/receipts/ingest`, samma enhetstoken som Wallet). Kräver
+  `ANTHROPIC_API_KEY` i Vercel. Dubbletter (dag + belopp + butik) hoppas
+  över, rader kopplas till produkter via artikelnummer/alias, kvittot
+  matchas mot kort-/bankköpet (±1 kr, ±2 dagar).
+- `products.product_group`: varugrupp vald i appen vinner över gissningen
+  från namnet. Okopplade rader får en produkt + alias när gruppen väljs.
+- Prognosen utesluter månader med <50 % av typiskt antal transaktioner
+  eller köpdagar. Laddskärm, iOS-startbilder och funktioner i Dublin.
+
 ## 2026-10-27 — Analys, prognos, notiser och ny Översikt
 
 - `expenses.import_source` (`'csv'`/`'auto'`/NULL) med backfill. Importsidan

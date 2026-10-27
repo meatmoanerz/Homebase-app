@@ -36,6 +36,7 @@ import { Sparkline } from '@/components/analytics/analytics-forecast-view'
 import { BottomSheet } from '@/components/shared/bottom-sheet'
 import { ProductSheet, unitLabel } from '@/components/receipts/product-sheet'
 import { ReceiptSheet } from '@/components/receipts/receipt-sheet'
+import { ReceiptUploadButton } from '@/components/receipts/receipt-upload-button'
 import { ReceiptsPageSkeleton } from '@/components/shared/page-skeletons'
 import { cn } from '@/lib/utils/cn'
 
@@ -235,9 +236,10 @@ export default function ReceiptsPage() {
           </div>
           <h2 className="font-serif text-xl font-medium mb-2">Inga kvitton ännu</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-            Be Claude i chatten läsa av ett kvittofoto eller ett digitalt kvitto (ICA/Kivra) och spara raderna. Då börjar
-            appen följa priser, varugrupper och dina basvaror.
+            Fotografera ett kvitto eller dela ett digitalt kvitto från Kivra/ICA. Då börjar appen följa priser,
+            varugrupper och dina basvaror.
           </p>
+          <ReceiptUploadButton className="mt-6 max-w-sm mx-auto" onSaved={(id) => setOpenReceiptId(id)} />
         </div>
       </div>
     )
@@ -269,6 +271,8 @@ export default function ReceiptsPage() {
           ))}
         </div>
       </div>
+
+      <ReceiptUploadButton onSaved={(id) => setOpenReceiptId(id)} />
 
       {tab === 'overview' && (
         <>
@@ -489,7 +493,11 @@ export default function ReceiptsPage() {
           setOpenProductKey(productKey(line))
         }}
       />
-      <ProductSheet product={openProduct} onOpenChange={(o) => !o && setOpenProductKey(null)} />
+      <ProductSheet
+        product={openProduct}
+        onOpenChange={(o) => !o && setOpenProductKey(null)}
+        onLinked={(id) => setOpenProductKey(`p:${id}`)}
+      />
       <BottomSheet
         open={!!openGroup}
         onOpenChange={(o) => !o && setOpenGroupKey(null)}

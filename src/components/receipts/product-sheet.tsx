@@ -6,7 +6,8 @@ import { TrendingUp, TrendingDown, Repeat } from 'lucide-react'
 import { BottomSheet } from '@/components/shared/bottom-sheet'
 import { formatCurrency, formatDate } from '@/lib/utils/formatters'
 import { formatChange } from '@/lib/analytics/format'
-import { quantityLabel, type ProductStat } from '@/lib/receipts/receipt-analytics'
+import { PRODUCT_GROUPS, quantityLabel, type ProductStat } from '@/lib/receipts/receipt-analytics'
+import { useSetProductGroup } from '@/hooks/use-receipts'
 import { cn } from '@/lib/utils/cn'
 
 export function unitLabel(unit: string | null): string {
@@ -26,8 +27,34 @@ function PriceTooltip({ active, payload, unit }: { active?: boolean; payload?: A
 }
 
 /** Price development and purchase history for one product. */
-export function ProductSheet({ product, onOpenChange }: { product: ProductStat | null; onOpenChange: (open: boolean) => void }) {
+export function ProductSheet({
+  product,
+  onOpenChange,
+  onLinked,
+}: {
+  product: ProductStat | null
+  onOpenChange: (open: boolean) => void
+  /** Called with the product id when lines were linked to a new product. */
+  onLinked?: (productId: string) => void
+}) {
   const [now] = useState(() => Date.now())
+  const setGroup = useSetProductGroup()
+
+  const chooseGroup = (groupKey: string) => {
+    if (!product || setGroup.isPending) return
+    setGroup.mutate(
+      {
+        productId: product.productId,
+        name: product.name,
+        unit: product.unit ?? (product.purchases.some((p) => !Number.isInteger(p.quantity)) ? 'kg' : 'st'),
+        groupKey,
+        lineIds: product.purchases.map((p) => p.lineId),
+        rawNames: product.rawNames,
+        articleNumbers: product.articleNumbers,
+      },
+      { onSuccess: (id) => { if (!product.productId) onLinked?.(id) } }
+    )
+  }
   const data = product?.purchases.map((p) => ({ date: p.date, price: Math.round(p.unitPrice * 100) / 100, store: p.store })) ?? []
   const last = product?.purchases[product.purchases.length - 1]
   const daysSince = last ? Math.round((now - Date.parse(last.date)) / 86_400_000) : null
@@ -41,6 +68,39 @@ export function ProductSheet({ product, onOpenChange }: { product: ProductStat |
     >
       {product && (
         <div className="space-y-5">
+          <div>
+            <div className="flex items-baseline justify-between mb-1.5">
+              <span className="label-caps text-muted-foreground">Varugrupp</span>
+              <span className="text-[11px] text-muted-foreground">
+                {setGroup.isPending ? 'Sparar…' : product.groupChosen ? 'vald av dig' : 'gissad från namnet — tryck för att ändra'}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {PRODUCT_GROUPS.map((g) => {
+                const active = product.group.key === g.key
+                return (
+                  <button
+                    key={g.key}
+                    type="button"
+                    onClick={() => !active || !product.groupChosen ? chooseGroup(g.key) : undefined}
+                    disabled={setGroup.isPending}
+                    aria-pressed={active}
+                    className={cn(
+                      'rounded-full border px-3 py-1 text-[12px] whitespace-nowrap transition-colors',
+                      active
+                        ? product.groupChosen
+                          ? 'bg-hb-nav text-hb-nav-foreground border-hb-nav'
+                          : 'bg-hb-cognac/15 text-hb-cognac-deep border-hb-cognac/40 border-dashed'
+                        : 'bg-card border-border text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {g.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-2">
             <Stat label="Senaste pris" value={`${formatCurrency(last?.unitPrice ?? 0)}`} hint={unitLabel(product.unit)} strong />
             <Stat

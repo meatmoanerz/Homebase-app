@@ -22,7 +22,7 @@ export function ReceiptSheet({ receipt, lines, matchedExpense, onOpenChange, onS
 
   const groups = new Map<string, { label: string; total: number }>()
   for (const l of items) {
-    const g = productGroup(displayName(l))
+    const g = productGroup(displayName(l), false, l.product?.product_group)
     const cur = groups.get(g.key) ?? { label: g.label, total: 0 }
     cur.total += Number(l.total_price)
     groups.set(g.key, cur)

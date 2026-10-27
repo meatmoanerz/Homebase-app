@@ -9,12 +9,13 @@ export interface ReceiptLine {
   receipt_id: string
   product_id: string | null
   raw_name: string
+  article_number?: string | null
   quantity: number
   unit_price: number | null
   total_price: number
   discount_amount: number
   is_deposit: boolean
-  product: { id: string; name: string; unit: string | null } | null
+  product: { id: string; name: string; unit: string | null; product_group?: string | null } | null
 }
 
 export interface ReceiptHead {
@@ -51,8 +52,22 @@ const GROUP_RULES: Array<{ key: string; label: string; re: RegExp }> = [
 const OTHER: ProductGroup = { key: 'ovrigt', label: 'Övrigt' }
 const DEPOSIT: ProductGroup = { key: 'pant', label: 'Pant' }
 
-export function productGroup(name: string, isDeposit = false): ProductGroup {
+/** Groups the user can pick from, in display order. */
+export const PRODUCT_GROUPS: ProductGroup[] = [
+  ...GROUP_RULES.map((r) => ({ key: r.key, label: r.label })),
+  OTHER,
+]
+
+/**
+ * The product's group: the one the user saved on the product wins, otherwise
+ * a guess from the name.
+ */
+export function productGroup(name: string, isDeposit = false, stored?: string | null): ProductGroup {
   if (isDeposit || /^pant\b/i.test(name)) return DEPOSIT
+  if (stored) {
+    const chosen = PRODUCT_GROUPS.find((g) => g.key === stored)
+    if (chosen) return chosen
+  }
   const rule = GROUP_RULES.find((r) => r.re.test(name))
   return rule ? { key: rule.key, label: rule.label } : OTHER
 }
@@ -60,6 +75,7 @@ export function productGroup(name: string, isDeposit = false): ProductGroup {
 // ---------------------------------------------------------------- products
 
 export interface Purchase {
+  lineId: string
   date: string
   receiptId: string
   store: string | null
@@ -71,6 +87,10 @@ export interface Purchase {
 
 export interface ProductStat {
   key: string
+  /** Linked product, or null while the lines are only grouped by name/article. */
+  productId: string | null
+  /** True when the group was chosen by the user rather than guessed. */
+  groupChosen: boolean
   name: string
   unit: string | null
   group: ProductGroup
@@ -85,11 +105,18 @@ export interface ProductStat {
   /** Mean days between purchases (null with < 2 purchases on different days). */
   intervalDays: number | null
   lastDate: string
+  /** Receipt texts and article numbers seen for this product (for aliases). */
+  rawNames: string[]
+  articleNumbers: string[]
 }
 
-/** Same product even when the receipt line isn't linked to a product yet. */
+/**
+ * Same product even when the receipt line isn't linked to a product yet:
+ * by product, else by the store's article number, else by normalised name.
+ */
 export function productKey(line: ReceiptLine): string {
   if (line.product_id) return `p:${line.product_id}`
+  if (line.article_number) return `a:${line.article_number}`
   return `n:${line.raw_name.toLowerCase().replace(/[^a-zåäö0-9]+/g, ' ').trim()}`
 }
 
@@ -119,9 +146,11 @@ export function productStats(lines: ReceiptLine[], receipts: Map<string, Receipt
       const name = displayName(line)
       stat = {
         key,
+        productId: line.product_id,
+        groupChosen: !!line.product?.product_group,
         name,
         unit: line.product?.unit ?? null,
-        group: productGroup(name, line.is_deposit),
+        group: productGroup(name, line.is_deposit, line.product?.product_group),
         purchases: [],
         count: 0,
         total: 0,
@@ -131,12 +160,17 @@ export function productStats(lines: ReceiptLine[], receipts: Map<string, Receipt
         priceChange: null,
         intervalDays: null,
         lastDate: receipt.purchase_date,
+        rawNames: [],
+        articleNumbers: [],
       }
       map.set(key, stat)
     }
+    if (!stat.rawNames.includes(line.raw_name)) stat.rawNames.push(line.raw_name)
+    if (line.article_number && !stat.articleNumbers.includes(line.article_number)) stat.articleNumbers.push(line.article_number)
     const qty = Number(line.quantity) > 0 ? Number(line.quantity) : 1
     const total = Number(line.total_price)
     stat.purchases.push({
+      lineId: line.id,
       date: receipt.purchase_date,
       receiptId: line.receipt_id,
       store: receipt.store?.chain || receipt.store?.name || null,

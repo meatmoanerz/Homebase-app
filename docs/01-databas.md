@@ -62,6 +62,19 @@ Härleds från `cost_assignment`. Det finns inga andel-kolumner per person i
 
 ---
 
+## Kvitton (`receipts`, `receipt_items`, `products`, `stores`, `product_aliases`)
+
+- `receipt_items.total_price` är efter rabatt, `discount_amount` positivt,
+  `unit_price` ordinarie pris per st/kg. Vägda varor: `quantity` i kg.
+- `products.product_group` (text, NULL = gissas från namnet): `barn`, `fisk`,
+  `snacks`, `kott`, `mejeri`, `frukt`, `brod`, `dryck`, `skafferi`, `hem`,
+  `blommor`, `ovrigt`.
+- Inläsning via appen sker i `src/lib/receipts/save-receipt.ts`; samma regler
+  gäller vid SQL-insert (sätt `user_id` på alla rader, koppla
+  `receipts.expense_id` om köpet finns).
+
+---
+
 ## `category_mappings`
 
 | Kolumn | Noter |
