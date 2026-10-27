@@ -72,6 +72,7 @@ konversation.
 | Stämma av Amex-faktura eller CCM-period | `docs/02-csv-import.md` + `docs/03-ccm-avstamning.md` |
 | Ändra kod, bygga, felsöka UI | `docs/04-kodflode.md` |
 | Förstå vad som ändrats nyligen | `docs/05-changelog.md` |
+| Spara ett kvitto (foto/PDF från Kivra/ICA) | `docs/01-databas.md` + `docs/06-kvitton.md` |
 
 Hittar du inte en fil: säg det och fråga. Fortsätt inte på gissning.
 

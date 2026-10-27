@@ -7,6 +7,13 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-10-27 — Kvitton via Claude-appen (utan API)
+
+Nytt `06-kvitton.md`: dela kvittot till Claude-appen i projektet, Claude läser
+av och sparar med en testad SQL-sats (butik, dubblettkoll, produktkoppling,
+koppling till köpet). Ruttabellen i `00` har fått en rad — klistra in den i
+projektinstruktionen.
+
 ## 2026-10-27 — Kvittoläsning, varugrupper, snabbare start, prognoströskel
 
 - Kvitton läses av med Claude (Opus 5.5, strukturerad JSON): uppladdning i

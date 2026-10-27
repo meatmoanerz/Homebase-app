@@ -96,27 +96,35 @@ export function ReceiptUploadButton({ onSaved, className }: ReceiptUploadButtonP
         Från Kivra/ICA
       </button>
 
-      <BottomSheet open={helpOpen} onOpenChange={setHelpOpen} title="Kvitton från Kivra och ICA" subtitle="Dela kvittot direkt till Homebase">
-        <div className="space-y-4 text-[13px] leading-relaxed">
+      <BottomSheet open={helpOpen} onOpenChange={setHelpOpen} title="Kvitton från Kivra och ICA" subtitle="Två sätt att få in dem">
+        <div className="space-y-5 text-[13px] leading-relaxed">
           <p>
-            ICA och Kivra har inget öppet API för att hämta kvitton automatiskt. Det smidigaste är att dela kvittot
-            därifrån med en iPhone-genväg — ett tryck per kvitto, så läser Claude av det och sparar det här.
+            ICA och Kivra har inget öppet API för att hämta kvitton automatiskt, så kvittot delas härifrån — ett
+            tryck per kvitto.
           </p>
-          <ol className="list-decimal pl-5 space-y-2">
-            <li>Öppna <b>Genvägar</b> → ny genväg som heter <b>Kvitto till Homebase</b>.</li>
-            <li>Slå på <b>Visa i delningsmenyn</b> och välj att den tar emot <b>Bilder</b> och <b>PDF</b>.</li>
-            <li>Lägg till <b>Konvertera bild</b> → JPEG och <b>Ändra storlek på bild</b> → bredd 2000 (hoppa över för PDF).</li>
-            <li>
-              Lägg till <b>Hämta innehåll från URL</b>: <code className="text-[12px]">https://homebase-app-omega.vercel.app/api/receipts/ingest</code>,
-              metod <b>POST</b>, rubrik <code className="text-[12px]">Authorization: Bearer &lt;samma token som Wallet-genvägen&gt;</code>,
-              brödtext <b>Fil</b> = genvägens indata.
-            </li>
-            <li>Lägg till <b>Hämta ordboksvärde</b> för <code className="text-[12px]">message</code> och <b>Visa meddelande</b>.</li>
-          </ol>
+          <section>
+            <h4 className="font-medium text-[14px] mb-1">1. Dela till Claude-appen (ingen API-nyckel)</h4>
+            <ol className="list-decimal pl-5 space-y-1.5">
+              <li>Öppna kvittot i Kivra (eller ta en skärmdump i ICA-appen) → <b>Dela</b> → <b>Claude</b>.</li>
+              <li>Välj projektet där Homebase-dokumentationen finns och skriv <i>spara kvittot</i>.</li>
+              <li>Claude läser av det och sparar det här enligt <code className="text-[12px]">docs/06-kvitton.md</code> — butik, varor, koppling till köpet.</li>
+            </ol>
+          </section>
+          <section>
+            <h4 className="font-medium text-[14px] mb-1">2. Direkt till Homebase (kräver API-nyckel i Vercel)</h4>
+            <ol className="list-decimal pl-5 space-y-1.5">
+              <li>Ny genväg <b>Kvitto till Homebase</b>, <b>Visa i delningsmenyn</b>, tar emot <b>Bilder</b> och <b>PDF</b>.</li>
+              <li><b>Konvertera bild</b> → JPEG och <b>Ändra storlek på bild</b> → bredd 2000 (inte för PDF).</li>
+              <li>
+                <b>Hämta innehåll från URL</b>: <code className="text-[12px]">https://homebase-app-omega.vercel.app/api/receipts/ingest</code>,
+                POST, rubrik <code className="text-[12px]">Authorization: Bearer &lt;Wallet-token&gt;</code>, brödtext <b>Fil</b>.
+              </li>
+              <li><b>Hämta ordboksvärde</b> <code className="text-[12px]">message</code> → <b>Visa meddelande</b>.</li>
+            </ol>
+          </section>
           <p className="text-muted-foreground flex gap-2">
             <Info className="w-4 h-4 shrink-0 mt-0.5" />
-            I Kivra: öppna kvittot → Dela → Kvitto till Homebase. Saknas en dela-knapp (t.ex. i ICA-appen): ta en
-            skärmdump av kvittot och dela den. Samma kvitto två gånger sparas bara en gång.
+            Samma kvitto två gånger sparas bara en gång, oavsett väg.
           </p>
         </div>
       </BottomSheet>
