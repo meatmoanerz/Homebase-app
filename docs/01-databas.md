@@ -1,6 +1,6 @@
 # 01 — Databas
 
-Senast uppdaterad: 2026-09-16
+Senast uppdaterad: 2026-10-27
 
 ## Projekt
 
@@ -40,6 +40,7 @@ Nyckelkolumner:
 | `is_refund` | bool | krävs för negativa belopp |
 | `is_group_purchase` | bool | utlägg |
 | `group_purchase_total` | numeric | korttotal vid utlägg |
+| `import_source` | text | `'csv'` = fil inläst i appen eller av Claude (AI-import), `'auto'` = Era/Wallet (bara historisk backfill), NULL = manuell eller auto-synk. Importsidans "senaste datum från bankfil" läser bara `'csv'` — sätt det vid SQL-insert direkt i `expenses` |
 
 ### Check constraint `expenses_amount_check`
 

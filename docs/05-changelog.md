@@ -7,6 +7,25 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-10-27 — Analys, prognos, notiser och ny Översikt
+
+- `expenses.import_source` (`'csv'`/`'auto'`/NULL) med backfill. Importsidan
+  visar senaste datum per bank bara från bankfiler, så att Era/Wallet inte
+  döljer luckor inför månadsbrytet.
+- Ny sida **Analys** (`/analys`) ersätter "Visa min månad" och Utgifter-listan:
+  Månad/I år/12 mån/Allt, Alla/Tim/Amanda, kategorifilter, fritextsök,
+  drilldown med redigering och "lär regel" för okategoriserade rader.
+- **Framåt**: prognos 3 eller 12 månader framåt. Fasta = median 3 mån,
+  ränta/amortering från lånen (om de stämmer med historiken), rörliga = snitt
+  6 mån med spann, trender per kategori när det finns minst 6 hela månader.
+- Notisklocka (transaktioner att granska, saknad inkomst/budget).
+- Översikten: att göra, kategorier att hålla koll på, prognos för perioden.
+  Per person-budget följer `budget_item_assignments`; person-spend räknas
+  från radens ägare.
+- Budget: förbrukning inom ±5 % visas som Klar (grön).
+- Menyn: Analys ersätter Utgifter; "Mer" är samlingssida för Importera,
+  Sparmål, Lån, Kvitton, Gemensamt konto och Kreditkort.
+
 ## 2026-09-16 — Dokumentationen samlad i repot under `docs/`
 
 Projektinstruktionen bantad till obrytbara regler + ruttabell (under 8 000
