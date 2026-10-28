@@ -7,6 +7,11 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-10-28 — Ingen scrollbar på mobil
+
+Skärmar med touch (`pointer: coarse`) visar ingen scrollbar/scrollindikator,
+som en app. Dator med mus behåller sin.
+
 ## 2026-10-28 — Ångra vid borttagning i kreditkort, kodflödesnot om snabb start
 
 - Kreditkortshanteraren: papperskorgen döljer raden direkt och visar

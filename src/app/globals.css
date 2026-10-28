@@ -364,6 +364,21 @@ input[type="number"] {
 .keyboard-open .keyboard-hide   { display: none !important; }
 .keyboard-open .keyboard-adjust { bottom: 0 !important; }
 
+/* Touch screens (phone/tablet): no scrollbar or scroll indicator anywhere,
+   like a native app. Mouse/trackpad users keep theirs. */
+@media (pointer: coarse) {
+  html,
+  body,
+  * {
+    scrollbar-width: none;
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  *::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Horizontal chip rows that scroll without a visible scrollbar */
 .no-scrollbar {
   scrollbar-width: none;
