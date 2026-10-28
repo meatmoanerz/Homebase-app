@@ -1,8 +1,8 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import type { Expense, ExpenseWithCategory, Category } from '@/types'
+import type { Expense, ExpenseWithCategory, Category, SavingsGoalContribution } from '@/types'
 import type { InsertTables, UpdateTables } from '@/types/database'
 import { getBudgetPeriod, getPeriodDates } from '@/lib/utils/budget-period'
 import { format } from 'date-fns'
@@ -82,6 +82,109 @@ export function useRecentExpenses(limit: number = 5) {
       return data as ExpenseWithCategory[]
     },
   })
+}
+
+type ContributionShares = Pick<SavingsGoalContribution, 'savings_goal_id' | 'amount' | 'user1_amount' | 'user2_amount'>
+
+/**
+ * The contribution an expense should give its category's savings goal, or null.
+ * user1 is the goal owner (who also owns the goal's category), user2 the owner's
+ * partner — so a partner's 'personal' expense is credited to user2.
+ */
+function getDesiredContribution(expense: ExpenseWithCategory): ContributionShares | null {
+  const goalId = expense.category?.linked_savings_goal_id
+  const amount = Number(expense.amount)
+  if (!expense.category || !goalId || !(amount > 0)) return null
+
+  let creatorShare = amount
+  let otherShare = 0
+  if (expense.cost_assignment === 'shared') {
+    creatorShare = amount / 2
+    otherShare = amount / 2
+  } else if (expense.cost_assignment === 'partner') {
+    creatorShare = 0
+    otherShare = amount
+  }
+
+  const creatorIsOwner = expense.user_id === expense.category.user_id
+  return {
+    savings_goal_id: goalId,
+    amount,
+    user1_amount: creatorIsOwner ? creatorShare : otherShare,
+    user2_amount: creatorIsOwner ? otherShare : creatorShare,
+  }
+}
+
+/**
+ * Makes the expense's savings goal contribution match its current category,
+ * amount and cost assignment. The DB trigger on savings_goal_contributions
+ * keeps the goal's balances in step with inserts and deletes.
+ * Returns true when anything changed.
+ */
+async function syncSavingsContribution(
+  supabase: ReturnType<typeof createClient>,
+  expense: ExpenseWithCategory
+): Promise<boolean> {
+  const { data: existingData, error: fetchError } = await supabase
+    .from('savings_goal_contributions')
+    .select('id, savings_goal_id, amount, user1_amount, user2_amount')
+    .eq('expense_id', expense.id)
+    .maybeSingle()
+
+  if (fetchError) throw fetchError
+
+  const existing = existingData as (ContributionShares & { id: string }) | null
+  const desired = getDesiredContribution(expense)
+
+  if (!existing && !desired) return false
+  if (
+    existing && desired &&
+    existing.savings_goal_id === desired.savings_goal_id &&
+    Number(existing.amount) === desired.amount &&
+    Number(existing.user1_amount) === desired.user1_amount &&
+    Number(existing.user2_amount) === desired.user2_amount
+  ) {
+    return false
+  }
+
+  if (existing) {
+    const { error: deleteError } = await supabase
+      .from('savings_goal_contributions')
+      .delete()
+      .eq('id', existing.id)
+
+    if (deleteError) throw deleteError
+  }
+
+  if (desired) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: insertError } = await (supabase.from('savings_goal_contributions') as any)
+      .insert({ ...desired, expense_id: expense.id, user_id: user.id })
+
+    if (insertError) throw insertError
+  }
+
+  return true
+}
+
+/** The expense itself is already saved, so a failed sync only warns. */
+async function syncSavingsContributionSafely(
+  supabase: ReturnType<typeof createClient>,
+  queryClient: QueryClient,
+  expense: ExpenseWithCategory
+) {
+  try {
+    if (await syncSavingsContribution(supabase, expense)) {
+      queryClient.invalidateQueries({ queryKey: ['savings-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['savings-goal-contributions'] })
+    }
+  } catch (error) {
+    console.error('Failed to sync savings goal contribution:', error)
+    toast.error('Utgiften sparades men kunde inte kopplas till sparmålet')
+  }
 }
 
 const importBanks = ['SEB', 'Swedbank', 'Amex', 'Norwegian'] as const
@@ -192,38 +295,9 @@ export function useCreateExpense() {
 
       const createdExpense = data as ExpenseWithCategory
 
-      // Check if the category is linked to a savings goal
-      if (createdExpense.category && createdExpense.category.linked_savings_goal_id) {
-        // Calculate user amounts based on cost assignment
-        let user1Amount = createdExpense.amount
-        let user2Amount = 0
-
-        if (createdExpense.cost_assignment === 'shared') {
-          // Split 50/50 between both users
-          user1Amount = createdExpense.amount / 2
-          user2Amount = createdExpense.amount / 2
-        } else if (createdExpense.cost_assignment === 'partner') {
-          // All goes to partner (user2)
-          user1Amount = 0
-          user2Amount = createdExpense.amount
-        }
-        // 'personal' means all goes to user1 (already set as default)
-
-        // Create a contribution record for the savings goal
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase.from('savings_goal_contributions') as any)
-          .insert({
-            savings_goal_id: createdExpense.category.linked_savings_goal_id,
-            expense_id: createdExpense.id,
-            user_id: user.id,
-            amount: createdExpense.amount,
-            user1_amount: user1Amount,
-            user2_amount: user2Amount,
-          })
-
-        // Invalidate savings goals to reflect the new contribution
-        queryClient.invalidateQueries({ queryKey: ['savings-goals'] })
-        queryClient.invalidateQueries({ queryKey: ['savings-goal-contributions'] })
+      // Expenses in a savings goal's category count towards that goal
+      if (createdExpense.category?.linked_savings_goal_id) {
+        await syncSavingsContributionSafely(supabase, queryClient, createdExpense)
       }
 
       return createdExpense
@@ -334,7 +408,14 @@ export function useUpdateExpense() {
         .single()
 
       if (error) throw error
-      return data as ExpenseWithCategory
+
+      const updatedExpense = data as ExpenseWithCategory
+
+      // Category, amount or cost assignment may have changed: move, update or
+      // remove the savings goal contribution accordingly
+      await syncSavingsContributionSafely(supabase, queryClient, updatedExpense)
+
+      return updatedExpense
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] })

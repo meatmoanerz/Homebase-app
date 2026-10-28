@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { SavingsGoalForm } from '@/components/savings/savings-goal-form'
 import { SavingsGoalCard } from '@/components/savings/savings-goal-card'
 import { Card, CardContent } from '@/components/ui/card'
-import { useSavingsGoals } from '@/hooks/use-savings-goals'
+import { useSavingsGoals, getSavedAmount } from '@/hooks/use-savings-goals'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { SavingsGoalWithCategory } from '@/types'
 import { formatCurrency } from '@/lib/utils/formatters'
@@ -35,13 +35,7 @@ export default function SavingsPage() {
   const activeGoals = savingsGoals.filter(g => g.status === 'active' || !g.status)
   const completedGoals = savingsGoals.filter(g => g.status === 'completed')
 
-  // Calculate totals - for shared goals, use user amounts; for personal goals, use starting_balance
-  const totalSaved = savingsGoals.reduce((sum, goal) => {
-    const goalAmount = goal.is_shared
-      ? goal.starting_balance_user1 + goal.starting_balance_user2
-      : goal.starting_balance
-    return sum + goalAmount
-  }, 0)
+  const totalSaved = savingsGoals.reduce((sum, goal) => sum + getSavedAmount(goal), 0)
   const totalTarget = activeGoals.reduce((sum, goal) => sum + (goal.target_amount || 0), 0)
   const totalMonthlySavings = activeGoals
     .filter(g => g.monthly_savings_enabled)

@@ -5,6 +5,15 @@ import { createClient } from '@/lib/supabase/client'
 import type { SavingsGoal, SavingsGoalWithCategory, SavingsGoalContributionWithExpense } from '@/types'
 import type { UpdateTables } from '@/types/database'
 
+/**
+ * Total saved on a goal. starting_balance is the running total ("Redan sparat"
+ * plus every contribution, via DB trigger); starting_balance_user1/2 only split
+ * the contributions per person and miss what was entered as already saved.
+ */
+export function getSavedAmount(goal: Pick<SavingsGoal, 'starting_balance'>): number {
+  return Number(goal.starting_balance) || 0
+}
+
 export function useSavingsGoals() {
   const supabase = createClient()
 

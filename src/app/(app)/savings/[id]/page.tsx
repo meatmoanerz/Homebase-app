@@ -2,7 +2,7 @@
 
 import { use } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSavingsGoal, useSavingsGoalContributions } from '@/hooks/use-savings-goals'
+import { useSavingsGoal, useSavingsGoalContributions, getSavedAmount } from '@/hooks/use-savings-goals'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,7 @@ import {
   Receipt,
   User,
   Clock,
+  Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { GoalCategory } from '@/types'
@@ -85,10 +86,15 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
     )
   }
 
-  // Calculate total saved - for shared goals, use user amounts; for personal goals, use starting_balance
-  const totalSaved = goal.is_shared
-    ? goal.starting_balance_user1 + goal.starting_balance_user2
-    : goal.starting_balance
+  const totalSaved = getSavedAmount(goal)
+  // Per-person split only covers contributions; the rest was entered as "Redan sparat"
+  const unallocated = Math.max(totalSaved - goal.starting_balance_user1 - goal.starting_balance_user2, 0)
+  // user1 is the goal owner, user2 the owner's partner — whoever is viewing
+  const viewerIsOwner = !user || user.id === goal.user_id
+  const userName = user?.first_name || 'Du'
+  const partnerName = partner?.first_name || 'Partner'
+  const user1Name = viewerIsOwner ? userName : partnerName
+  const user2Name = viewerIsOwner ? partnerName : userName
   const targetAmount = goal.target_amount || 0
   const progress = targetAmount > 0 ? Math.min((totalSaved / targetAmount) * 100, 100) : 0
   const remaining = Math.max(targetAmount - totalSaved, 0)
@@ -250,7 +256,7 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
                   <div className="w-8 h-8 rounded-full bg-hb-cognac text-white flex items-center justify-center text-sm font-medium">
                     <User className="w-4 h-4" />
                   </div>
-                  <span className="font-medium">{user?.first_name || 'Du'}</span>
+                  <span className="font-medium">{user1Name}</span>
                 </div>
                 <span className="font-semibold">{formatCurrency(goal.starting_balance_user1)}</span>
               </div>
@@ -259,10 +265,21 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
                   <div className="w-8 h-8 rounded-full bg-hb-terracotta text-white flex items-center justify-center text-sm font-medium">
                     <User className="w-4 h-4" />
                   </div>
-                  <span className="font-medium">{partner?.first_name || 'Partner'}</span>
+                  <span className="font-medium">{user2Name}</span>
                 </div>
                 <span className="font-semibold">{formatCurrency(goal.starting_balance_user2)}</span>
               </div>
+              {unallocated > 0 && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                      <Wallet className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <span className="font-medium">Redan sparat (ej fördelat)</span>
+                  </div>
+                  <span className="font-semibold">{formatCurrency(unallocated)}</span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -324,10 +341,10 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
                       </p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="w-3 h-3" />
-                        {format(new Date(contribution.created_at), 'd MMM yyyy', { locale: sv })}
+                        {format(new Date(contribution.expense?.date || contribution.created_at), 'd MMM yyyy', { locale: sv })}
                         {goal.is_shared && contribution.user1_amount > 0 && contribution.user2_amount > 0 && (
                           <span className="text-muted-foreground">
-                            • Du: {formatCurrency(contribution.user1_amount)} | Partner: {formatCurrency(contribution.user2_amount)}
+                            • {user1Name}: {formatCurrency(contribution.user1_amount)} | {user2Name}: {formatCurrency(contribution.user2_amount)}
                           </span>
                         )}
                       </div>

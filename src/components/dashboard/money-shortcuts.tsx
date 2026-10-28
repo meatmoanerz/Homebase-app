@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Target, Landmark, ChevronRight } from 'lucide-react'
-import { useSavingsGoals } from '@/hooks/use-savings-goals'
+import { useSavingsGoals, getSavedAmount } from '@/hooks/use-savings-goals'
 import { useAllLoans } from '@/hooks/use-loans'
 import { formatCurrency } from '@/lib/utils/formatters'
 
@@ -13,10 +13,7 @@ export function MoneyShortcuts() {
   const { data: loans = [] } = useAllLoans()
 
   const active = goals.filter((g) => g.status !== 'completed')
-  const saved = active.reduce(
-    (s, g) => s + (g.is_shared ? g.starting_balance_user1 + g.starting_balance_user2 : g.starting_balance),
-    0
-  )
+  const saved = active.reduce((s, g) => s + getSavedAmount(g), 0)
   const target = active.reduce((s, g) => s + (g.target_amount || 0), 0)
   const debt = loans.reduce((s, l) => s + Number(l.current_balance), 0)
   const monthlyLoanCost = loans.reduce(
