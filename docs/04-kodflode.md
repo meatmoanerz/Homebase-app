@@ -1,6 +1,6 @@
 # 04 — Kodflöde, bygge och frontend-fällor
 
-Senast uppdaterad: 2026-09-16
+Senast uppdaterad: 2026-10-28
 
 ## Arbetsflöde för kodändringar
 
@@ -49,6 +49,25 @@ Okompilerad kod på `main` tar ner live-appen direkt.
 ---
 
 ## Frontend-fällor (dyrköpta)
+
+### Snabb start: app-sidorna är statiska
+
+`src/app/(app)/layout.tsx` får **inte** göra serveranrop (`cookies()`,
+`supabase.auth.getUser()`, databasfrågor). Då blir alla app-sidor dynamiska
+igen och varje appstart väntar på en kall serverfunktion plus auth-anrop —
+3–4 sekunder svart skärm i hemskärmsappen.
+
+- Inloggningskollen görs i middleware (`getClaims`), onboarding-kollen i
+  klienten (`OnboardingGate` i `app-shell.tsx`). All data hämtas med
+  TanStack Query i klienten.
+- `pnpm build` ska visa `○ (Static)` för `/dashboard` och övriga app-sidor.
+  Står det `ƒ`: leta upp vad som läser cookies/headers på servern.
+- Sidorna byggs i förväg, så UI som beror på dagens datum ("idag",
+  aktuell period) får inte hamna i den förbyggda HTML:en — vänta på datan
+  (visa skeleton medan `useUser` laddar) eller använd `useIsClient()`.
+  Annars blir det hydreringsfel dagen efter bygget.
+- Hooks före tidiga `return` — en `if (isLoading) return …` ovanför en
+  `useState`/`useMemo` kraschar sidan när datan kommer.
 
 ### Tailwind v4 dark mode
 

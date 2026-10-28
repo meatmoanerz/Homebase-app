@@ -7,6 +7,14 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-10-28 — Ångra vid borttagning i kreditkort, kodflödesnot om snabb start
+
+- Kreditkortshanteraren: papperskorgen döljer raden direkt och visar
+  "Ångra" i 5 sekunder; själva borttagningen körs först när notisen stängs.
+- `04-kodflode.md`: ny frontend-fälla "Snabb start: app-sidorna är statiska"
+  (inga serveranrop i `(app)/layout`, datum i klienten, hooks före return).
+  Godkänd av Tim.
+
 ## 2026-10-28 — Snabbare start, rubriker i headern, mindre luft
 
 - Start: `(app)/layout.tsx` gör inga serveranrop längre — middleware sköter

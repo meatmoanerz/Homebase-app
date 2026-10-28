@@ -454,7 +454,7 @@ export default function CCMDashboardPage() {
   const router = useRouter()
   const { data: user, isLoading: userLoading } = useUser()
   const { data: partner } = usePartner()
-  const { data: ccmExpenses = [], isLoading: expensesLoading } = useCCMExpenses()
+  const { data: allCcmExpenses = [], isLoading: expensesLoading } = useCCMExpenses()
   const { data: cards = [], isLoading: cardsLoading } = useCreditCards()
   const { data: invoices = [] } = useCCMInvoices()
   const deleteExpense = useDeleteExpense()
@@ -468,6 +468,7 @@ export default function CCMDashboardPage() {
   const [editGroupPurchaseOpen, setEditGroupPurchaseOpen] = useState(false)
   const [cardDialogOpen, setCardDialogOpen] = useState(false)
   const [editingCard, setEditingCard] = useState<CreditCardType | null>(null)
+  const [pendingDeletes, setPendingDeletes] = useState<Set<string>>(() => new Set())
 
   const handleEditExpense = (expense: ExpenseWithCategory) => {
     if (expense.is_group_purchase) {
@@ -479,6 +480,11 @@ export default function CCMDashboardPage() {
     }
   }
 
+  // Rows waiting in the undo window are already gone from the view
+  const ccmExpenses = useMemo(
+    () => (pendingDeletes.size ? allCcmExpenses.filter((e) => !pendingDeletes.has(e.id)) : allCcmExpenses),
+    [allCcmExpenses, pendingDeletes]
+  )
   const groupedByCard = useMemo(() => groupExpensesByCardAndPeriod(ccmExpenses, cards), [ccmExpenses, cards])
 
   const invoiceMap = useMemo(() => {
@@ -497,13 +503,35 @@ export default function CCMDashboardPage() {
     setCardDialogOpen(true)
   }
 
-  const handleDelete = async (id: string, description: string) => {
-    try {
-      await deleteExpense.mutateAsync(id)
-      toast.success(`"${description}" borttagen`)
-    } catch {
-      toast.error('Kunde inte ta bort')
+  // Undo window: the row is hidden at once, the delete only runs when the
+  // toast closes without "Ångra" being pressed.
+  const handleDelete = (id: string, description: string) => {
+    const restore = () => setPendingDeletes((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+    setPendingDeletes((prev) => new Set(prev).add(id))
+
+    let settled = false
+    const commit = () => {
+      if (settled) return
+      settled = true
+      // The hook rolls back and shows an error toast if the delete fails
+      deleteExpense.mutate(id, { onSettled: restore })
     }
+    toast(`"${description}" borttagen`, {
+      duration: 5000,
+      action: {
+        label: 'Ångra',
+        onClick: () => {
+          settled = true
+          restore()
+        },
+      },
+      onAutoClose: commit,
+      onDismiss: commit,
+    })
   }
 
   const handleUpdateInvoice = async (cardId: string, period: string, amount: number) => {
