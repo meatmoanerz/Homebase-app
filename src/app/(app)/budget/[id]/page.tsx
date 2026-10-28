@@ -31,8 +31,15 @@ import {
   ChevronRight,
   ChevronDown,
   Banknote,
-  CheckCircle2
+  CheckCircle2,
+  MoreHorizontal
 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils/cn'
 import { getBudgetStatus, budgetStatusBarClass, budgetStatusTextClass } from '@/lib/utils/budget-status'
 import type { BudgetItem, Category, ExpenseWithCategory } from '@/types'
@@ -46,7 +53,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
   Dialog,
@@ -78,6 +84,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
   const { data: incomeTotal } = useMonthlyIncomeTotal(budget?.period)
   const hasPartner = !!partner
   const [incomeExpanded, setIncomeExpanded] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   // Group budget items by type
   const groupedItems = useMemo(() => {
@@ -299,7 +306,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
   const displaySavingsRate = displayIncome > 0 ? (totals.savingsBudgeted / displayIncome) * 100 : 0
 
   return (
-    <div className="p-4 space-y-4 pb-24">
+    <div className="p-4 space-y-4">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -328,22 +335,27 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
               <Edit2 className="w-4 h-4" />
             </Link>
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleArchive}
-            disabled={archiveBudget.isPending}
-            title="Arkivera"
-            aria-label="Arkivera budget"
-          >
-            <Archive className="w-4 h-4" />
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-destructive" aria-label="Ta bort budget">
-                <Trash2 className="w-4 h-4" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Fler val">
+                <MoreHorizontal className="w-5 h-5" />
               </Button>
-            </AlertDialogTrigger>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleArchive} disabled={archiveBudget.isPending}>
+                <Archive className="mr-2 h-4 w-4" />
+                Arkivera
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setDeleteOpen(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Ta bort
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Ta bort budget?</AlertDialogTitle>

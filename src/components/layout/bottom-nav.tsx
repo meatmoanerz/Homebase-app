@@ -115,7 +115,7 @@ export function BottomNav({ className }: BottomNavProps) {
             aria-current={isActive ? 'page' : undefined}
             onClick={() => triggerHaptic('light')}
             className={cn(
-              "flex-1 flex items-center justify-center py-3.5 rounded-full transition-all duration-150",
+              "flex-1 flex items-center justify-center py-3.5 rounded-full transition-colors duration-150",
               isActive ? "text-hb-cognac" : "text-hb-nav-foreground/50"
             )}
           >

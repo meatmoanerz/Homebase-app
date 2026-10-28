@@ -25,7 +25,12 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // getClaims verifies the token locally against the project's signing keys
+  // (cached JWKS) and refreshes an expired session; with a legacy shared
+  // secret it falls back to getUser. Either way no extra round trip compared
+  // with getUser, and usually one fewer.
+  const { data } = await supabase.auth.getClaims()
+  const user = data?.claims ?? null
 
   // Protected routes
   const isProtectedRoute = 

@@ -110,12 +110,12 @@ export default function NotificationSettingsPage() {
   }
 
   return (
-    <div className="p-4 space-y-4 pb-24 max-w-lg mx-auto">
-      {/* Header */}
+    <div className="p-4 space-y-4 max-w-lg mx-auto">
+      {/* Header (mobile shows title + back in the app header) */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-3"
+        className="hidden md:flex items-center gap-3"
       >
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="w-5 h-5" />

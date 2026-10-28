@@ -71,11 +71,11 @@ export default function MonthlyIncomePage() {
 
   return (
     <div className="p-4 space-y-4">
-      {/* Header */}
+      {/* Header (mobile shows title + back in the app header) */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-3"
+        className="hidden md:flex items-center gap-3"
       >
         <Button asChild variant="ghost" size="icon" className="shrink-0">
           <Link href="/budget">

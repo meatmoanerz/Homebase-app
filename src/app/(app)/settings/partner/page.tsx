@@ -186,12 +186,12 @@ export default function PartnerSettingsPage() {
     : null
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Header */}
+    <div className="p-4 space-y-5">
+      {/* Header (mobile shows title + back in the app header) */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-4"
+        className="hidden md:flex items-center gap-4"
       >
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="w-5 h-5" />

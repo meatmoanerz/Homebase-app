@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { usePerspective, type Perspective } from '@/hooks/use-perspective'
-import { Check } from 'lucide-react'
+import { ArrowLeft, Check } from 'lucide-react'
 import { NotificationBell } from '@/components/layout/notification-bell'
 
 const TITLES: Record<string, string> = {
@@ -24,10 +24,34 @@ const TITLES: Record<string, string> = {
   '/settings/shared-account': 'Gemensamt konto',
   '/settings/household-categories': 'Hushållskostnader',
   '/settings/mappings': 'Kategoriregler',
+  '/settings/notifications': 'Notiser',
+  '/budget/income': 'Inkomst',
   '/import': 'Importera',
   '/analys': 'Analys',
   '/help': 'Hjälp',
   '/privacy': 'Integritet',
+}
+
+/**
+ * Sub-pages that get a back arrow here instead of their own in-page header
+ * (which is then desktop-only). Value = where to go when there is no history,
+ * e.g. when the home-screen app was opened straight onto the page.
+ */
+const BACK_TO: Record<string, string> = {
+  '/settings/profile': '/settings',
+  '/settings/partner': '/settings',
+  '/settings/notifications': '/settings',
+  '/settings/categories': '/settings',
+  '/settings/mappings': '/settings',
+  '/settings/household-categories': '/settings',
+  '/settings/loans': '/settings',
+  '/settings/shared-account': '/settings',
+  '/settings/ccm': '/settings',
+  '/savings': '/settings',
+  '/receipts': '/settings',
+  '/help': '/settings',
+  '/privacy': '/settings',
+  '/budget/income': '/budget',
 }
 
 function pageTitle(pathname: string): string {
@@ -42,6 +66,8 @@ function pageTitle(pathname: string): string {
 
 export function MobileHeader() {
   const pathname = usePathname()
+  const router = useRouter()
+  const backTo = BACK_TO[pathname]
   const [sheetOpen, setSheetOpen] = useState(false)
   const { data: user } = useUser()
   const { data: partner } = usePartner()
@@ -75,10 +101,22 @@ export function MobileHeader() {
   return (
     <>
       <header className="md:hidden sticky top-0 z-40 px-5 py-3.5 glass border-b border-border/60">
-        <div className="flex items-center justify-between">
-          <h1 className="font-serif text-[22px] font-medium tracking-tight text-foreground">
-            {pageTitle(pathname)}
-          </h1>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 min-w-0">
+            {backTo && (
+              <button
+                type="button"
+                onClick={() => (window.history.length > 1 ? router.back() : router.push(backTo))}
+                className="w-8 h-8 -ml-2 shrink-0 rounded-full grid place-items-center text-foreground active:bg-secondary transition-colors"
+                aria-label="Tillbaka"
+              >
+                <ArrowLeft className="w-5 h-5" aria-hidden="true" />
+              </button>
+            )}
+            <h1 className="font-serif text-[22px] font-medium tracking-tight text-foreground truncate">
+              {pageTitle(pathname)}
+            </h1>
+          </div>
           <div className="flex items-center gap-1.5">
           <NotificationBell />
           <button

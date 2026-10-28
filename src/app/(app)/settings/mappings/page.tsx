@@ -19,8 +19,6 @@ export default function MappingsSettingsPage() {
   const createMapping = useCreateMapping()
   const assignmentOptions = useAssignmentOptions()
 
-  if (isLoading) return <SettingsListPageSkeleton />
-
   const [search, setSearch] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -42,6 +40,9 @@ export default function MappingsSettingsPage() {
       .sort((a, b) => b.priority - a.priority || b.hit_count - a.hit_count)
   }, [mappings, search, categoryById])
 
+  // After all hooks: an early return above them changes the hook order
+  if (isLoading) return <SettingsListPageSkeleton />
+
   async function handleDelete(id: string) {
     try {
       await deleteMapping.mutateAsync(id)
@@ -54,8 +55,8 @@ export default function MappingsSettingsPage() {
 
   return (
     <div className="px-4 md:px-8 pt-2 md:pt-4 pb-4 space-y-5 max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3">
+      {/* Header (mobile shows title + back in the app header) */}
+      <div className="hidden md:flex items-center gap-3">
         <Link
           href="/settings"
           className="w-9 h-9 rounded-full grid place-items-center text-muted-foreground hover:bg-secondary transition-colors"

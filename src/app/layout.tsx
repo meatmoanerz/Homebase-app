@@ -67,7 +67,11 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#c08850",
+  // Matches the page background so the browser/status bar blends in
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4ede3" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a1510" },
+  ],
 }
 
 export default function RootLayout({

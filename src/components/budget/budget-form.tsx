@@ -987,7 +987,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
   const hasPartner = !!partner
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-4 pb-28">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}

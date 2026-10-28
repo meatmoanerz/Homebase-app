@@ -7,6 +7,29 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-10-28 — Snabbare start, rubriker i headern, mindre luft
+
+- Start: `(app)/layout.tsx` gör inga serveranrop längre — middleware sköter
+  inloggningskollen (nu `getClaims`, lokal JWT-verifiering), onboarding-kollen
+  körs i klienten (`OnboardingGate`). Alla app-sidor byggs statiskt och
+  serveras direkt från Vercels CDN i stället för att vänta på en kall
+  serverfunktion + två auth-anrop. `useUser` läser sessionen lokalt.
+  `/api/partner` filtrerar i databasen och loggar inte profiler.
+- Statiska sidor byggs i förväg: UI som beror på dagens datum renderas i
+  klienten (`useIsClient`), annars blir det hydreringsfel. Gemensamt konto
+  väntar nu på löndag/budgetar (öppnade förut på fel period).
+- Undersidor (Inställningar, Sparmål, Kvitton, Hjälp, Inkomst): tillbakapil
+  och titel i appens header, sidans egen rubrik bara på dator. Mindre luft
+  under innehållet (navbaren + säkerhetsmarginal i stället för 160 px + 96 px).
+- Mer: profilen är en kompakt rad som öppnar Profil. Budgetdetalj: Arkivera
+  och Ta bort i ⋯-meny. Lån/temporär budget: plusknappen överlappar inte navbaren.
+- Kategoriregler kraschade om sidan öppnades innan reglerna laddats (hooks
+  efter tidig return) — rättat.
+- Reducerad rörelse följs (MotionConfig), theme-color matchar bakgrunden,
+  ingen grå tap-blink på iOS.
+- Skills i `.claude/skills/`: web-design-guidelines, vercel-react-best-practices,
+  supabase-postgres-best-practices.
+
 ## 2026-10-28 — Kreditkort, import, budgethuvud, årsväljare i Analys, Mer-ikon
 
 - Kreditkortshanteraren: plus och kugghjul borta ur headern ("Lägg till

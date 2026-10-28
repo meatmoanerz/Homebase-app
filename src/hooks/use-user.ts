@@ -26,14 +26,17 @@ export function useUser() {
   return useQuery({
     queryKey: ['user'],
     queryFn: async () => {
-      // First get the authenticated user
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      
+      // The session is read from the cookie (no network round trip unless it
+      // needs refreshing). The middleware has already verified it on page
+      // load, and RLS checks the token on every query.
+      const { data: { session }, error: authError } = await supabase.auth.getSession()
+
       if (authError) {
         console.error('Auth error:', authError)
         return null
       }
-      
+
+      const user = session?.user
       if (!user) {
         return null
       }
@@ -130,12 +133,8 @@ export function usePartner() {
   return useQuery({
     queryKey: ['partner'],
     queryFn: async () => {
-      console.log('usePartner: Fetching from API...')
-      
       const response = await fetch('/api/partner')
       const data = await response.json()
-      
-      console.log('usePartner: API response:', data)
       
       if (data.error) {
         console.error('usePartner: API error:', data.error)
@@ -152,12 +151,8 @@ export function usePartnerConnection() {
   return useQuery({
     queryKey: ['partner-connection'],
     queryFn: async () => {
-      console.log('usePartnerConnection: Fetching from API...')
-      
       const response = await fetch('/api/partner')
       const data = await response.json()
-      
-      console.log('usePartnerConnection: API response:', data)
       
       if (data.error) {
         console.error('usePartnerConnection: API error:', data.error)

@@ -6,8 +6,10 @@ import { RecurringExpenseForm } from '@/components/expenses/recurring-expense-fo
 import { RecurringExpensesList } from '@/components/expenses/recurring-expenses-list'
 import { ExpenseEditDialog } from '@/components/expenses/expense-edit-dialog'
 import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useRecentExpenses } from '@/hooks/use-expenses'
 import { useUser } from '@/hooks/use-user'
+import { useIsClient } from '@/hooks/use-is-client'
 import { formatCurrency, formatRelativeDate } from '@/lib/utils/formatters'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Clock, Repeat, Users, UserCheck, CreditCard } from 'lucide-react'
@@ -47,6 +49,7 @@ export default function AddExpensePage() {
   const [filter, setFilter] = useState<FilterType>('all')
   const [editExpense, setEditExpense] = useState<ExpenseWithCategory | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const isClient = useIsClient()
   const { data: user } = useUser()
   const { data: recentExpenses = [], refetch } = useRecentExpenses(50) // Get more to filter
 
@@ -69,10 +72,11 @@ export default function AddExpensePage() {
 
   return (
     <div className="p-4 space-y-4">
-      {/* Header */}
+      {/* Header (mobile shows the title in the app header) */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
+        className="hidden md:block"
       >
         <h1 className="text-2xl font-bold text-hb-cognac">Utgifter</h1>
         <p className="text-sm text-muted-foreground">{subtitles[activeTab]}</p>
@@ -114,7 +118,17 @@ export default function AddExpensePage() {
           >
             <Card className="border-0 shadow-sm">
               <CardContent className="pt-6">
-                <ExpenseForm onSuccess={handleExpenseAdded} />
+                {/* The form defaults to today's date, so it renders on the device, not in the prebuilt HTML */}
+                {isClient ? (
+                  <ExpenseForm onSuccess={handleExpenseAdded} />
+                ) : (
+                  <div className="space-y-4" aria-hidden="true">
+                    <Skeleton className="h-14 w-full rounded-xl" />
+                    <Skeleton className="h-10 w-full rounded-xl" />
+                    <Skeleton className="h-10 w-full rounded-xl" />
+                    <Skeleton className="h-12 w-full rounded-xl" />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>

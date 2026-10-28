@@ -142,12 +142,12 @@ export default function LoansSettingsPage() {
   }
 
   return (
-    <div className="p-4 space-y-6 pb-24">
-      {/* Header */}
+    <div className="p-4 space-y-4 pb-24">
+      {/* Header (mobile shows title + back in the app header) */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-4"
+        className="hidden md:flex items-center gap-4"
       >
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="w-5 h-5" />
@@ -436,7 +436,7 @@ export default function LoansSettingsPage() {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3 }}
-          className="fixed bottom-24 right-4 z-10"
+          className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+84px)] md:bottom-6 right-4 z-10"
         >
           <Button
             size="lg"

@@ -230,7 +230,7 @@ function InvoicePeriodCard({ card, period, expenses, invoice, user, partner, onD
                     onClick={() => onEdit(expense)}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(expense) } }}
                     className={cn(
-                      "flex items-center justify-between p-4 hover:bg-muted/30 active:bg-muted/50 active:scale-[0.99] transition-all w-full text-left cursor-pointer",
+                      "flex items-center justify-between p-4 hover:bg-muted/30 active:bg-muted/50 active:scale-[0.99] transition w-full text-left cursor-pointer",
                       index !== expenses.length - 1 && "border-b border-border"
                     )}
                   >
@@ -255,6 +255,7 @@ function InvoicePeriodCard({ card, period, expenses, invoice, user, partner, onD
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        aria-label={`Ta bort ${expense.description}`}
                         onClick={(e) => {
                           e.stopPropagation()
                           onDelete(expense.id, expense.description)
@@ -533,7 +534,7 @@ export default function CCMDashboardPage() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-4"
+          className="hidden md:flex items-center gap-4"
         >
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="w-5 h-5" />
@@ -587,7 +588,7 @@ export default function CCMDashboardPage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-4"
+        className="hidden md:flex items-center gap-4"
       >
         <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Tillbaka">
           <ArrowLeft className="w-5 h-5" />

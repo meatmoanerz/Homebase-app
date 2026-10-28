@@ -52,11 +52,12 @@ export default function SavingsPage() {
   }
 
   return (
-    <div className="p-4 space-y-4 pb-24">
-      {/* Header */}
+    <div className="p-4 space-y-4">
+      {/* Header (mobile shows the title in the app header) */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
+        className="hidden md:block"
       >
         <h1 className="text-2xl font-bold text-hb-cognac">Sparmål</h1>
         <p className="text-sm text-muted-foreground">{subtitles[activeTab]}</p>

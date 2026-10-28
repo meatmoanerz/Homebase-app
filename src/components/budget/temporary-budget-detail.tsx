@@ -422,7 +422,7 @@ export function TemporaryBudgetDetail({ id }: TemporaryBudgetDetailProps) {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.25 }}
-          className="fixed bottom-20 right-4 z-40"
+          className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+84px)] md:bottom-6 right-4 z-40"
         >
           <Button
             onClick={() => setAddExpenseOpen(true)}

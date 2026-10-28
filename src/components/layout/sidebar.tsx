@@ -36,7 +36,7 @@ function PerspectiveAvatars() {
         <button
           onClick={() => setPerspective('all')}
           className={cn(
-            "w-10 h-10 rounded-full border-2 grid place-items-center transition-all",
+            "w-10 h-10 rounded-full border-2 grid place-items-center transition-colors",
             perspective === 'all' ? "border-hb-cognac" : "border-transparent"
           )}
           aria-label="Visa för alla"
@@ -49,7 +49,7 @@ function PerspectiveAvatars() {
         <button
           onClick={() => setPerspective('me')}
           className={cn(
-            "w-10 h-10 rounded-full border-2 grid place-items-center transition-all",
+            "w-10 h-10 rounded-full border-2 grid place-items-center transition-colors",
             perspective === 'me' ? "border-hb-tim" : "border-transparent"
           )}
           aria-label={`Visa för ${user?.first_name || 'mig'}`}
@@ -63,7 +63,7 @@ function PerspectiveAvatars() {
           <button
             onClick={() => setPerspective('partner')}
             className={cn(
-              "w-10 h-10 rounded-full border-2 grid place-items-center transition-all",
+              "w-10 h-10 rounded-full border-2 grid place-items-center transition-colors",
               perspective === 'partner' ? "border-hb-amanda" : "border-transparent"
             )}
             aria-label={`Visa för ${partner.first_name}`}
@@ -110,7 +110,7 @@ export function Sidebar() {
               href={item.href}
               prefetch={true}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-sm font-medium transition-all',
+                'flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-hb-nav text-hb-nav-foreground'
                   : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'

@@ -49,7 +49,7 @@ export function ArchiveList() {
   const isLoading = monthlyLoading || projectsLoading
 
   return (
-    <div className="p-4 space-y-4 pb-24">
+    <div className="p-4 space-y-4">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}

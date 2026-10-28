@@ -46,12 +46,12 @@ export default function HouseholdCategoriesPage() {
   ]
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-4 space-y-5">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-1"
+        className="hidden md:block space-y-1"
       >
         <div className="flex items-center gap-4 mb-1">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>

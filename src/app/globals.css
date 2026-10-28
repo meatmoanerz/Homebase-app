@@ -194,7 +194,14 @@
   border-color: var(--border);
 }
 
+html {
+  /* No double-tap zoom delay; taps feel instant */
+  touch-action: manipulation;
+}
+
 body {
+  /* Components have their own :active states, so no grey iOS tap flash */
+  -webkit-tap-highlight-color: transparent;
   background: var(--background-gradient);
   background-attachment: fixed;
   color: var(--foreground);

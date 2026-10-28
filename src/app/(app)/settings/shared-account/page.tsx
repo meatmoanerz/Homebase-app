@@ -20,8 +20,18 @@ import { formatCurrency } from '@/lib/utils/formatters'
 import { formatPeriodDisplay, getCurrentBudgetPeriod, getRecentPeriods } from '@/lib/utils/budget-period'
 import { cn } from '@/lib/utils/cn'
 import { splitBudgetItem } from '@/lib/utils/budget-split'
+import { SettingsPageSkeleton } from '@/components/shared/page-skeletons'
 
 export default function SharedAccountPage() {
+  const { data: user, isLoading: userLoading } = useUser()
+  const { isLoading: budgetsLoading } = useBudgets()
+  // Wait for the salary day (default period) and the budgets, so the page
+  // never opens on the wrong period or flashes "Ingen budget finns".
+  if (userLoading || budgetsLoading || !user) return <SettingsPageSkeleton />
+  return <SharedAccountView />
+}
+
+function SharedAccountView() {
   const router = useRouter()
   const { data: user } = useUser()
   const { data: partner } = usePartner()
@@ -144,12 +154,12 @@ export default function SharedAccountPage() {
   )
 
   return (
-    <div className="p-4 space-y-4 pb-24">
-      {/* Header */}
+    <div className="p-4 space-y-4">
+      {/* Header (mobile shows title + back in the app header) */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-4"
+        className="hidden md:flex items-center gap-4"
       >
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="w-5 h-5" />

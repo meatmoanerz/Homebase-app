@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from 'next-themes'
 import { Toaster } from 'sonner'
+import { MotionConfig } from 'framer-motion'
 import { useState } from 'react'
 import { useKeyboard } from '@/hooks/use-keyboard'
 import { useCapacitorInit } from '@/hooks/use-capacitor'
@@ -46,7 +47,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       >
         <KeyboardDetector />
         <CapacitorInit />
-        {children}
+        {/* Framer animations follow the system "Reduce motion" setting */}
+        <MotionConfig reducedMotion="user">{children}</MotionConfig>
         <Toaster
           richColors
           position="top-center"

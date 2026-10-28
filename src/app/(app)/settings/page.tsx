@@ -13,7 +13,6 @@ import { LoadingPage } from '@/components/shared/loading-spinner'
 import { getInitials } from '@/lib/utils/formatters'
 import { motion } from 'framer-motion'
 import {
-  User,
   FolderOpen,
   Landmark,
   CreditCard,
@@ -48,7 +47,6 @@ const menuItems = [
   {
     title: 'Konto',
     items: [
-      { href: '/settings/profile', label: 'Profil', icon: User, description: 'Namn, löndag, inkomster' },
       { href: '/settings/partner', label: 'Partner', icon: Users, description: 'Koppla ihop konton' },
       { href: '/settings/notifications', label: 'Notiser', icon: Bell, description: 'Påminnelser för transaktionsimport' },
     ]
@@ -86,30 +84,30 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-4 space-y-5">
       {/* Profile Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-5">
-            <div className="flex items-center gap-4">
-              <Avatar className="w-16 h-16">
-                <AvatarImage src={user?.avatar_url || undefined} />
-                <AvatarFallback className="text-lg bg-hb-sage text-hb-cognac">
-                  {getInitials(user?.first_name || '', user?.last_name)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="text-xl font-bold text-hb-cognac">
-                  {user?.first_name} {user?.last_name}
-                </h1>
-                <p className="text-sm text-muted-foreground">{user?.email}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Link
+          href="/settings/profile"
+          className="flex items-center gap-3 bg-card rounded-2xl shadow-sm p-3.5 hover:bg-muted/30 transition-colors"
+        >
+          <Avatar className="w-11 h-11">
+            <AvatarImage src={user?.avatar_url || undefined} alt="" />
+            <AvatarFallback className="bg-hb-sage text-hb-cognac">
+              {getInitials(user?.first_name || '', user?.last_name)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-semibold text-hb-cognac truncate">
+              {user?.first_name} {user?.last_name}
+            </h1>
+            <p className="text-xs text-muted-foreground truncate">Profil, löndag och inkomster</p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" aria-hidden="true" />
+        </Link>
       </motion.div>
 
       {/* Economy tools */}

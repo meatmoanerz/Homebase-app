@@ -1,35 +1,19 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { AppShell } from '@/components/layout/app-shell'
 import { AppErrorBoundary } from '@/components/error/app-error-boundary'
 
-export default async function AppLayout({
+// No server data here on purpose: the middleware already sends signed-out
+// visitors to /login, and the onboarding check runs in the client
+// (OnboardingGate). That keeps every page in this group static, so opening
+// the app is served straight from Vercel's CDN instead of waiting for a
+// server function to wake up and check the session.
+export default function AppLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  // Check if onboarding is completed
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('onboarding_completed')
-    .eq('id', user.id)
-    .single()
-
-  if (profile && !(profile as { onboarding_completed: boolean }).onboarding_completed) {
-    redirect('/onboarding')
-  }
-
   return (
     <AppShell>
       <AppErrorBoundary>{children}</AppErrorBoundary>
     </AppShell>
   )
 }
-

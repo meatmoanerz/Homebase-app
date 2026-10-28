@@ -107,7 +107,7 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
   const goalTypeLabel = goal.custom_goal_type?.name || goalCategoryLabels[goal.goal_category]
 
   return (
-    <div className="p-4 space-y-4 pb-24">
+    <div className="p-4 space-y-4">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
