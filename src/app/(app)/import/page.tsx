@@ -16,6 +16,7 @@ import { usePartner } from '@/hooks/use-user'
 import { UtlaggSplitDialog, type UtlaggSplit } from '@/components/ccm/utlagg-dialog'
 import { deriveCostAssignment } from '@/hooks/use-utlagg'
 import { CategoryCombobox } from '@/components/import/category-combobox'
+import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
 import { Upload, FileText, CheckCircle2, AlertTriangle, Download, X, ArrowLeft, Sparkles, Pin, PinOff, Trash2, Clock, ChevronRight, Loader2, HandCoins } from 'lucide-react'
@@ -23,7 +24,6 @@ import { cn } from '@/lib/utils/cn'
 import { toast } from 'sonner'
 import { format, formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import Link from 'next/link'
 
 type ImportMode = 'homebase' | 'bank' | 'ai'
 type Step = 'choose' | 'upload' | 'preview' | 'importing' | 'done' | 'ai-batches' | 'ai-review'
@@ -478,16 +478,46 @@ export default function ImportPage() {
   const aiTotalAmount = stagingRows.map(getMergedRow).filter((r) => r.selected).reduce((s, r) => s + r.amount, 0)
   const aiUncategorised = stagingRows.map(getMergedRow).filter((r) => r.selected && !r.category_id).length
 
+  // One back button for the whole flow: steps back within the import,
+  // and out to the Mer page from the first step.
+  const handleBack = () => {
+    if (step === 'ai-review') {
+      setActiveBatchId(null)
+      setStep('ai-batches')
+    } else if (step === 'ai-batches' || step === 'upload') {
+      setStep('choose')
+    } else if (step === 'preview') {
+      setStep('upload')
+      setParseResult(null)
+      setBankResult(null)
+      setParseError(null)
+      setPreviewRows([])
+    } else {
+      router.push('/settings')
+    }
+  }
+  const backLabel =
+    step === 'ai-review' ? 'Alla batchar'
+      : step === 'ai-batches' || step === 'upload' ? 'Byt importläge'
+        : step === 'preview' ? 'Välj annan fil'
+          : 'Tillbaka'
+
   return (
     <div className="px-4 md:px-8 pt-2 md:pt-4 pb-4 space-y-5 max-w-3xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link
-          href="/settings"
-          className="w-9 h-9 rounded-full grid place-items-center text-muted-foreground hover:bg-secondary transition-colors md:hidden"
-        >
-          <ArrowLeft className="w-[18px] h-[18px]" />
-        </Link>
+        {step !== 'importing' && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBack}
+            aria-label={backLabel}
+            title={backLabel}
+            className={cn('shrink-0', (step === 'choose' || step === 'done') && 'md:hidden')}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+        )}
         <div>
           <h1 className="font-serif text-[24px] md:text-[32px] font-medium tracking-tight">
             Importera transaktioner
@@ -560,14 +590,6 @@ export default function ImportPage() {
       {/* Step: AI — batch list */}
       {step === 'ai-batches' && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-          <button
-            onClick={() => setStep('choose')}
-            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-          >
-            <ArrowLeft className="w-3 h-3" />
-            Tillbaka
-          </button>
-
           {batchesLoading && (
             <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -610,17 +632,6 @@ export default function ImportPage() {
       {/* Step: AI — review rows */}
       {step === 'ai-review' && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-          <button
-            onClick={() => {
-              setActiveBatchId(null)
-              setStep('ai-batches')
-            }}
-            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-          >
-            <ArrowLeft className="w-3 h-3" />
-            Alla batchar
-          </button>
-
           {stagingLoading && (
             <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -732,14 +743,6 @@ export default function ImportPage() {
       {/* Step: Upload */}
       {step === 'upload' && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-          <button
-            onClick={() => setStep('choose')}
-            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-          >
-            <ArrowLeft className="w-3 h-3" />
-            Byt importläge
-          </button>
-
           {mode === 'bank' && (
             <div className="bg-card border border-border rounded-2xl p-4">
               <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">

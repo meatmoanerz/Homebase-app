@@ -34,11 +34,12 @@ function WalletIcon({ className }: { className?: string }) {
   )
 }
 
-function SettingsIcon({ className }: { className?: string }) {
+function MoreIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <circle cx="5" cy="12" r="1.9"/>
+      <circle cx="12" cy="12" r="1.9"/>
+      <circle cx="19" cy="12" r="1.9"/>
     </svg>
   )
 }
@@ -57,7 +58,7 @@ const navItems = [
   { href: '/analys',       Icon: ChartIcon,    label: 'Analys',    matchPath: '/analys'    },
   { href: '/expenses',     Icon: PlusIcon,     label: 'Ny utgift', matchPath: null, isAdd: true },
   { href: '/budget',       Icon: WalletIcon,   label: 'Budget',    matchPath: '/budget'    },
-  { href: '/settings',     Icon: SettingsIcon, label: 'Mer',       matchPath: '/settings'  },
+  { href: '/settings',     Icon: MoreIcon,     label: 'Mer',       matchPath: '/settings'  },
 ]
 
 interface BottomNavProps { className?: string }

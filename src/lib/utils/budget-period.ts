@@ -135,6 +135,12 @@ export function formatPeriodDisplay(period: string): string {
   return format(date, 'MMMM yyyy', { locale: sv })
 }
 
+/** "2026-09" → "september" (month name only, for headers that show the year separately) */
+export function formatPeriodMonth(period: string): string {
+  const [year, month] = period.split('-').map(Number)
+  return format(new Date(year, month - 1), 'MMMM', { locale: sv })
+}
+
 /**
  * Get the budget period dates from a period string (YYYY-MM)
  * The period "2025-12" means December budget, which runs from Nov 25 to Dec 24 (if salaryDay is 25)

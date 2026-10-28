@@ -7,6 +7,20 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-10-28 — Kreditkort, import, budgethuvud, årsväljare i Analys, Mer-ikon
+
+- Kreditkortshanteraren: plus och kugghjul borta ur headern ("Lägg till
+  kreditkort" längst ner finns kvar), "N kort" står diskret ovanför korten.
+  `/settings/ccm/settings` borttagen — CCM slås på/av under Mer → Funktioner
+  (även direkt från kortsidan när den är avstängd). CCM-blocket i Profil
+  borttaget; dess fakturabrytdag lästes bara av oanvänd kod (brytdag är per kort).
+- Import: en tillbakaknapp i headern som backar ett steg i flödet
+  (granska → batchar → val av läge → Mer) i stället för två.
+- Budgetdetalj: månaden på en rad, året litet under (bredvid "Aktuell period").
+- Analys: "I år" har ‹ år › som månadsvyn; tidigare år visas helt (jan–dec)
+  och jämförs med året innan. Första året börjar vid första registrerade månad.
+- Navbar/sidomeny: "Mer" visas med tre prickar i stället för kugghjul.
+
 ## 2026-10-27 — Jämförpris, produkter med flera artiklar, artikelbyten
 
 - `receipt_items.package_size/package_unit`: priser jämförs per kg/l/st.

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser, usePartner } from '@/hooks/use-user'
+import { useUser, usePartner, useSetCCMEnabled } from '@/hooks/use-user'
 import { useCCMExpenses } from '@/hooks/use-expenses'
 import { useCCMInvoices, useUpsertCCMInvoice, useSetCCMPeriodPaid, type CCMInvoice } from '@/hooks/use-ccm-invoices'
 import { useDeleteExpense } from '@/hooks/use-expenses'
@@ -11,13 +11,12 @@ import { Button } from '@/components/ui/button'
 import { LoadingPage } from '@/components/shared/loading-spinner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ExpenseEditDialog } from '@/components/expenses/expense-edit-dialog'
-import { ArrowLeft, CreditCard, Settings, AlertTriangle, Trash2, ChevronDown, ChevronUp, Calendar, Check, CheckCircle2, Undo2, Receipt, Plus, Pencil, Star } from 'lucide-react'
+import { ArrowLeft, CreditCard, AlertTriangle, Trash2, ChevronDown, ChevronUp, Calendar, Check, CheckCircle2, Undo2, Receipt, Plus, Pencil, Star } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency, formatRelativeDate } from '@/lib/utils/formatters'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
-import Link from 'next/link'
 import type { ExpenseWithCategory } from '@/types'
 import { UtlaggDialog } from '@/components/ccm/utlagg-dialog'
 import { calculatePaymentSplit, getAssignmentLabel } from '@/lib/utils/ccm-split'
@@ -460,6 +459,7 @@ export default function CCMDashboardPage() {
   const deleteExpense = useDeleteExpense()
   const upsertInvoice = useUpsertCCMInvoice()
   const setPeriodPaid = useSetCCMPeriodPaid()
+  const setCCMEnabled = useSetCCMEnabled()
   const [groupPurchaseOpen, setGroupPurchaseOpen] = useState(false)
   const [editExpense, setEditExpense] = useState<ExpenseWithCategory | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -551,12 +551,18 @@ export default function CCMDashboardPage() {
             <p className="text-sm text-muted-foreground/70 mt-1 mb-4">
               Aktivera kreditkortshanteraren för att spåra kreditkortsutgifter
             </p>
-            <Link href="/settings/ccm/settings">
-              <Button variant="outline" size="sm">
-                <Settings className="w-4 h-4 mr-2" />
-                Aktivera CCM
-              </Button>
-            </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!user || setCCMEnabled.isPending}
+              onClick={() => user && setCCMEnabled.mutate({ userId: user.id, enabled: true })}
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Aktivera kreditkortshanteraren
+            </Button>
+            <p className="text-xs text-muted-foreground/70 mt-3">
+              Kan stängas av under Mer → Funktioner
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -581,29 +587,12 @@ export default function CCMDashboardPage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex items-center gap-4"
       >
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold text-hb-cognac">Kreditkortshanterare</h1>
-            <p className="text-sm text-muted-foreground">
-              {cards.length === 1 ? '1 kort' : `${cards.length} kort`}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={openNewCard} aria-label="Lägg till kreditkort">
-            <Plus className="w-5 h-5" />
-          </Button>
-          <Link href="/settings/ccm/settings">
-            <Button variant="ghost" size="icon" aria-label="CCM-inställningar">
-              <Settings className="w-5 h-5" />
-            </Button>
-          </Link>
-        </div>
+        <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Tillbaka">
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <h1 className="text-xl font-bold text-hb-cognac">Kreditkortshanterare</h1>
       </motion.div>
 
       {/* Summary Card — alla kort */}
@@ -678,6 +667,9 @@ export default function CCMDashboardPage() {
         </motion.div>
       ) : (
         <div className="space-y-3">
+          <p className="label-caps text-muted-foreground px-1 -mb-1">
+            {cards.length === 1 ? '1 kort' : `${cards.length} kort`}
+          </p>
           {cards.map((card, index) => (
             <motion.div
               key={card.id}

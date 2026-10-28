@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { LoadingPage } from '@/components/shared/loading-spinner'
 import { formatCurrency, formatPercentage, formatDate } from '@/lib/utils/formatters'
-import { formatPeriodDisplay, getCurrentBudgetPeriod } from '@/lib/utils/budget-period'
+import { formatPeriodMonth, getCurrentBudgetPeriod } from '@/lib/utils/budget-period'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -304,56 +304,62 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-4"
+        className="flex items-center gap-2"
       >
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Tillbaka" className="shrink-0">
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold text-hb-cognac capitalize">
-            {formatPeriodDisplay(budget.period)}
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-bold text-hb-cognac capitalize leading-tight truncate">
+            {formatPeriodMonth(budget.period)}
           </h1>
-          {isCurrent && (
-            <span className="text-xs text-hb-cognac bg-hb-sage/30 px-2 py-0.5 rounded-full">
-              Aktuell period
-            </span>
-          )}
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-xs text-muted-foreground tabular-nums">{budget.period.slice(0, 4)}</span>
+            {isCurrent && (
+              <span className="text-[10px] font-medium text-hb-cognac bg-hb-sage/30 px-1.5 py-px rounded-full">
+                Aktuell period
+              </span>
+            )}
+          </div>
         </div>
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/budget/${id}/edit`}>
-            <Edit2 className="w-4 h-4" />
-          </Link>
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleArchive}
-          disabled={archiveBudget.isPending}
-          title="Arkivera"
-        >
-          <Archive className="w-4 h-4" />
-        </Button>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-destructive">
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Ta bort budget?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Är du säker på att du vill ta bort denna budget? Detta går inte att ångra.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Avbryt</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-                Ta bort
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <div className="flex items-center shrink-0">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={`/budget/${id}/edit`} aria-label="Redigera budget">
+              <Edit2 className="w-4 h-4" />
+            </Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleArchive}
+            disabled={archiveBudget.isPending}
+            title="Arkivera"
+            aria-label="Arkivera budget"
+          >
+            <Archive className="w-4 h-4" />
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-destructive" aria-label="Ta bort budget">
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Ta bort budget?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Är du säker på att du vill ta bort denna budget? Detta går inte att ångra.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+                  Ta bort
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </motion.div>
 
       {/* View Mode Toggle - only show when partner exists */}

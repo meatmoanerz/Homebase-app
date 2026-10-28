@@ -1,7 +1,8 @@
 'use client'
 
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 import type { Profile } from '@/types'
 import { useEffect } from 'react'
 
@@ -89,6 +90,39 @@ export function useUser() {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
+  })
+}
+
+/** Turn the credit card manager (CCM) on or off for the current user. */
+export function useSetCCMEnabled() {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ userId, enabled }: { userId: string; enabled: boolean }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from('profiles')
+        .update({ ccm_enabled: enabled })
+        .eq('id', userId)
+      if (error) throw error
+    },
+    onMutate: async ({ enabled }) => {
+      await queryClient.cancelQueries({ queryKey: ['user'] })
+      const previous = queryClient.getQueryData<Profile | null>(['user'])
+      if (previous) queryClient.setQueryData<Profile>(['user'], { ...previous, ccm_enabled: enabled })
+      return { previous }
+    },
+    onSuccess: (_data, { enabled }) => {
+      toast.success(enabled ? 'Kreditkortshanteraren aktiverad' : 'Kreditkortshanteraren avstängd')
+    },
+    onError: (_error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(['user'], context.previous)
+      toast.error('Kunde inte spara inställningen')
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['user'] })
+    },
   })
 }
 

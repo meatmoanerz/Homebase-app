@@ -14,9 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { LoadingPage } from '@/components/shared/loading-spinner'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Trash2, Pencil, Loader2, CreditCard, Info } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Pencil, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Switch } from '@/components/ui/switch'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Income } from '@/types'
 
@@ -32,10 +31,6 @@ export default function ProfileSettingsPage() {
   const [lastName, setLastName] = useState('')
   const [salaryDay, setSalaryDay] = useState('')
   const [saving, setSaving] = useState(false)
-
-  // CCM Settings
-  const [ccmEnabled, setCcmEnabled] = useState(false)
-  const [ccmBreakDate, setCcmBreakDate] = useState('15')
   
   const [incomeDialog, setIncomeDialog] = useState<{ open: boolean; income?: Income }>({ open: false })
   const [incomeName, setIncomeName] = useState('')
@@ -51,8 +46,6 @@ export default function ProfileSettingsPage() {
       setFirstName(user.first_name)
       setLastName(user.last_name)
       setSalaryDay(user.salary_day.toString())
-      setCcmEnabled(user.ccm_enabled || false)
-      setCcmBreakDate((user.ccm_invoice_break_date || 15).toString())
     }
   }, [user])
 
@@ -71,8 +64,6 @@ export default function ProfileSettingsPage() {
         first_name: firstName,
         last_name: lastName,
         salary_day: parseInt(salaryDay),
-        ccm_enabled: ccmEnabled,
-        ccm_invoice_break_date: parseInt(ccmBreakDate),
       })
       .eq('id', user.id)
 
@@ -201,73 +192,6 @@ export default function ProfileSettingsPage() {
                 'Spara ändringar'
               )}
             </Button>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* CCM Settings */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-hb-terracotta" />
-              Credit Card Manager (CCM)
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Separera kreditkortsutgifter från kassaflödet
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Enable CCM Toggle */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30">
-              <div className="flex-1">
-                <Label htmlFor="ccm_enabled" className="font-medium cursor-pointer">
-                  Aktivera CCM
-                </Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Hantera kreditkortsutgifter separat från kontantkassaflödet
-                </p>
-              </div>
-              <Switch
-                id="ccm_enabled"
-                checked={ccmEnabled}
-                onCheckedChange={setCcmEnabled}
-              />
-            </div>
-
-            {/* Billing Day Picker (only if CCM enabled) */}
-            {ccmEnabled && (
-              <div className="p-4 bg-hb-sand-deep/10 rounded-lg border border-hb-terracotta/20 space-y-3">
-                <Label htmlFor="ccm_break_date">Fakturabrytdag</Label>
-                <p className="text-xs text-muted-foreground">
-                  Välj vilken dag kreditkortsfakturan stänger varje månad
-                </p>
-                <Select value={ccmBreakDate} onValueChange={setCcmBreakDate}>
-                  <SelectTrigger id="ccm_break_date">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[...Array(28)].map((_, i) => (
-                      <SelectItem key={i + 1} value={(i + 1).toString()}>
-                        Den {i + 1}:e
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                  <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <p>
-                    <strong>Exempel:</strong> Om brytdag är 15:e, så tillhör köp 1-15 dec samma faktura (betalas 15 jan).
-                    Köp 16-31 dec tillhör nästa faktura (betalas 15 feb).
-                  </p>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
       </motion.div>

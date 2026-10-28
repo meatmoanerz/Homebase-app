@@ -34,7 +34,7 @@ const helpTopics = [
   {
     icon: CreditCard,
     title: 'Kreditkortshanterare (CCM)',
-    description: 'Aktivera CCM i inställningar för att separera kreditkortsutgifter från direkta utgifter.',
+    description: 'Aktivera under Mer → Funktioner för att separera kreditkortsutgifter från direkta utgifter.',
   },
   {
     icon: Users,

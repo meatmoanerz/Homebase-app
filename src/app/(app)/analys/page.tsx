@@ -140,6 +140,9 @@ export default function AnalysPage() {
   )
   const periodSet = useMemo(() => new Set(periods), [periods])
   const isRunningMonth = timeframe === 'month' && anchor === currentPeriod
+  const currentYear = currentPeriod.slice(0, 4)
+  const anchorYear = anchor.slice(0, 4)
+  const earliestYear = earliestPeriod?.slice(0, 4) ?? currentYear
   // No comparison against months before the first recorded expense — an
   // empty "last year" would read as a +1000 % jump.
   const prevPeriods = useMemo(() => {
@@ -153,7 +156,9 @@ export default function AnalysPage() {
     const elapsed = differenceInCalendarDays(startOfDay(new Date()), getPeriodDates(currentPeriod, salaryDay).startDate)
     return format(addDays(getPeriodDates(prevPeriods[0], salaryDay).startDate, elapsed), 'yyyy-MM-dd')
   }, [isRunningMonth, prevPeriods, currentPeriod, salaryDay])
-  const compLabel = prevPeriods.length > 0 ? getComparisonLabel(timeframe, isRunningMonth) : ''
+  const compLabel = prevPeriods.length > 0
+    ? getComparisonLabel(timeframe, timeframe === 'ytd' ? anchorYear === currentYear : isRunningMonth)
+    : ''
   const rangeEnd = periods[periods.length - 1] ?? currentPeriod
   const chartPeriods = useMemo(
     () => (periods.length >= 12 ? periods : periodsBetween(shiftPeriod(rangeEnd, -11), rangeEnd)),
@@ -396,14 +401,14 @@ export default function AnalysPage() {
               onClick={() => {
                 setView('history')
                 setTimeframe(t)
-                if (t === 'month') setAnchor(currentPeriod)
+                if (t === 'month' || t === 'ytd') setAnchor(currentPeriod)
               }}
               className={cn(
                 'flex-1 py-1.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap',
                 view === 'history' && timeframe === t ? 'bg-hb-nav text-hb-nav-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              {TIMEFRAME_LABELS[t]}
+              {t === 'ytd' && timeframe === 'ytd' && anchorYear !== currentYear ? anchorYear : TIMEFRAME_LABELS[t]}
             </button>
           ))}
           <button
@@ -535,6 +540,28 @@ export default function AnalysPage() {
                 disabled={anchor >= currentPeriod}
                 className="w-8 h-8 rounded-full grid place-items-center text-muted-foreground hover:bg-secondary disabled:opacity-30"
                 aria-label="Nästa månad"
+              >
+                <ChevronRight className="w-[18px] h-[18px]" />
+              </button>
+            </div>
+          ) : timeframe === 'ytd' ? (
+            <div className="flex items-center gap-1 -ml-2">
+              <button
+                type="button"
+                onClick={() => setAnchor(`${Number(anchorYear) - 1}-12`)}
+                disabled={anchorYear <= earliestYear}
+                className="w-8 h-8 rounded-full grid place-items-center text-muted-foreground hover:bg-secondary disabled:opacity-30"
+                aria-label="Föregående år"
+              >
+                <ChevronLeft className="w-[18px] h-[18px]" />
+              </button>
+              <span className="font-serif text-[17px] font-medium tracking-tight tabular-nums">{anchorYear}</span>
+              <button
+                type="button"
+                onClick={() => setAnchor(Number(anchorYear) + 1 >= Number(currentYear) ? currentPeriod : `${Number(anchorYear) + 1}-12`)}
+                disabled={anchorYear >= currentYear}
+                className="w-8 h-8 rounded-full grid place-items-center text-muted-foreground hover:bg-secondary disabled:opacity-30"
+                aria-label="Nästa år"
               >
                 <ChevronRight className="w-[18px] h-[18px]" />
               </button>

@@ -33,7 +33,8 @@ export function periodsBetween(start: string, end: string): string[] {
 
 /**
  * Periods covered by a timeframe, oldest first.
- * `anchor` is the selected period in month view and the current period otherwise.
+ * `anchor` is the selected period in month view, any period of the selected
+ * year in year view (a past year is shown in full), and ignored otherwise.
  */
 export function timeframePeriods(
   timeframe: Timeframe,
@@ -44,8 +45,13 @@ export function timeframePeriods(
   switch (timeframe) {
     case 'month':
       return [anchor]
-    case 'ytd':
-      return periodsBetween(`${currentPeriod.slice(0, 4)}-01`, currentPeriod)
+    case 'ytd': {
+      const year = anchor.slice(0, 4)
+      const end = year < currentPeriod.slice(0, 4) ? `${year}-12` : currentPeriod
+      // The first year with data starts at the first recorded month.
+      const start = earliestPeriod && earliestPeriod > `${year}-01` ? earliestPeriod : `${year}-01`
+      return periodsBetween(start < end ? start : end, end)
+    }
     case '12m':
       return periodsBetween(shiftPeriod(currentPeriod, -11), currentPeriod)
     case 'all':
@@ -63,10 +69,11 @@ export function comparisonPeriods(timeframe: Timeframe, periods: string[]): stri
   return periods.map((p) => shiftPeriod(p, -periods.length))
 }
 
-export function comparisonLabel(timeframe: Timeframe, runningMonth = false): string {
+/** `running` = the range is still in progress (current month / current year). */
+export function comparisonLabel(timeframe: Timeframe, running = false): string {
   switch (timeframe) {
-    case 'month': return runningMonth ? 'samma tid förra månaden' : 'förra månaden'
-    case 'ytd': return 'samma period i fjol'
+    case 'month': return running ? 'samma tid förra månaden' : 'förra månaden'
+    case 'ytd': return running ? 'samma period i fjol' : 'året innan'
     case '12m': return 'föregående 12 mån'
     case 'all': return ''
   }

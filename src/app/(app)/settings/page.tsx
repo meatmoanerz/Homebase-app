@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useUser } from '@/hooks/use-user'
+import { useUser, useSetCCMEnabled } from '@/hooks/use-user'
 import { useImportBatches } from '@/hooks/use-import-staging'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { LoadingPage } from '@/components/shared/loading-spinner'
 import { getInitials } from '@/lib/utils/formatters'
 import { motion } from 'framer-motion'
@@ -66,6 +67,7 @@ export default function SettingsPage() {
   const { data: user, isLoading } = useUser()
   const { data: batches = [] } = useImportBatches()
   const pendingImports = batches.reduce((sum, b) => sum + b.row_count, 0)
+  const setCCMEnabled = useSetCCMEnabled()
   const router = useRouter()
   const supabase = createClient()
 
@@ -173,6 +175,38 @@ export default function SettingsPage() {
           </Card>
         </motion.div>
       ))}
+
+      {/* Features */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <h2 className="text-sm font-semibold text-muted-foreground mb-2 px-1">
+          Funktioner
+        </h2>
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-0">
+            <div className="flex items-center justify-between gap-3 p-4">
+              <label htmlFor="ccm-enabled" className="flex items-center gap-3 min-w-0 cursor-pointer">
+                <div className="w-10 h-10 rounded-xl bg-hb-sage/20 flex items-center justify-center shrink-0">
+                  <CreditCard className="w-5 h-5 text-hb-cognac" aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-medium text-sm">Kreditkortshanterare</p>
+                  <p className="text-xs text-muted-foreground">Håll kortköp separat från kassaflödet</p>
+                </div>
+              </label>
+              <Switch
+                id="ccm-enabled"
+                checked={!!user?.ccm_enabled}
+                disabled={!user || setCCMEnabled.isPending}
+                onCheckedChange={(enabled) => user && setCCMEnabled.mutate({ userId: user.id, enabled })}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Theme Selector */}
       <motion.div

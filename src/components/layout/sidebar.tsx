@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
-import { Home, Wallet, Settings, Plus, BarChart3, Inbox, Target, Landmark } from 'lucide-react'
+import { Home, Wallet, MoreHorizontal, Plus, BarChart3, Inbox, Target, Landmark } from 'lucide-react'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { usePerspective } from '@/hooks/use-perspective'
 import { NotificationBell } from '@/components/layout/notification-bell'
@@ -16,7 +16,7 @@ const navItems = [
   { href: '/import',          icon: Inbox,      label: 'Importera'     },
   { href: '/savings',         icon: Target,     label: 'Sparmål'       },
   { href: '/settings/loans',  icon: Landmark,   label: 'Lån'           },
-  { href: '/settings',        icon: Settings,   label: 'Inställningar' },
+  { href: '/settings',        icon: MoreHorizontal, label: 'Mer'     },
 ]
 
 function PerspectiveAvatars() {
