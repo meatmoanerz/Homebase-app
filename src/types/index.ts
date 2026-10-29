@@ -53,7 +53,8 @@ export interface SavingsGoalWithCategory extends SavingsGoal {
 }
 
 export interface SavingsGoalContributionWithExpense extends SavingsGoalContribution {
-  expense: Expense
+  /** null for manual entries (withdrawals) */
+  expense: Expense | null
 }
 
 export interface LoanWithGroup extends Loan {

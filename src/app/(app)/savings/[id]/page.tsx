@@ -1,8 +1,16 @@
 'use client'
 
-import { use } from 'react'
+import { use, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSavingsGoal, useSavingsGoalContributions, getSavedAmount } from '@/hooks/use-savings-goals'
+import {
+  useSavingsGoal,
+  useSavingsGoalContributions,
+  useDeleteSavingsContribution,
+  getSavedAmount,
+  getContributionDate,
+} from '@/hooks/use-savings-goals'
+import { SavingsWithdrawalDialog } from '@/components/savings/savings-withdrawal-dialog'
+import { toast } from 'sonner'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,6 +29,9 @@ import {
   User,
   Clock,
   Wallet,
+  TrendingDown,
+  Trash2,
+  ArrowDownToLine,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { GoalCategory } from '@/types'
@@ -52,6 +63,17 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
   const { data: contributions = [], isLoading: contributionsLoading } = useSavingsGoalContributions(id)
   const { data: user } = useUser()
   const { data: partner } = usePartner()
+  const deleteContribution = useDeleteSavingsContribution()
+  const [withdrawOpen, setWithdrawOpen] = useState(false)
+
+  const handleDeleteContribution = async (id: string) => {
+    try {
+      await deleteContribution.mutateAsync(id)
+      toast.success('Uttaget borttaget')
+    } catch {
+      toast.error('Kunde inte ta bort uttaget')
+    }
+  }
 
   if (goalLoading) {
     return (
@@ -206,19 +228,6 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
                 </div>
               )}
 
-              {/* Monthly savings */}
-              {goal.monthly_savings_enabled && (
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-hb-sage/20 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-hb-cognac" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Månadssparande</p>
-                    <p className="font-semibold">{formatCurrency(goal.monthly_savings_amount)}/mån</p>
-                  </div>
-                </div>
-              )}
-
               {/* Monthly needed */}
               {monthsRemaining && monthsRemaining > 0 && remaining > 0 && (
                 <div className="flex items-center gap-3">
@@ -232,9 +241,27 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
                 </div>
               )}
             </div>
+            <Button
+              variant="outline"
+              className="w-full h-11 mt-4"
+              onClick={() => setWithdrawOpen(true)}
+              disabled={totalSaved <= 0}
+            >
+              <ArrowDownToLine className="w-4 h-4 mr-2" />
+              Gör uttag
+            </Button>
           </CardContent>
         </Card>
       </motion.div>
+
+      <SavingsWithdrawalDialog
+        goal={goal}
+        saved={totalSaved}
+        user1Name={user1Name}
+        user2Name={user2Name}
+        open={withdrawOpen}
+        onOpenChange={setWithdrawOpen}
+      />
 
       {/* User Contributions (if shared) */}
       {goal.is_shared && (
@@ -321,39 +348,63 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
               </div>
             ) : (
               <div className="space-y-3">
-                {contributions.map((contribution, index) => (
-                  <motion.div
-                    key={contribution.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className={cn(
-                      "flex items-center gap-3 p-3 rounded-lg",
-                      index % 2 === 0 ? "bg-muted/50" : "bg-transparent"
-                    )}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">
-                        {contribution.expense?.description || 'Inbetalning'}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Clock className="w-3 h-3" />
-                        {format(new Date(contribution.expense?.date || contribution.created_at), 'd MMM yyyy', { locale: sv })}
-                        {goal.is_shared && contribution.user1_amount > 0 && contribution.user2_amount > 0 && (
-                          <span className="text-muted-foreground">
-                            • {user1Name}: {formatCurrency(contribution.user1_amount)} | {user2Name}: {formatCurrency(contribution.user2_amount)}
-                          </span>
-                        )}
+                {contributions.map((contribution, index) => {
+                  const isWithdrawal = contribution.amount < 0
+                  const isManual = !contribution.expense_id
+                  const title = contribution.expense?.description || contribution.note || (isWithdrawal ? 'Uttag' : 'Inbetalning')
+                  return (
+                    <motion.div
+                      key={contribution.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className={cn(
+                        "flex items-center gap-3 p-3 rounded-lg",
+                        index % 2 === 0 ? "bg-muted/50" : "bg-transparent"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+                        isWithdrawal ? "bg-amber-100 dark:bg-amber-950/40" : "bg-green-100 dark:bg-green-950/40"
+                      )}>
+                        {isWithdrawal
+                          ? <TrendingDown className="w-5 h-5 text-amber-700 dark:text-amber-300" />
+                          : <TrendingUp className="w-5 h-5 text-green-700 dark:text-green-400" />}
                       </div>
-                    </div>
-                    <span className="font-semibold text-green-600 shrink-0">
-                      +{formatCurrency(contribution.amount)}
-                    </span>
-                  </motion.div>
-                ))}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{title}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                          <Clock className="w-3 h-3" />
+                          {format(new Date(getContributionDate(contribution)), 'd MMM yyyy', { locale: sv })}
+                          {isManual && <span>· Uttag</span>}
+                          {goal.is_shared && contribution.user1_amount !== 0 && contribution.user2_amount !== 0 && (
+                            <span>
+                              • {user1Name}: {formatCurrency(Math.abs(contribution.user1_amount))} | {user2Name}: {formatCurrency(Math.abs(contribution.user2_amount))}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className={cn(
+                        "font-semibold shrink-0",
+                        isWithdrawal ? "text-amber-700 dark:text-amber-300" : "text-green-700 dark:text-green-400"
+                      )}>
+                        {isWithdrawal ? '−' : '+'}{formatCurrency(Math.abs(contribution.amount))}
+                      </span>
+                      {isManual && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 -mr-2"
+                          aria-label={`Ta bort ${title}`}
+                          onClick={() => handleDeleteContribution(contribution.id)}
+                          disabled={deleteContribution.isPending}
+                        >
+                          <Trash2 className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                      )}
+                    </motion.div>
+                  )
+                })}
               </div>
             )}
           </CardContent>
