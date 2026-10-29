@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -80,6 +81,7 @@ interface IncomeState {
 export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
   const router = useRouter()
   const supabase = createClient()
+  const queryClient = useQueryClient()
   const { data: user } = useUser()
   const { data: partner } = usePartner()
   const { data: householdData, isLoading: incomesLoading } = useHouseholdIncomeDetails()
@@ -904,7 +906,8 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
       if (existingBudget) {
         await updateBudget.mutateAsync({ id: existingBudget.id, ...budgetData })
         budgetId = existingBudget.id
-        await supabase.from('budget_items').delete().eq('budget_id', budgetId)
+        const { error: deleteError } = await supabase.from('budget_items').delete().eq('budget_id', budgetId)
+        if (deleteError) throw deleteError
       } else {
         const result = await createBudget.mutateAsync(budgetData)
         budgetId = result.id
@@ -959,6 +962,12 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           }
         }
       }
+
+      // The budget mutation above already refetched budgets — while the items were
+      // deleted but not yet re-inserted, so the cache holds a budget without items
+      // for the whole staleTime. Refetch now that the items are back.
+      await queryClient.invalidateQueries({ queryKey: ['budgets'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
 
       // Clear draft on successful save
       clearDraft()
