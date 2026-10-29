@@ -1,6 +1,6 @@
 # 01 — Databas
 
-Senast uppdaterad: 2026-10-27
+Senast uppdaterad: 2026-10-29
 
 ## Projekt
 
@@ -80,6 +80,26 @@ Härleds från `cost_assignment`. Det finns inga andel-kolumner per person i
 - Inläsning via appen sker i `src/lib/receipts/save-receipt.ts`; samma regler
   gäller vid SQL-insert (sätt `user_id` på alla rader, koppla
   `receipts.expense_id` om köpet finns).
+
+---
+
+## Sparmål (`savings_goals`, `savings_goal_contributions`)
+
+- En utgift i ett sparmåls kategori (`categories.linked_savings_goal_id`) får sitt
+  bidrag av triggern på `expenses` — vid insert och när kategori, belopp,
+  `cost_assignment` eller `user_id` ändras. **Lägg aldrig in bidrag för utgifter
+  manuellt.**
+- `starting_balance` och `starting_balance_user1/2` räknas fram av trigger.
+  Skriv bara `initial_balance` ("Redan sparat").
+- Uttag = rad i `savings_goal_contributions` utan `expense_id`, negativt `amount`,
+  `date` satt. user1 = målets ägare, user2 = ägarens partner.
+
+## Hushållsmodell (`shared_account_defaults`)
+
+Gäller från `effective_from` och framåt (senaste raden ≤ perioden). `model`:
+`'budget'` / `'income'` / `'equal'`. `category_ids` = gemensamma kostnader,
+`income_category_ids` = de som delas efter inkomst, `excluded_income_names` =
+inkomster som inte räknas. Beräkningarna finns i `src/lib/household/economy.ts`.
 
 ---
 

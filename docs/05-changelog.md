@@ -7,6 +7,17 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-10-29 — Gemensam ekonomi, sparmål via trigger, budgetens källrader
+
+- Sparmål: bidrag skapas/flyttas/tas bort av en DB-trigger på `expenses`
+  (även vid redigering och SQL-insert). `initial_balance` = "Redan sparat",
+  `starting_balance` härleds. Uttag, partnern ser delade mål, månadssparande borttaget.
+- Gemensam ekonomi (f.d. Gemensamt konto): modellval Enligt budget / Efter inkomst /
+  Delad inkomst, sidan Gemensamma kostnader, checklista för månadens överföringar, delning som bild.
+- Budget: inkomsthinkar och procentrader enligt modellen; Ränta, Amortering och
+  Kreditkort följer sin källa tills de skrivs över. Cachebugg (0 kr efter sparande) rättad.
+  Dokumentationen godkänd av Tim.
+
 ## 2026-10-28 — Ingen scrollbar på mobil
 
 Skärmar med touch (`pointer: coarse`) visar ingen scrollbar/scrollindikator,
