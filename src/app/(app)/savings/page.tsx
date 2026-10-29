@@ -4,12 +4,12 @@ import { useState } from 'react'
 import { SavingsGoalForm } from '@/components/savings/savings-goal-form'
 import { SavingsGoalCard } from '@/components/savings/savings-goal-card'
 import { Card, CardContent } from '@/components/ui/card'
-import { useSavingsGoals } from '@/hooks/use-savings-goals'
+import { useSavingsGoals, getSavedAmount } from '@/hooks/use-savings-goals'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { SavingsGoalWithCategory } from '@/types'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Target, CheckCircle2, PiggyBank, TrendingUp } from 'lucide-react'
+import { Plus, Target, CheckCircle2, PiggyBank } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 type TabType = 'new' | 'active' | 'completed'
@@ -35,17 +35,12 @@ export default function SavingsPage() {
   const activeGoals = savingsGoals.filter(g => g.status === 'active' || !g.status)
   const completedGoals = savingsGoals.filter(g => g.status === 'completed')
 
-  // Calculate totals - for shared goals, use user amounts; for personal goals, use starting_balance
-  const totalSaved = savingsGoals.reduce((sum, goal) => {
-    const goalAmount = goal.is_shared
-      ? goal.starting_balance_user1 + goal.starting_balance_user2
-      : goal.starting_balance
-    return sum + goalAmount
-  }, 0)
+  const totalSaved = savingsGoals.reduce((sum, goal) => sum + getSavedAmount(goal), 0)
   const totalTarget = activeGoals.reduce((sum, goal) => sum + (goal.target_amount || 0), 0)
-  const totalMonthlySavings = activeGoals
-    .filter(g => g.monthly_savings_enabled)
-    .reduce((sum, goal) => sum + goal.monthly_savings_amount, 0)
+  const totalRemaining = activeGoals.reduce(
+    (sum, goal) => sum + Math.max((goal.target_amount || 0) - getSavedAmount(goal), 0),
+    0
+  )
 
   const handleGoalCreated = () => {
     setActiveTab('active')
@@ -83,10 +78,10 @@ export default function SavingsPage() {
           <Card className="border-0 shadow-sm bg-hb-sand-deep/20">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
-                <TrendingUp className="w-4 h-4 text-hb-terracotta" />
-                <span className="text-xs text-muted-foreground">Månadssparande</span>
+                <Target className="w-4 h-4 text-hb-terracotta" />
+                <span className="text-xs text-muted-foreground">Kvar till målen</span>
               </div>
-              <p className="text-xl font-bold text-hb-terracotta">{formatCurrency(totalMonthlySavings)}/mån</p>
+              <p className="text-xl font-bold text-hb-terracotta">{formatCurrency(totalRemaining)}</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -181,7 +176,7 @@ export default function SavingsPage() {
                   <Target className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
                   <p className="text-muted-foreground">Inga aktiva sparmål</p>
                   <p className="text-sm text-muted-foreground/70 mt-1">
-                    Skapa ditt första sparmål under "Nytt"
+                    Skapa ditt första sparmål under &quot;Nytt&quot;
                   </p>
                 </CardContent>
               </Card>

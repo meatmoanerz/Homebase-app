@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Supabase",
+      "mcp__github",
+      "mcp__Vercel",
+      "Bash(pnpm *)",
+      "Bash(node_modules/.bin/tsc *)",
+      "Bash(node_modules/.bin/eslint *)",
+      "Bash(git *)"
+    ]
+  }
+}

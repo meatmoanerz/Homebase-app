@@ -8,6 +8,7 @@ import { useArchiveMonthlyBudget } from '@/hooks/use-temporary-budgets'
 import { useExpensesByPeriod } from '@/hooks/use-expenses'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { useHouseholdMonthlyIncomes, useMonthlyIncomeTotal } from '@/hooks/use-monthly-incomes'
+import { useHouseholdEconomy } from '@/hooks/use-household-economy'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -81,6 +82,8 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
   const currentPeriod = getCurrentBudgetPeriod(salaryDay)
   const { data: expenses } = useExpensesByPeriod(budget?.period || '', salaryDay)
   const { data: householdIncomes } = useHouseholdMonthlyIncomes(budget?.period)
+  // The household model for the period: income-share rows and the equalization
+  const { splitRule, incomeSplit } = useHouseholdEconomy(budget?.period ?? '')
   const { data: incomeTotal } = useMonthlyIncomeTotal(budget?.period)
   const hasPartner = !!partner
   const [incomeExpanded, setIncomeExpanded] = useState(false)
@@ -103,8 +106,8 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
     if (!budget?.budget_items) return 0
     return budget.budget_items
       .filter(item => !item.is_ccm && (item.type === 'fixedExpense' || item.type === 'variableExpense'))
-      .reduce((sum, item) => sum + budgetAmountForView(item, viewMode, user?.id, partner?.id), 0)
-  }, [budget, viewMode, user?.id, partner?.id])
+      .reduce((sum, item) => sum + budgetAmountForView(item, viewMode, user?.id, partner?.id, splitRule), 0)
+  }, [budget, viewMode, user?.id, partner?.id, splitRule])
 
   // Calculate actual spending per category based on view mode
   // - total: all expenses at full amount (household view)
@@ -200,7 +203,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
   // with 50/50 as fallback when no assignment exists
   const totals = useMemo(() => {
     const itemBudget = (item: BudgetItem & SplittableBudgetItem) =>
-      budgetAmountForView(item, viewMode, user?.id, partner?.id)
+      budgetAmountForView(item, viewMode, user?.id, partner?.id, splitRule)
 
     const fixedBudgeted = enhancedGroupedItems.fixed.reduce((sum, item) => sum + itemBudget(item), 0)
     const variableBudgeted = enhancedGroupedItems.variable.reduce((sum, item) => sum + itemBudget(item), 0)
@@ -220,7 +223,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
       totalBudgeted: fixedBudgeted + variableBudgeted + savingsBudgeted,
       totalActual: fixedActual + variableActual,
     }
-  }, [enhancedGroupedItems, actualSpending, viewMode, user?.id, partner?.id])
+  }, [enhancedGroupedItems, actualSpending, viewMode, user?.id, partner?.id, splitRule])
 
   // Get expenses filtered by category and view mode
   const getExpensesForCategory = (categoryId: string) => {
@@ -297,8 +300,8 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
   const displayIncome = viewMode === 'total'
     ? budget.total_income
     : viewMode === 'mine'
-      ? (ownIncome ?? budget.total_income / 2)
-      : (partnerIncome ?? budget.total_income / 2)
+      ? (ownIncome !== undefined ? ownIncome - incomeSplit.equalization : budget.total_income / 2)
+      : (partnerIncome !== undefined ? partnerIncome + incomeSplit.equalization : budget.total_income / 2)
   // Calculate remaining: Total budgeted (fixed + variable + savings) - Actual spent
   // All money going out should be counted - both expenses and savings
   const remaining = totals.totalBudgeted - totals.totalActual
@@ -590,7 +593,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
           actualTotal={totals.fixedActual}
           delay={0.15}
           onCategoryClick={handleCategoryClick}
-          getItemBudget={(item) => budgetAmountForView(item, viewMode, user?.id, partner?.id)}
+          getItemBudget={(item) => budgetAmountForView(item, viewMode, user?.id, partner?.id, splitRule)}
         />
       )}
 
@@ -605,7 +608,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
           actualTotal={totals.variableActual}
           delay={0.2}
           onCategoryClick={handleCategoryClick}
-          getItemBudget={(item) => budgetAmountForView(item, viewMode, user?.id, partner?.id)}
+          getItemBudget={(item) => budgetAmountForView(item, viewMode, user?.id, partner?.id, splitRule)}
         />
       )}
 
@@ -621,7 +624,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
           delay={0.25}
           accentColor="success"
           onCategoryClick={handleCategoryClick}
-          getItemBudget={(item) => budgetAmountForView(item, viewMode, user?.id, partner?.id)}
+          getItemBudget={(item) => budgetAmountForView(item, viewMode, user?.id, partner?.id, splitRule)}
         />
       )}
 

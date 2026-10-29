@@ -192,36 +192,9 @@ export function useCreateExpense() {
 
       const createdExpense = data as ExpenseWithCategory
 
-      // Check if the category is linked to a savings goal
-      if (createdExpense.category && createdExpense.category.linked_savings_goal_id) {
-        // Calculate user amounts based on cost assignment
-        let user1Amount = createdExpense.amount
-        let user2Amount = 0
-
-        if (createdExpense.cost_assignment === 'shared') {
-          // Split 50/50 between both users
-          user1Amount = createdExpense.amount / 2
-          user2Amount = createdExpense.amount / 2
-        } else if (createdExpense.cost_assignment === 'partner') {
-          // All goes to partner (user2)
-          user1Amount = 0
-          user2Amount = createdExpense.amount
-        }
-        // 'personal' means all goes to user1 (already set as default)
-
-        // Create a contribution record for the savings goal
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase.from('savings_goal_contributions') as any)
-          .insert({
-            savings_goal_id: createdExpense.category.linked_savings_goal_id,
-            expense_id: createdExpense.id,
-            user_id: user.id,
-            amount: createdExpense.amount,
-            user1_amount: user1Amount,
-            user2_amount: user2Amount,
-          })
-
-        // Invalidate savings goals to reflect the new contribution
+      // An expense in a savings goal's category counts towards that goal; the DB
+      // trigger on expenses writes the contribution
+      if (createdExpense.category?.linked_savings_goal_id) {
         queryClient.invalidateQueries({ queryKey: ['savings-goals'] })
         queryClient.invalidateQueries({ queryKey: ['savings-goal-contributions'] })
       }
@@ -339,6 +312,10 @@ export function useUpdateExpense() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      // Category, amount or cost assignment may have moved a savings goal
+      // contribution (the DB trigger on expenses keeps them in step)
+      queryClient.invalidateQueries({ queryKey: ['savings-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['savings-goal-contributions'] })
     },
   })
 }

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -25,6 +26,14 @@ import { useLoans, getLoanTotalsForPeriod } from '@/hooks/use-loans'
 import { useCCMInvoices } from '@/hooks/use-ccm-invoices'
 import { useCCMExpenses } from '@/hooks/use-expenses'
 import { useCreditCards } from '@/hooks/use-credit-cards'
+import { useHouseholdSettings } from '@/hooks/use-household-economy'
+import {
+  computeIncomeSplit,
+  defaultSplit,
+  formatShare,
+  splitRuleFor,
+  HOUSEHOLD_MODEL_LABELS,
+} from '@/lib/household/economy'
 import { getCreditCardAmountsForBudget } from '@/lib/utils/credit-cards'
 import { formatCurrency, formatPercentage } from '@/lib/utils/formatters'
 import { formatPeriodDisplay, getCurrentBudgetPeriod, getNextPeriods } from '@/lib/utils/budget-period'
@@ -47,7 +56,6 @@ import {
   Lock,
   CreditCard,
   Trash2,
-  ArrowDownToLine
 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
@@ -67,6 +75,8 @@ interface BudgetItemState {
   isSplit: boolean
   hasExplicitSplit: boolean // True only when user has explicitly set different amounts in split view
   is_ccm: boolean // Whether this is a CCM (credit card) expense
+  /** false: filled from its source (loans, credit cards) and follows it until someone types an amount */
+  isManualAmount?: boolean
 }
 
 // Income state for editable amounts
@@ -80,6 +90,7 @@ interface IncomeState {
 export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
   const router = useRouter()
   const supabase = createClient()
+  const queryClient = useQueryClient()
   const { data: user } = useUser()
   const { data: partner } = usePartner()
   const { data: householdData, isLoading: incomesLoading } = useHouseholdIncomeDetails()
@@ -182,10 +193,24 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         hasExplicitSplit: creditCardTotals.userAmount !== creditCardTotals.partnerAmount,
         // Fakturan betalas från kontot i perioden → kassaflöde, inte CCM
         is_ccm: false,
+        isManualAmount: false,
       }
     }
-    return { total: creditCardTotals.total, isSplit: false, hasExplicitSplit: false, is_ccm: false }
+    return { total: creditCardTotals.total, isSplit: false, hasExplicitSplit: false, is_ccm: false, isManualAmount: false }
   }, [creditCardTotals, partner])
+
+  // Rows filled from another part of the app. They follow their source until
+  // someone types their own amount; after that the current value is offered.
+  const sourceFor = useCallback((cat: Category): { label: string; total: number; userAmount?: number; partnerAmount?: number } | null => {
+    if (cat.name === 'Ränta bolån' && loanTotals.loanCount > 0) return { label: 'Lånen', total: loanTotals.totalInterest }
+    if (cat.name === 'Amortering' && loanTotals.loanCount > 0) return { label: 'Lånen', total: loanTotals.totalAmortization }
+    if (cat.name === 'Kreditkort' && creditCardTotals) {
+      return partner
+        ? { label: 'Kreditkorten', total: creditCardTotals.total, userAmount: creditCardTotals.userAmount, partnerAmount: creditCardTotals.partnerAmount }
+        : { label: 'Kreditkorten', total: creditCardTotals.total }
+    }
+    return null
+  }, [loanTotals, creditCardTotals, partner])
 
   // Helper: Map budget items from partner's category IDs to current user's category IDs by matching names
   const mapBudgetItemsToCurrentCategories = useCallback((
@@ -404,6 +429,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           isSplit: false,
           hasExplicitSplit: false,
           is_ccm: false,
+          isManualAmount: false,
         }
       })
       setBudgetItems(items)
@@ -511,6 +537,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
               isSplit: false,
               hasExplicitSplit: true,
               is_ccm: item.is_ccm || false,
+              isManualAmount: item.is_manual_amount ?? true,
             }
           } else {
             items[item.category_id] = {
@@ -518,6 +545,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
               isSplit: false,
               hasExplicitSplit: false,
               is_ccm: item.is_ccm || false,
+              isManualAmount: item.is_manual_amount ?? true,
             }
           }
         }
@@ -613,6 +641,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           isSplit: false,
           hasExplicitSplit: false,
           is_ccm: false,
+          isManualAmount: false,
         }
       })
       setBudgetItems(items)
@@ -633,6 +662,21 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
   )
   
   const totalIncome = userIncome + partnerIncome
+
+  // How the household splits money this period (Partner › Så delar ni ekonomin)
+  const { settings: householdSettings } = useHouseholdSettings(period)
+  const incomeSplit = useMemo(
+    () => computeIncomeSplit(
+      incomes.map((i) => ({ user_id: (i.isUser ? user?.id : partner?.id) ?? '', name: i.name, amount: i.amount })),
+      user?.id,
+      partner?.id,
+      householdSettings
+    ),
+    [incomes, user?.id, partner?.id, householdSettings]
+  )
+  const splitRule = useMemo(() => splitRuleFor(householdSettings, incomeSplit), [householdSettings, incomeSplit])
+  // "Delad inkomst": what the higher earner swishes, so both start from the same bucket
+  const equalization = partner ? incomeSplit.equalization : 0
   
   const totalFixed = useMemo(() => 
     fixed.reduce((sum, cat) => sum + (budgetItems[cat.id]?.total || 0), 0),
@@ -664,10 +708,11 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         // Skip CCM items for expense calculations (they're paid next month)
         if (!isSavings && item.is_ccm) return
 
-        // Use explicit amounts if they exist, otherwise divide 50/50
-        const hasExplicitAmounts = item.userAmount !== undefined && item.partnerAmount !== undefined
-        const userAmt = hasExplicitAmounts ? item.userAmount! : item.total / 2
-        const partnerAmt = hasExplicitAmounts ? item.partnerAmount! : item.total / 2
+        // Split set by hand, otherwise the model's default (income share or 50/50)
+        const explicit = item.hasExplicitSplit && item.userAmount !== undefined && item.partnerAmount !== undefined
+        const fallback = defaultSplit(item.total, cat.id, splitRule)
+        const userAmt = explicit ? item.userAmount! : fallback.user
+        const partnerAmt = explicit ? item.partnerAmount! : fallback.partner
 
         if (isSavings) {
           userSav += userAmt
@@ -684,7 +729,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
     processCategories(savings, true)
 
     return { userExpenses: userExp, partnerExpenses: partnerExp, userSavings: userSav, partnerSavings: partnerSav }
-  }, [fixed, variable, savings, budgetItems])
+  }, [fixed, variable, savings, budgetItems, splitRule])
   
   const totalExpenses = totalFixed + totalVariable
 
@@ -701,8 +746,8 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
   // Only cashflow expenses + savings affect this month's balance (CCM is paid next month)
   const totalBudgeted = totalCashflow + totalSavings
   const remaining = totalIncome - totalBudgeted  // CCM does NOT reduce remaining this month
-  const userRemaining = userIncome - userExpenses - userSavings
-  const partnerRemaining = partnerIncome - partnerExpenses - partnerSavings
+  const userRemaining = userIncome - equalization - userExpenses - userSavings
+  const partnerRemaining = partnerIncome + equalization - partnerExpenses - partnerSavings
   const savingsRate = totalIncome > 0 ? (totalSavings / totalIncome) * 100 : 0
   const budgetUsage = totalIncome > 0 ? (totalBudgeted / totalIncome) * 100 : 0
 
@@ -725,14 +770,16 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           isSplit: false,
           hasExplicitSplit: false,
           is_ccm: current.is_ccm, // Preserve CCM status
+          isManualAmount: true,
         },
       }
     })
   }
 
   const updateItemSplit = (categoryId: string, userAmount: number, partnerAmount: number) => {
-    // Mark as explicit split only if amounts are actually different
-    const hasExplicitSplit = userAmount !== partnerAmount
+    // Explicit only when it differs from the model's default (an odd krona on 50/50 is not)
+    const fallback = defaultSplit(userAmount + partnerAmount, categoryId, splitRule)
+    const hasExplicitSplit = Math.abs(userAmount - fallback.user) > 0.5
     setBudgetItems(prev => {
       const current = prev[categoryId] || { total: 0, isSplit: false, hasExplicitSplit: false, is_ccm: false }
       return {
@@ -744,9 +791,40 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           isSplit: true,
           hasExplicitSplit,
           is_ccm: current.is_ccm, // Preserve CCM status
+          isManualAmount: true,
         },
       }
     })
+  }
+
+  // Back to the model's split ("Återställ")
+  const resetSplit = (categoryId: string) => {
+    setBudgetItems(prev => {
+      const current = prev[categoryId]
+      if (!current) return prev
+      return {
+        ...prev,
+        [categoryId]: { ...current, userAmount: undefined, partnerAmount: undefined, hasExplicitSplit: false, isSplit: false },
+      }
+    })
+  }
+
+  // Take the source's current value (and, for the credit card, its split)
+  const applySourceValue = (cat: Category) => {
+    const source = sourceFor(cat)
+    if (!source) return
+    setBudgetItems(prev => ({
+      ...prev,
+      [cat.id]: {
+        total: source.total,
+        userAmount: source.userAmount,
+        partnerAmount: source.partnerAmount,
+        isSplit: false,
+        hasExplicitSplit: source.userAmount !== undefined && source.userAmount !== source.partnerAmount,
+        is_ccm: prev[cat.id]?.is_ccm ?? false,
+        isManualAmount: false,
+      },
+    }))
   }
 
   const toggleSplit = (categoryId: string) => {
@@ -763,10 +841,11 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           },
         }
       } else {
-        // Opening split view - use existing amounts if they exist, otherwise calculate half
-        const hasExistingAmounts = current.userAmount !== undefined && current.partnerAmount !== undefined
-        const userAmount = hasExistingAmounts ? current.userAmount! : Math.floor(current.total / 2)
-        const partnerAmount = hasExistingAmounts ? current.partnerAmount! : (current.total - Math.floor(current.total / 2))
+        // Opening split view - use the amounts set by hand, otherwise the model's default
+        const hasExistingAmounts = current.hasExplicitSplit && current.userAmount !== undefined && current.partnerAmount !== undefined
+        const fallback = defaultSplit(current.total, categoryId, splitRule)
+        const userAmount = hasExistingAmounts ? current.userAmount! : (fallback.byIncome ? fallback.user : Math.floor(current.total / 2))
+        const partnerAmount = hasExistingAmounts ? current.partnerAmount! : current.total - userAmount
 
         return {
           ...prev,
@@ -797,49 +876,57 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
     })
   }
 
-  // "Hämta värde" — fyller raden med beloppet från Lån / Kreditkortshanteraren
-  // för den period budgeten gäller.
-  const FETCHABLE_CATEGORIES = ['Ränta bolån', 'Amortering', 'Kreditkort']
-  const fetchLoading = loansLoading || ccmInvoicesLoading || ccmExpensesLoading || creditCardsLoading
+  // While loans and credit cards load, a source-following row must not be reset to 0
+  const sourcesLoading = loansLoading || ccmInvoicesLoading || ccmExpensesLoading || creditCardsLoading
 
-  const fetchValue = (cat: Category) => {
-    const periodName = formatPeriodDisplay(period)
-    if (fetchLoading) {
-      toast.info('Hämtar data — försök igen om en sekund')
-      return
-    }
-
-    if (cat.name === 'Ränta bolån' || cat.name === 'Amortering') {
-      const value = cat.name === 'Ränta bolån' ? loanTotals.totalInterest : loanTotals.totalAmortization
-      if (loanTotals.loanCount === 0) {
-        toast.error('Inga lån registrerade')
-        return
+  // Rows that follow their source pick up changes in loans and credit cards
+  useEffect(() => {
+    if (!initialized || sourcesLoading || periodAlreadyHasBudget) return
+    setBudgetItems(prev => {
+      let changed = false
+      const next = { ...prev }
+      for (const cat of [...fixed, ...variable]) {
+        const item = prev[cat.id]
+        const source = sourceFor(cat)
+        if (!item || !source || item.isManualAmount !== false) continue
+        // A loan row split by hand keeps its split: treat it as typed in
+        if (item.hasExplicitSplit && source.userAmount === undefined) continue
+        if (item.total === source.total && item.userAmount === source.userAmount) continue
+        next[cat.id] = {
+          ...item,
+          total: source.total,
+          userAmount: source.userAmount,
+          partnerAmount: source.partnerAmount,
+          hasExplicitSplit: source.userAmount !== undefined && source.userAmount !== source.partnerAmount,
+          isSplit: false,
+        }
+        changed = true
       }
-      // Delas lika — ingen explicit split
-      updateItem(cat.id, value)
-      toast.success(`${cat.name} ${periodName}: ${formatCurrency(value)} (${loanTotals.loanCount} lån)`)
-      return
-    }
+      return changed ? next : prev
+    })
+  }, [initialized, sourcesLoading, periodAlreadyHasBudget, fixed, variable, sourceFor])
 
-    if (cat.name === 'Kreditkort') {
-      const ccItem = buildCreditCardItem()
-      if (!ccItem || !creditCardTotals) {
-        toast.info(`Ingen kreditkortsfaktura betalas i ${periodName}`)
-        return
-      }
-      setBudgetItems(prev => ({
-        ...prev,
-        [cat.id]: { ...ccItem, is_ccm: prev[cat.id]?.is_ccm ?? false },
-      }))
-      const detail = creditCardTotals.parts
-        .map(p => `${p.card.name} ${formatCurrency(p.amount)}${p.source === 'registrerat' ? ' (registrerat)' : ''}`)
-        .join(' + ')
-      toast.success(`Kreditkort ${periodName}: ${formatCurrency(creditCardTotals.total)}`, {
-        description: partner
-          ? `${detail} · ${user?.first_name || 'Du'} ${formatCurrency(creditCardTotals.userAmount)}, ${partner.first_name || 'Partner'} ${formatCurrency(creditCardTotals.partnerAmount)}`
-          : detail,
-      })
+  // The small line under a source row's name
+  const sourceNote = (cat: Category): { text: string; offer: boolean } | null => {
+    const source = sourceFor(cat)
+    const item = budgetItems[cat.id]
+    if (!source || !item || sourcesLoading) return null
+    if (item.isManualAmount === false) return { text: `Från ${source.label.toLowerCase()}`, offer: false }
+    if (Math.round(source.total) !== Math.round(item.total)) {
+      return { text: `${source.label} säger nu ${formatCurrency(source.total)}`, offer: true }
     }
+    return null
+  }
+
+  // Caption in the split view, and whether the row deviates from the model
+  const splitInfo = (cat: Category): { rule: string; deviates: boolean; resetLabel: string } => {
+    const item = budgetItems[cat.id]
+    const fallback = defaultSplit(1, cat.id, splitRule)
+    const modelLabel = fallback.byIncome ? formatShare(splitRule!.userShare) : '50/50'
+    const followsCard = cat.name === 'Kreditkort' && item?.isManualAmount === false
+    if (followsCard) return { rule: 'Efter vem köpen tillhör', deviates: false, resetLabel: modelLabel }
+    if (item?.hasExplicitSplit) return { rule: 'Ändrad för hand', deviates: true, resetLabel: modelLabel }
+    return { rule: fallback.byIncome ? `Efter inkomst, ${modelLabel}` : 'Lika, 50/50', deviates: false, resetLabel: modelLabel }
   }
 
   const toggleSection = (section: 'income' | 'fixed' | 'variable' | 'savings') => {
@@ -862,6 +949,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           isSplit: false,
           hasExplicitSplit: false,
           is_ccm: item.is_ccm || false,
+          isManualAmount: true,
         }
       }
     })
@@ -904,7 +992,8 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
       if (existingBudget) {
         await updateBudget.mutateAsync({ id: existingBudget.id, ...budgetData })
         budgetId = existingBudget.id
-        await supabase.from('budget_items').delete().eq('budget_id', budgetId)
+        const { error: deleteError } = await supabase.from('budget_items').delete().eq('budget_id', budgetId)
+        if (deleteError) throw deleteError
       } else {
         const result = await createBudget.mutateAsync(budgetData)
         budgetId = result.id
@@ -923,6 +1012,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
               type,
               amount: item.total,
               is_ccm: item.is_ccm || false,
+              is_manual_amount: item.isManualAmount !== false,
             })
           }
         })
@@ -960,6 +1050,12 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         }
       }
 
+      // The budget mutation above already refetched budgets — while the items were
+      // deleted but not yet re-inserted, so the cache holds a budget without items
+      // for the whole staleTime. Refetch now that the items are back.
+      await queryClient.invalidateQueries({ queryKey: ['budgets'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+
       // Clear draft on successful save
       clearDraft()
       
@@ -987,7 +1083,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
   const hasPartner = !!partner
 
   return (
-    <div className="space-y-4 pb-28">
+    <div className={cn('space-y-4', hasPartner && !periodAlreadyHasBudget ? 'pb-40' : 'pb-28')}>
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -1164,7 +1260,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
               <div className="text-left">
                 <p className="font-medium text-sm">Inkomster</p>
                 <p className="text-xs text-muted-foreground">
-                  {hasPartner ? `${userName} + ${partnerName}` : 'Din inkomst'}
+                  {hasPartner ? `${userName} + ${partnerName} · ${HOUSEHOLD_MODEL_LABELS[householdSettings.model]}` : 'Din inkomst'}
                 </p>
               </div>
             </div>
@@ -1279,17 +1375,35 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
                     </p>
                   )}
 
-                  {/* Summary */}
+                  {/* Summary: what each of you budgets with */}
                   {hasPartner && incomes.length > 0 && (
-                    <div className="pt-2 border-t border-border/50 flex justify-between text-sm">
-                      <div>
-                        <span className="text-muted-foreground">{userName}:</span>
-                        <span className="ml-1 font-medium">{formatCurrency(userIncome)}</span>
+                    <div className="pt-2 border-t border-border/50 space-y-1.5 text-sm">
+                      <div className="flex justify-between">
+                        <div>
+                          <span className="text-muted-foreground">{userName}:</span>
+                          <span className="ml-1 font-medium">{formatCurrency(userIncome - equalization)}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">{partnerName}:</span>
+                          <span className="ml-1 font-medium">{formatCurrency(partnerIncome + equalization)}</span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">{partnerName}:</span>
-                        <span className="ml-1 font-medium">{formatCurrency(partnerIncome)}</span>
-                      </div>
+                      {householdSettings.model === 'equal' && (
+                        <p className="text-xs text-muted-foreground">
+                          {!incomeSplit.bothRegistered
+                            ? 'Delad inkomst: utjämningen räknas när ni båda har inkomst för perioden'
+                            : equalization === 0
+                              ? 'Delad inkomst: ni tjänar lika, ingen swish'
+                              : `Delad inkomst: ${equalization > 0 ? `${userName} swishar ${partnerName}` : `${partnerName} swishar ${userName}`} ${formatCurrency(Math.abs(equalization))}`}
+                        </p>
+                      )}
+                      {householdSettings.model === 'income' && (
+                        <p className="text-xs text-muted-foreground">
+                          {incomeSplit.bothRegistered
+                            ? `Efter inkomst: ${userName} ${Math.round(incomeSplit.userShare * 100)} % · ${partnerName} ${100 - Math.round(incomeSplit.userShare * 100)} %`
+                            : 'Efter inkomst: procentsatsen räknas när ni båda har inkomst, till dess 50/50'}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1327,8 +1441,10 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         showPreviousValues={showPreviousValues && !periodAlreadyHasBudget}
         readOnly={periodAlreadyHasBudget}
         ccmEnabled={user?.ccm_enabled}
-        fetchableCategories={FETCHABLE_CATEGORIES}
-        onFetchValue={fetchValue}
+        getSourceNote={sourceNote}
+        onUseSource={applySourceValue}
+        getSplitInfo={splitInfo}
+        onResetSplit={resetSplit}
       />
 
       {/* Variable Expenses */}
@@ -1359,8 +1475,10 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         showPreviousValues={showPreviousValues && !periodAlreadyHasBudget}
         readOnly={periodAlreadyHasBudget}
         ccmEnabled={user?.ccm_enabled}
-        fetchableCategories={FETCHABLE_CATEGORIES}
-        onFetchValue={fetchValue}
+        getSourceNote={sourceNote}
+        onUseSource={applySourceValue}
+        getSplitInfo={splitInfo}
+        onResetSplit={resetSplit}
       />
 
       {/* Savings */}
@@ -1390,6 +1508,8 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         previousAmounts={previousAmounts}
         showPreviousValues={showPreviousValues && !periodAlreadyHasBudget}
         readOnly={periodAlreadyHasBudget}
+        getSplitInfo={splitInfo}
+        onResetSplit={resetSplit}
       />
 
       {/* Summary */}
@@ -1513,6 +1633,13 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
       {/* Save Button - fixed above the nav pill */}
       {!periodAlreadyHasBudget && (
         <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+96px)] left-0 right-0 px-4 keyboard-adjust">
+          {/* What each of you has left, always in view while entering costs */}
+          {hasPartner && (
+            <div className="mb-2 flex justify-between gap-3 rounded-xl bg-hb-nav text-hb-nav-foreground px-4 py-2 text-xs shadow-lg">
+              <span>{userName} kvar <span className={cn('font-bold text-sm tabular-nums', userRemaining < 0 && 'text-red-300')}>{formatCurrency(userRemaining)}</span></span>
+              <span>{partnerName} kvar <span className={cn('font-bold text-sm tabular-nums', partnerRemaining < 0 && 'text-red-300')}>{formatCurrency(partnerRemaining)}</span></span>
+            </div>
+          )}
           <div className={cn(
             "flex gap-2",
             existingBudget ? "flex-row" : "flex-col"
@@ -1641,9 +1768,12 @@ interface CategorySectionProps {
   showPreviousValues: boolean
   readOnly?: boolean
   ccmEnabled?: boolean
-  /** Kategorinamn som har en "Hämta värde"-knapp */
-  fetchableCategories?: string[]
-  onFetchValue?: (category: Category) => void
+  /** "Från lånen", or the source's current value when the row was typed over */
+  getSourceNote?: (category: Category) => { text: string; offer: boolean } | null
+  onUseSource?: (category: Category) => void
+  /** Caption for the split view and whether the row deviates from the model */
+  getSplitInfo?: (category: Category) => { rule: string; deviates: boolean; resetLabel: string }
+  onResetSplit?: (categoryId: string) => void
 }
 
 function CategorySection({
@@ -1667,8 +1797,10 @@ function CategorySection({
   showPreviousValues,
   readOnly = false,
   ccmEnabled = false,
-  fetchableCategories = [],
-  onFetchValue,
+  getSourceNote,
+  onUseSource,
+  getSplitInfo,
+  onResetSplit,
 }: CategorySectionProps) {
   return (
     <motion.div
@@ -1721,6 +1853,8 @@ function CategorySection({
                   const item = budgetItems[cat.id] || { total: 0, isSplit: false, hasExplicitSplit: false, is_ccm: false }
                   // Only consider "amounts differ" if user has explicitly set different amounts
                   const amountsDiffer = hasPartner && item.hasExplicitSplit
+                  const sourceNote = readOnly ? null : getSourceNote?.(cat) ?? null
+                  const splitInfo = hasPartner ? getSplitInfo?.(cat) : undefined
                   const previousValue = previousAmounts[cat.name]
                   const hasPreviousValue = previousValue !== undefined && previousValue > 0
 
@@ -1743,20 +1877,20 @@ function CategorySection({
                               </motion.span>
                             )}
                           </AnimatePresence>
+                          {sourceNote && (
+                            <span className={cn('text-[11px] block', sourceNote.offer ? 'text-amber-700 dark:text-amber-300' : 'text-muted-foreground')}>
+                              {sourceNote.text}
+                              {sourceNote.offer && onUseSource && (
+                                <>
+                                  {' · '}
+                                  <button type="button" onClick={() => onUseSource(cat)} className="font-semibold underline">
+                                    Använd
+                                  </button>
+                                </>
+                              )}
+                            </span>
+                          )}
                         </div>
-                        
-                        {/* Hämta värde från Lån / Kreditkortshanteraren för perioden */}
-                        {!readOnly && onFetchValue && fetchableCategories.includes(cat.name) && (
-                          <button
-                            type="button"
-                            onClick={() => onFetchValue(cat)}
-                            className="p-1.5 rounded-md transition-colors shrink-0 bg-hb-sage/25 text-hb-cognac hover:bg-hb-sage/40 active:scale-95"
-                            title="Hämta värde för perioden"
-                            aria-label={`Hämta värde för ${cat.name}`}
-                          >
-                            <ArrowDownToLine className="w-3.5 h-3.5" />
-                          </button>
-                        )}
 
                         {/* CCM toggle button - only show if CCM enabled and not read-only */}
                         {ccmEnabled && !readOnly && onToggleCCM && (
@@ -1779,14 +1913,20 @@ function CategorySection({
                           <button
                             onClick={() => onToggleSplit(cat.id)}
                             className={cn(
-                              "p-1.5 rounded-md transition-colors shrink-0",
-                              item.isSplit || amountsDiffer
+                              "relative p-1.5 rounded-md transition-colors shrink-0",
+                              item.isSplit
                                 ? "bg-hb-cognac text-white"
                                 : "bg-muted hover:bg-muted/80 text-muted-foreground"
                             )}
-                            title={item.isSplit ? "Slå ihop" : "Dela upp per person"}
+                            title={item.isSplit ? "Stäng fördelning" : "Fördelning per person"}
+                            aria-label={splitInfo?.deviates ? `Fördelning per person, ändrad för ${cat.name}` : `Fördelning per person för ${cat.name}`}
+                            aria-expanded={item.isSplit}
                           >
                             <Users className="w-3.5 h-3.5" />
+                            {/* Discreet mark: this row does not follow the model */}
+                            {splitInfo?.deviates && (
+                              <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-hb-amber ring-2 ring-card" />
+                            )}
                           </button>
                         )}
 
@@ -1893,6 +2033,21 @@ function CategorySection({
                                   </span>
                                 </div>
                               </div>
+
+                              {splitInfo && (
+                                <div className="flex items-center justify-end gap-3 min-h-8">
+                                  <span className="text-[11px] text-muted-foreground">{splitInfo.rule}</span>
+                                  {splitInfo.deviates && onResetSplit && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onResetSplit(cat.id)}
+                                      className="text-xs font-semibold text-hb-cognac-deep min-h-8"
+                                    >
+                                      Återställ till {splitInfo.resetLabel}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </motion.div>
                         )}

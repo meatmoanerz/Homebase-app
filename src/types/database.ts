@@ -284,6 +284,8 @@ export type Database = {
           type: 'income' | 'fixedExpense' | 'variableExpense' | 'savings'
           amount: number
           is_ccm: boolean
+          /** false: follows its source (loans, credit cards) until someone types an amount */
+          is_manual_amount: boolean
           created_at: string
         }
         Insert: {
@@ -294,6 +296,7 @@ export type Database = {
           type: 'income' | 'fixedExpense' | 'variableExpense' | 'savings'
           amount?: number
           is_ccm?: boolean
+          is_manual_amount?: boolean
           created_at?: string
         }
         Update: {
@@ -304,6 +307,7 @@ export type Database = {
           type?: 'income' | 'fixedExpense' | 'variableExpense' | 'savings'
           amount?: number
           is_ccm?: boolean
+          is_manual_amount?: boolean
           created_at?: string
         }
       }
@@ -569,9 +573,12 @@ export type Database = {
           description: string | null
           target_amount: number | null
           target_date: string | null
+          /** Total saved: initial_balance + all contributions (kept by DB trigger) */
           starting_balance: number
           starting_balance_user1: number
           starting_balance_user2: number
+          /** "Redan sparat" — what was saved before contributions were tracked */
+          initial_balance: number
           monthly_savings_enabled: boolean
           monthly_savings_amount: number
           recurring_expense_id: string | null
@@ -596,6 +603,7 @@ export type Database = {
           starting_balance?: number
           starting_balance_user1?: number
           starting_balance_user2?: number
+          initial_balance?: number
           monthly_savings_enabled?: boolean
           monthly_savings_amount?: number
           recurring_expense_id?: string | null
@@ -620,6 +628,7 @@ export type Database = {
           starting_balance?: number
           starting_balance_user1?: number
           starting_balance_user2?: number
+          initial_balance?: number
           monthly_savings_enabled?: boolean
           monthly_savings_amount?: number
           recurring_expense_id?: string | null
@@ -637,31 +646,40 @@ export type Database = {
         Row: {
           id: string
           savings_goal_id: string
-          expense_id: string
+          /** null for manual entries (withdrawals) */
+          expense_id: string | null
           user_id: string
+          /** negative for withdrawals and refunds */
           amount: number
           user1_amount: number
           user2_amount: number
+          /** date of a manual entry; expense-linked ones use the expense's date */
+          date: string | null
+          note: string | null
           created_at: string
         }
         Insert: {
           id?: string
           savings_goal_id: string
-          expense_id: string
+          expense_id?: string | null
           user_id: string
           amount: number
           user1_amount?: number
           user2_amount?: number
+          date?: string | null
+          note?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           savings_goal_id?: string
-          expense_id?: string
+          expense_id?: string | null
           user_id?: string
           amount?: number
           user1_amount?: number
           user2_amount?: number
+          date?: string | null
+          note?: string | null
           created_at?: string
         }
       }
@@ -868,6 +886,19 @@ export type Database = {
       has_income_for_period: {
         Args: { p_period: string }
         Returns: boolean
+      }
+      create_savings_goal: {
+        Args: {
+          p_name: string
+          p_description?: string | null
+          p_target_amount?: number | null
+          p_target_date?: string | null
+          p_initial_balance?: number
+          p_goal_category?: 'emergency' | 'vacation' | 'home' | 'car' | 'education' | 'retirement' | 'other'
+          p_custom_goal_type_id?: string | null
+          p_is_shared?: boolean
+        }
+        Returns: Database['public']['Tables']['savings_goals']['Row']
       }
     }
     Enums: {

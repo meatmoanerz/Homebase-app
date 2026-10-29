@@ -1,5 +1,6 @@
 import { getBudgetPeriod, shiftPeriod } from '@/lib/utils/budget-period'
 import { splitBudgetItem, type SplittableBudgetItem } from '@/lib/utils/budget-split'
+import type { SplitRule } from '@/lib/household/economy'
 import type { ExpenseWithCategory } from '@/types'
 import type { Perspective } from '@/hooks/use-perspective'
 
@@ -261,7 +262,9 @@ export function budgetTotal(
   categoryIds: Set<string> | null,
   person: Perspective,
   userId: string | undefined,
-  partnerId: string | undefined | null
+  partnerId: string | undefined | null,
+  /** Income-share rule; only meaningful when the periods share one rule */
+  rule?: SplitRule
 ): { total: number; budgetedPeriods: Set<string> } {
   let total = 0
   const budgetedPeriods = new Set<string>()
@@ -272,7 +275,7 @@ export function budgetTotal(
     for (const item of items) {
       if (person === 'all') total += item.amount
       else {
-        const split = splitBudgetItem(item, userId, partnerId)
+        const split = splitBudgetItem(item, userId, partnerId, rule)
         total += person === 'me' ? split.user : split.partner
       }
     }

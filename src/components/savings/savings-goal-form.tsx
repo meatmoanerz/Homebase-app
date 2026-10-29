@@ -11,7 +11,7 @@ import { useCreateSavingsGoal, useUpdateSavingsGoal } from '@/hooks/use-savings-
 import { useCustomGoalTypes, useCreateCustomGoalType } from '@/hooks/use-custom-goal-types'
 import { usePartner } from '@/hooks/use-user'
 import { toast } from 'sonner'
-import { Loader2, ChevronDown, Check, Target, Wallet, Calendar, PiggyBank, Plus, X } from 'lucide-react'
+import { Loader2, ChevronDown, Check, Target, Wallet, Calendar, Plus, X } from 'lucide-react'
 import { format, addMonths } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
@@ -42,9 +42,7 @@ const savingsGoalSchema = z.object({
   description: z.string().optional(),
   target_amount: z.number().positive('Målbelopp måste vara positivt'),
   target_date: z.string().optional(),
-  starting_balance: z.number().min(0, 'Kan inte vara negativt'),
-  monthly_savings_enabled: z.boolean(),
-  monthly_savings_amount: z.number().min(0),
+  initial_balance: z.number().min(0, 'Kan inte vara negativt'),
   goal_category: z.enum(['emergency', 'vacation', 'home', 'car', 'education', 'retirement', 'other']),
   custom_goal_type_id: z.string().nullable(),
   is_shared: z.boolean(),
@@ -68,8 +66,7 @@ export function SavingsGoalForm({ onSuccess, goal }: SavingsGoalFormProps) {
   const isEditing = !!goal
 
   const [amountDisplay, setAmountDisplay] = useState(goal?.target_amount ? goal.target_amount.toString() : '')
-  const [startingDisplay, setStartingDisplay] = useState(goal ? (goal.starting_balance || 0).toString() : '')
-  const [monthlyDisplay, setMonthlyDisplay] = useState(goal?.monthly_savings_amount ? goal.monthly_savings_amount.toString() : '')
+  const [startingDisplay, setStartingDisplay] = useState(goal ? (goal.initial_balance || 0).toString() : '')
   const [goalTypeOpen, setGoalTypeOpen] = useState(false)
   const [showAddCustomType, setShowAddCustomType] = useState(false)
   const [newCustomTypeName, setNewCustomTypeName] = useState('')
@@ -86,9 +83,7 @@ export function SavingsGoalForm({ onSuccess, goal }: SavingsGoalFormProps) {
       description: goal?.description || '',
       target_amount: goal?.target_amount || 0,
       target_date: goal?.target_date || format(addMonths(new Date(), 12), 'yyyy-MM-dd'),
-      starting_balance: goal?.starting_balance || 0,
-      monthly_savings_enabled: goal?.monthly_savings_enabled || false,
-      monthly_savings_amount: goal?.monthly_savings_amount || 0,
+      initial_balance: goal?.initial_balance || 0,
       goal_category: (goal?.goal_category as GoalCategory) || 'other',
       custom_goal_type_id: goal?.custom_goal_type_id || null,
       is_shared: goal?.is_shared || false,
@@ -189,9 +184,7 @@ export function SavingsGoalForm({ onSuccess, goal }: SavingsGoalFormProps) {
           description: data.description || null,
           target_amount: data.target_amount,
           target_date: data.target_date || null,
-          starting_balance: data.starting_balance,
-          monthly_savings_enabled: data.monthly_savings_enabled,
-          monthly_savings_amount: data.monthly_savings_amount,
+          initial_balance: data.initial_balance,
           goal_category: data.goal_category,
           custom_goal_type_id: data.custom_goal_type_id,
           is_shared: data.is_shared,
@@ -206,9 +199,7 @@ export function SavingsGoalForm({ onSuccess, goal }: SavingsGoalFormProps) {
         description: data.description,
         target_amount: data.target_amount,
         target_date: data.target_date,
-        starting_balance: data.starting_balance,
-        monthly_savings_enabled: data.monthly_savings_enabled,
-        monthly_savings_amount: data.monthly_savings_amount,
+        initial_balance: data.initial_balance,
         goal_category: data.goal_category,
         custom_goal_type_id: data.custom_goal_type_id,
         is_shared: data.is_shared,
@@ -218,15 +209,12 @@ export function SavingsGoalForm({ onSuccess, goal }: SavingsGoalFormProps) {
       // Reset form
       setAmountDisplay('')
       setStartingDisplay('')
-      setMonthlyDisplay('')
       form.reset({
         name: '',
         description: '',
         target_amount: 0,
         target_date: format(addMonths(new Date(), 12), 'yyyy-MM-dd'),
-        starting_balance: 0,
-        monthly_savings_enabled: false,
-        monthly_savings_amount: 0,
+        initial_balance: 0,
         goal_category: 'other',
         custom_goal_type_id: null,
         is_shared: false,
@@ -461,53 +449,16 @@ export function SavingsGoalForm({ onSuccess, goal }: SavingsGoalFormProps) {
             pattern="[0-9]*"
             placeholder="0"
             value={startingDisplay}
-            onChange={handleAmountChange(setStartingDisplay, 'starting_balance')}
+            onChange={handleAmountChange(setStartingDisplay, 'initial_balance')}
             className={cn(inputStyles, "pl-10")}
             style={{ outline: 'none', boxShadow: 'none' }}
           />
           <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">kr</span>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Det som fanns innan. Utgifter i kategorin och uttag räknas till utöver detta.
+        </p>
       </div>
-
-      {/* Monthly Savings Toggle */}
-      <div className="flex items-center justify-between p-4 rounded-xl bg-hb-sand-deep/20">
-        <div className="flex items-center gap-3">
-          <PiggyBank className="w-5 h-5 text-hb-terracotta" />
-          <div>
-            <Label htmlFor="monthly_savings" className="text-sm font-medium">
-              Månadssparande
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Spara automatiskt varje månad
-            </p>
-          </div>
-        </div>
-        <Switch
-          id="monthly_savings"
-          checked={form.watch('monthly_savings_enabled')}
-          onCheckedChange={(checked) => form.setValue('monthly_savings_enabled', checked)}
-        />
-      </div>
-
-      {/* Monthly Amount (if enabled) */}
-      {form.watch('monthly_savings_enabled') && (
-        <div className="space-y-2">
-          <Label className="text-muted-foreground text-sm">Belopp per månad</Label>
-          <div className="relative">
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder="0"
-              value={monthlyDisplay}
-              onChange={handleAmountChange(setMonthlyDisplay, 'monthly_savings_amount')}
-              className={inputStyles}
-              style={{ outline: 'none', boxShadow: 'none' }}
-            />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">kr/mån</span>
-          </div>
-        </div>
-      )}
 
       {/* Shared with Partner */}
       {hasPartner && (

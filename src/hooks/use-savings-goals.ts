@@ -5,27 +5,39 @@ import { createClient } from '@/lib/supabase/client'
 import type { SavingsGoal, SavingsGoalWithCategory, SavingsGoalContributionWithExpense } from '@/types'
 import type { UpdateTables } from '@/types/database'
 
+/**
+ * Total saved on a goal. starting_balance is the running total (initial_balance,
+ * "Redan sparat", plus every contribution — kept by DB trigger);
+ * starting_balance_user1/2 only split the contributions per person.
+ */
+export function getSavedAmount(goal: Pick<SavingsGoal, 'starting_balance'>): number {
+  return Number(goal.starting_balance) || 0
+}
+
+/** Date a contribution counts from: the expense's date, or a manual entry's own date. */
+export function getContributionDate(contribution: SavingsGoalContributionWithExpense): string {
+  return contribution.expense?.date || contribution.date || contribution.created_at
+}
+
 export function useSavingsGoals() {
   const supabase = createClient()
 
   return useQuery({
     queryKey: ['savings-goals'],
     queryFn: async () => {
-      // First, get the current user
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
       // Use explicit foreign key hint to resolve ambiguous relationship
       // savings_goals has category_id -> categories.id
       // categories has linked_savings_goal_id -> savings_goals.id
-      // We want to use category_id, so specify it explicitly
+      // RLS returns own goals and the partner's; the partner's show only when shared.
       const { data, error } = await (supabase
         .from('savings_goals')
         .select(`
           *,
           category:categories!category_id(*)
         `)
-        .eq('user_id', user.id)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .order('created_at', { ascending: false }) as any)
 
@@ -37,7 +49,7 @@ export function useSavingsGoals() {
       // Filter out archived goals — keep active, completed, and null status
       // (completed goals are shown in the "Uppnådda" tab)
       const goals = (data || []).filter((goal: SavingsGoalWithCategory) => {
-        return goal.status !== 'archived'
+        return goal.status !== 'archived' && (goal.user_id === user.id || goal.is_shared)
       }) as SavingsGoalWithCategory[]
 
       return goals
@@ -87,10 +99,13 @@ export function useSavingsGoalContributions(goalId: string | null) {
           expense:expenses(*)
         `)
         .eq('savings_goal_id', goalId)
-        .order('created_at', { ascending: false })
 
       if (error) throw error
-      return data as SavingsGoalContributionWithExpense[]
+      const contributions = data as SavingsGoalContributionWithExpense[]
+      // Newest first by the date the money moved, not when the row was written
+      return contributions.sort((a, b) =>
+        getContributionDate(b).localeCompare(getContributionDate(a)) || b.created_at.localeCompare(a.created_at)
+      )
     },
     enabled: !!goalId,
   })
@@ -101,11 +116,7 @@ interface CreateSavingsGoalInput {
   description?: string
   target_amount?: number
   target_date?: string
-  starting_balance?: number
-  starting_balance_user1?: number
-  starting_balance_user2?: number
-  monthly_savings_enabled?: boolean
-  monthly_savings_amount?: number
+  initial_balance?: number
   goal_category?: 'emergency' | 'vacation' | 'home' | 'car' | 'education' | 'retirement' | 'other'
   custom_goal_type_id?: string | null
   is_shared?: boolean
@@ -117,65 +128,25 @@ export function useCreateSavingsGoal() {
 
   return useMutation({
     mutationFn: async (goal: CreateSavingsGoalInput) => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-
-      // Step 1: Create a category with the same name as the savings goal
+      // Category, goal and the link between them in one transaction
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: categoryData, error: categoryError } = await (supabase.from('categories') as any)
-        .insert({
-          user_id: user.id,
-          name: goal.name,
-          cost_type: 'Savings',
-          subcategory: 'Savings',
-          is_default: false,
-        })
-        .select()
-        .single()
+      const { data, error } = await (supabase.rpc as any)('create_savings_goal', {
+        p_name: goal.name,
+        p_description: goal.description || null,
+        p_target_amount: goal.target_amount || null,
+        p_target_date: goal.target_date || null,
+        p_initial_balance: goal.initial_balance || 0,
+        p_goal_category: goal.goal_category || 'other',
+        p_custom_goal_type_id: goal.custom_goal_type_id || null,
+        p_is_shared: goal.is_shared || false,
+      })
 
-      if (categoryError) {
-        console.error('Failed to create category:', categoryError)
-        throw new Error(`Kunde inte skapa kategori: ${categoryError.message}`)
+      if (error) {
+        console.error('Failed to create savings goal:', error)
+        throw new Error(`Kunde inte skapa sparmål: ${error.message}`)
       }
 
-      // Step 2: Create the savings goal with the new category
-      // Be explicit about the fields to avoid spreading invalid properties
-      const savingsGoalInsert = {
-        user_id: user.id,
-        category_id: categoryData.id,
-        name: goal.name,
-        description: goal.description || null,
-        target_amount: goal.target_amount || null,
-        target_date: goal.target_date || null,
-        starting_balance: goal.starting_balance || 0,
-        starting_balance_user1: goal.starting_balance_user1 || 0,
-        starting_balance_user2: goal.starting_balance_user2 || 0,
-        monthly_savings_enabled: goal.monthly_savings_enabled || false,
-        monthly_savings_amount: goal.monthly_savings_amount || 0,
-        goal_category: goal.goal_category || 'other',
-        custom_goal_type_id: goal.custom_goal_type_id || null,
-        is_shared: goal.is_shared || false,
-        status: 'active', // Explicitly set status to 'active'
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: savingsGoalData, error: savingsGoalError } = await (supabase.from('savings_goals') as any)
-        .insert(savingsGoalInsert)
-        .select()
-        .single()
-
-      if (savingsGoalError) {
-        console.error('Failed to create savings goal:', savingsGoalError)
-        throw new Error(`Kunde inte skapa sparmål: ${savingsGoalError.message}`)
-      }
-
-      // Step 3: Update the category to link back to the savings goal
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('categories') as any)
-        .update({ linked_savings_goal_id: savingsGoalData.id })
-        .eq('id', categoryData.id)
-
-      return savingsGoalData as SavingsGoal
+      return data as SavingsGoal
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['savings-goals'] })
@@ -206,21 +177,77 @@ export function useUpdateSavingsGoal() {
   })
 }
 
+interface CreateWithdrawalInput {
+  goal: Pick<SavingsGoal, 'id' | 'user_id' | 'is_shared'>
+  amount: number
+  date: string
+  note?: string
+  /** Who the money is taken from. user1 = the goal owner, user2 = the owner's partner. */
+  from: 'both' | 'user1' | 'user2'
+}
+
+/** A withdrawal ("uttag") is a manual, negative contribution without an expense. */
+export function useCreateSavingsWithdrawal() {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ goal, amount, date, note, from }: CreateWithdrawalInput) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const total = -Math.abs(amount)
+      const user1 = from === 'both' ? Math.round(total / 2 * 100) / 100 : from === 'user1' ? total : 0
+      const user2 = total - user1
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from('savings_goal_contributions') as any).insert({
+        savings_goal_id: goal.id,
+        user_id: user.id,
+        amount: total,
+        user1_amount: goal.is_shared ? user1 : total,
+        user2_amount: goal.is_shared ? user2 : 0,
+        date,
+        note: note || null,
+      })
+
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['savings-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['savings-goal-contributions'] })
+    },
+  })
+}
+
+/** Removes a manual entry. Expense-linked contributions follow their expense instead. */
+export function useDeleteSavingsContribution() {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('savings_goal_contributions')
+        .delete()
+        .eq('id', id)
+        .is('expense_id', null)
+
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['savings-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['savings-goal-contributions'] })
+    },
+  })
+}
+
 export function useDeleteSavingsGoal() {
   const supabase = createClient()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // First, get the savings goal to find its linked category
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: goal, error: fetchError } = await (supabase.from('savings_goals') as any)
-        .select('category_id')
-        .eq('id', id)
-        .single()
-
-      if (fetchError) throw fetchError
-
       // Archive the savings goal
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: archiveError } = await (supabase.from('savings_goals') as any)
@@ -238,4 +265,3 @@ export function useDeleteSavingsGoal() {
     },
   })
 }
-

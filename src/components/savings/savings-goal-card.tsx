@@ -9,8 +9,8 @@ import { formatCurrency } from '@/lib/utils/formatters'
 import { format, differenceInDays, differenceInMonths } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
-import { MoreHorizontal, Trash2, Edit2, CheckCircle2, Users, PiggyBank, Calendar, ChevronRight } from 'lucide-react'
-import { useDeleteSavingsGoal, useUpdateSavingsGoal } from '@/hooks/use-savings-goals'
+import { MoreHorizontal, Trash2, Edit2, CheckCircle2, Users, Calendar, ChevronRight } from 'lucide-react'
+import { useDeleteSavingsGoal, useUpdateSavingsGoal, getSavedAmount } from '@/hooks/use-savings-goals'
 import { toast } from 'sonner'
 import type { SavingsGoalWithCategory, GoalCategory } from '@/types'
 import {
@@ -58,10 +58,7 @@ export function SavingsGoalCard({ goal, onEdit }: SavingsGoalCardProps) {
     router.push(`/savings/${goal.id}`)
   }
 
-  // Calculate progress - for shared goals, use user amounts; for personal goals, use starting_balance
-  const currentAmount = goal.is_shared
-    ? goal.starting_balance_user1 + goal.starting_balance_user2
-    : goal.starting_balance
+  const currentAmount = getSavedAmount(goal)
   const targetAmount = goal.target_amount || 0
   const progressPercent = targetAmount > 0 ? Math.min((currentAmount / targetAmount) * 100, 100) : 0
   const remaining = Math.max(targetAmount - currentAmount, 0)
@@ -205,12 +202,6 @@ export function SavingsGoalCard({ goal, onEdit }: SavingsGoalCardProps) {
               <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-muted">
                 <Calendar className="w-3 h-3" />
                 {timeRemaining}
-              </div>
-            )}
-            {goal.monthly_savings_enabled && goal.monthly_savings_amount > 0 && (
-              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-hb-sage/20 text-hb-cognac">
-                <PiggyBank className="w-3 h-3" />
-                {formatCurrency(goal.monthly_savings_amount)}/mån
               </div>
             )}
             {monthlySavingsNeeded && !isCompleted && (
