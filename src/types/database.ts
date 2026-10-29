@@ -284,6 +284,8 @@ export type Database = {
           type: 'income' | 'fixedExpense' | 'variableExpense' | 'savings'
           amount: number
           is_ccm: boolean
+          /** false: follows its source (loans, credit cards) until someone types an amount */
+          is_manual_amount: boolean
           created_at: string
         }
         Insert: {
@@ -294,6 +296,7 @@ export type Database = {
           type: 'income' | 'fixedExpense' | 'variableExpense' | 'savings'
           amount?: number
           is_ccm?: boolean
+          is_manual_amount?: boolean
           created_at?: string
         }
         Update: {
@@ -304,6 +307,7 @@ export type Database = {
           type?: 'income' | 'fixedExpense' | 'variableExpense' | 'savings'
           amount?: number
           is_ccm?: boolean
+          is_manual_amount?: boolean
           created_at?: string
         }
       }

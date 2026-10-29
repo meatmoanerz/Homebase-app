@@ -6,6 +6,9 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { useHouseholdMonthlyIncomes } from '@/hooks/use-monthly-incomes'
+import { useBudgetByPeriod } from '@/hooks/use-budgets'
+import { useCategories } from '@/hooks/use-categories'
+import { computeSharedAccountSummary } from '@/lib/household/shared-account'
 import {
   computeIncomeSplit,
   resolveHouseholdSettings,
@@ -199,4 +202,58 @@ export function useToggleSettlementCheck() {
       queryClient.invalidateQueries({ queryKey: ['settlement-checks', period] })
     },
   })
+}
+
+export interface SettlementStepData {
+  id: string
+  title: string
+  subtitle: string
+  amount: number
+  done: boolean
+}
+
+/**
+ * A period's settlement: the shared-account summary and the steps to do —
+ * the equalization swish ("Delad inkomst") and each person's deposit.
+ * Gemensam ekonomi and the dashboard read the same numbers from here.
+ */
+export function useHouseholdSettlement(period: string) {
+  const { data: user } = useUser()
+  const { data: partner } = usePartner()
+  const economy = useHouseholdEconomy(period)
+  const { data: budget, isLoading: budgetLoading } = useBudgetByPeriod(period)
+  const { data: categories = [] } = useCategories()
+  const { data: checks = [] } = useSettlementChecks(period)
+
+  const summary = useMemo(() => {
+    const names = categories.map((c) => ({ id: c.id, name: c.name }))
+    return computeSharedAccountSummary(budget?.budget_items ?? [], economy.settings.categoryIds, user?.id, partner?.id, economy.splitRule, names)
+  }, [budget, categories, economy.settings.categoryIds, user?.id, partner?.id, economy.splitRule])
+
+  const steps = useMemo((): SettlementStepData[] => {
+    const done = new Set(checks.map((c) => c.step))
+    const userName = user?.first_name || 'Du'
+    const partnerName = partner?.first_name || 'Partner'
+    const list: SettlementStepData[] = []
+    const equalization = economy.incomeSplit.equalization
+    if (economy.settings.model === 'equal' && partner && equalization !== 0) {
+      const userPays = equalization > 0
+      list.push({
+        id: 'equalize',
+        title: userPays ? `${userName} swishar ${partnerName}` : `${partnerName} swishar ${userName}`,
+        subtitle: 'Inkomstutjämning',
+        amount: Math.abs(equalization),
+        done: done.has('equalize'),
+      })
+    }
+    if (user && summary.user > 0) {
+      list.push({ id: `deposit:${user.id}`, title: `${userName} sätter in`, subtitle: 'Till gemensamt konto', amount: summary.user, done: done.has(`deposit:${user.id}`) })
+    }
+    if (partner && summary.partner > 0) {
+      list.push({ id: `deposit:${partner.id}`, title: `${partnerName} sätter in`, subtitle: 'Till gemensamt konto', amount: summary.partner, done: done.has(`deposit:${partner.id}`) })
+    }
+    return list
+  }, [checks, economy.settings.model, economy.incomeSplit.equalization, summary, user, partner])
+
+  return { ...economy, budget, budgetLoading, summary, steps }
 }

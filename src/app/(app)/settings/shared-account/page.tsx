@@ -9,15 +9,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SettingsPageSkeleton } from '@/components/shared/page-skeletons'
-import { HouseholdSettlementCard, type SettlementStep } from '@/components/household/household-settlement-card'
+import { HouseholdSettlementCard } from '@/components/household/household-settlement-card'
 import { HouseholdIncomeCard } from '@/components/household/household-income-card'
 import { HouseholdSummaryCard } from '@/components/household/household-summary-card'
-import { useBudgets, useBudgetByPeriod } from '@/hooks/use-budgets'
-import { useCategories } from '@/hooks/use-categories'
+import { useBudgets } from '@/hooks/use-budgets'
 import { useUser, usePartner } from '@/hooks/use-user'
-import { useHouseholdEconomy, useSettlementChecks, useToggleSettlementCheck } from '@/hooks/use-household-economy'
+import { useHouseholdSettlement, useToggleSettlementCheck } from '@/hooks/use-household-economy'
 import { HOUSEHOLD_MODEL_LABELS } from '@/lib/household/economy'
-import { computeSharedAccountSummary } from '@/lib/household/shared-account'
 import { formatPeriodDisplay, getCurrentBudgetPeriod, getNextPeriods, getRecentPeriods } from '@/lib/utils/budget-period'
 
 export default function SharedAccountPage() {
@@ -33,7 +31,6 @@ function SharedAccountView() {
   const router = useRouter()
   const { data: user } = useUser()
   const { data: partner } = usePartner()
-  const { data: categories = [] } = useCategories()
 
   const salaryDay = user?.salary_day || 25
   const currentPeriod = getCurrentBudgetPeriod(salaryDay).period
@@ -44,42 +41,12 @@ function SharedAccountView() {
   }, [salaryDay])
   const [period, setPeriod] = useState(currentPeriod)
 
-  const { settings, incomes, incomeSplit, splitRule, hasPartner } = useHouseholdEconomy(period)
-  const { data: budget, isLoading: budgetLoading } = useBudgetByPeriod(period)
-  const { data: checks = [] } = useSettlementChecks(period)
+  const { settings, incomes, incomeSplit, hasPartner, budget, budgetLoading, summary, steps } = useHouseholdSettlement(period)
   const toggleCheck = useToggleSettlementCheck()
 
   const userName = user?.first_name || 'Du'
   const partnerName = partner?.first_name || 'Partner'
   const monthLabel = formatPeriodDisplay(period).split(' ')[0]
-
-  const summary = useMemo(() => {
-    const names = categories.map((c) => ({ id: c.id, name: c.name }))
-    return computeSharedAccountSummary(budget?.budget_items ?? [], settings.categoryIds, user?.id, partner?.id, splitRule, names)
-  }, [budget, categories, settings.categoryIds, user?.id, partner?.id, splitRule])
-
-  // The transfers of the period, in the order you do them
-  const steps = useMemo((): SettlementStep[] => {
-    const done = new Set(checks.map((c) => c.step))
-    const list: SettlementStep[] = []
-    if (settings.model === 'equal' && incomeSplit.equalization !== 0) {
-      const userPays = incomeSplit.equalization > 0
-      list.push({
-        id: 'equalize',
-        title: userPays ? `${userName} swishar ${partnerName}` : `${partnerName} swishar ${userName}`,
-        subtitle: 'Inkomstutjämning',
-        amount: Math.abs(incomeSplit.equalization),
-        done: done.has('equalize'),
-      })
-    }
-    if (user && summary.user > 0) {
-      list.push({ id: `deposit:${user.id}`, title: `${userName} sätter in`, subtitle: 'Till gemensamt konto', amount: summary.user, done: done.has(`deposit:${user.id}`) })
-    }
-    if (partner && summary.partner > 0) {
-      list.push({ id: `deposit:${partner.id}`, title: `${partnerName} sätter in`, subtitle: 'Till gemensamt konto', amount: summary.partner, done: done.has(`deposit:${partner.id}`) })
-    }
-    return list
-  }, [checks, settings.model, incomeSplit.equalization, summary, user, partner, userName, partnerName])
 
   const countedIncomeNames = useMemo(() => {
     const names = new Set(incomes.filter((i) => !settings.excludedIncomeNames.has(i.name)).map((i) => i.name))

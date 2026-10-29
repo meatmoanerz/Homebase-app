@@ -15,9 +15,11 @@ import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
 import { TodoList } from '@/components/dashboard/todo-list'
 import { BudgetDeviations, type CategoryDeviation } from '@/components/dashboard/budget-deviations'
 import { MoneyShortcuts } from '@/components/dashboard/money-shortcuts'
+import { SettlementShortcut } from '@/components/dashboard/settlement-shortcut'
 import { PeriodStrip } from '@/components/shared/period-strip'
 import { calcCashOut, calcPersonSpend } from '@/lib/utils/spend-calc'
 import { sumBudgetSplit } from '@/lib/utils/budget-split'
+import { useHouseholdEconomy } from '@/hooks/use-household-economy'
 import { usePerspective } from '@/hooks/use-perspective'
 import { useAllExpenses } from '@/hooks/use-analytics'
 import { useAllLoans } from '@/hooks/use-loans'
@@ -102,6 +104,8 @@ export default function DashboardPage() {
   const { data: recurring = [] } = useActiveRecurringExpenses()
 
   const budgetItems = useMemo(() => budget?.budget_items ?? [], [budget])
+  // Income-share split for categories shared "Efter inkomst"
+  const { splitRule } = useHouseholdEconomy(selectedPeriod)
 
   // Amounts as seen from the chosen perspective (Alla / Du / Partner).
   const scoped = useMemo(
@@ -149,8 +153,8 @@ export default function DashboardPage() {
       const amount = person === 'all'
         ? item.amount
         : person === 'me'
-          ? splitBudgetItem(item, user?.id, partner?.id).user
-          : splitBudgetItem(item, user?.id, partner?.id).partner
+          ? splitBudgetItem(item, user?.id, partner?.id, splitRule).user
+          : splitBudgetItem(item, user?.id, partner?.id, splitRule).partner
       const existing = byCategory.get(item.category_id)
       if (existing) {
         existing.budget += amount
@@ -165,7 +169,7 @@ export default function DashboardPage() {
       })
     }
     return [...byCategory.values()]
-  }, [scoped, budgetItems, forecast, person, user?.id, partner?.id])
+  }, [scoped, budgetItems, forecast, person, user?.id, partner?.id, splitRule])
 
   if (userLoading || expensesLoading) {
     return <DashboardSkeleton />
@@ -192,12 +196,13 @@ export default function DashboardPage() {
     null,
     person,
     user?.id,
-    partner?.id
+    partner?.id,
+    splitRule
   ).total
   const hasBudget = budgetForPerson > 0
 
   // Per person: assignment-based budget split, owner-aware spend.
-  const split = sumBudgetSplit(budgetItems, user?.id, partner?.id)
+  const split = sumBudgetSplit(budgetItems, user?.id, partner?.id, splitRule)
   const userSpent = calcPersonSpend(expenses, 'user', user?.id)
   const partnerSpent = calcPersonSpend(expenses, 'partner', user?.id)
 
@@ -259,6 +264,7 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
+      <SettlementShortcut />
       <MoneyShortcuts />
 
       {/* Recent Expenses */}

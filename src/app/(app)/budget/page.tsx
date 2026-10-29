@@ -18,6 +18,7 @@ import { calcTotalSpend, calcPersonSpend } from '@/lib/utils/spend-calc'
 import { getBudgetStatus, budgetStatusBarClass } from '@/lib/utils/budget-status'
 import type { TemporaryBudgetWithCategories } from '@/types'
 import { sumBudgetSplit } from '@/lib/utils/budget-split'
+import { useHouseholdEconomy } from '@/hooks/use-household-economy'
 
 export default function BudgetListPage() {
   const { data: user } = useUser()
@@ -175,6 +176,7 @@ interface BudgetCardProps {
 
 function BudgetCard({ budget, index, isCurrent, salaryDay, hasPartner, userName, partnerName, userId, partnerId }: BudgetCardProps) {
   const { data: expenses } = useExpensesByPeriod(budget.period, salaryDay)
+  const { splitRule } = useHouseholdEconomy(budget.period)
   const [expanded, setExpanded] = useState(false)
 
   const { totalSpent, userSpent, partnerSpent } = useMemo(() => {
@@ -193,9 +195,9 @@ function BudgetCard({ budget, index, isCurrent, salaryDay, hasPartner, userName,
     if (items.length === 0) {
       return { userBudget: budgetedExpenses / 2, partnerBudget: budgetedExpenses / 2 }
     }
-    const split = sumBudgetSplit(items, userId, partnerId)
+    const split = sumBudgetSplit(items, userId, partnerId, splitRule)
     return { userBudget: split.user, partnerBudget: split.partner }
-  }, [budget.budget_items, budgetedExpenses, userId, partnerId])
+  }, [budget.budget_items, budgetedExpenses, userId, partnerId, splitRule])
   const spentRatio = budgetedExpenses > 0 ? (totalSpent / budgetedExpenses) * 100 : 0
   const remaining = budgetedExpenses - totalSpent
   const isOver = remaining < 0
