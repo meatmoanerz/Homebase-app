@@ -1,4 +1,5 @@
 import type { BudgetItem, BudgetItemAssignment } from '@/types'
+import { defaultSplit, type SplitRule } from '@/lib/household/economy'
 
 /**
  * Budget item with optional explicit per-person assignments.
@@ -6,26 +7,30 @@ import type { BudgetItem, BudgetItemAssignment } from '@/types'
  * deviates from 50/50. The partner's share is derived as (total - user amount).
  */
 export type SplittableBudgetItem = Pick<BudgetItem, 'amount'> & {
+  category_id?: string | null
   budget_item_assignments?: BudgetItemAssignment[] | null
 }
 
 export interface BudgetItemSplit {
   user: number
   partner: number
-  /** True when the split comes from an explicit assignment, false when 50/50 fallback */
+  /** True when the split comes from an explicit assignment, false when it is the default */
   explicit: boolean
 }
 
 /**
  * Split a budget item between user and partner.
- * Uses explicit budget_item_assignments when present, otherwise falls back to 50/50.
+ * Uses explicit budget_item_assignments when present, otherwise the default:
+ * the period's income share for categories split by income (see SplitRule),
+ * else 50/50.
  * This is the single source of truth for per-person budget amounts —
  * never divide item.amount by 2 directly in UI code.
  */
 export function splitBudgetItem(
   item: SplittableBudgetItem,
   userId: string | undefined | null,
-  partnerId: string | undefined | null
+  partnerId: string | undefined | null,
+  rule?: SplitRule
 ): BudgetItemSplit {
   const assignments = item.budget_item_assignments || []
   const userAssign = userId ? assignments.find(a => a.user_id === userId) : undefined
@@ -37,7 +42,8 @@ export function splitBudgetItem(
     return { user, partner, explicit: true }
   }
 
-  return { user: item.amount / 2, partner: item.amount / 2, explicit: false }
+  const split = defaultSplit(item.amount, item.category_id, rule)
+  return { user: split.user, partner: split.partner, explicit: false }
 }
 
 export type BudgetViewMode = 'total' | 'mine' | 'partner'
@@ -49,10 +55,11 @@ export function budgetAmountForView(
   item: SplittableBudgetItem,
   viewMode: BudgetViewMode,
   userId: string | undefined | null,
-  partnerId: string | undefined | null
+  partnerId: string | undefined | null,
+  rule?: SplitRule
 ): number {
   if (viewMode === 'total') return item.amount
-  const split = splitBudgetItem(item, userId, partnerId)
+  const split = splitBudgetItem(item, userId, partnerId, rule)
   return viewMode === 'mine' ? split.user : split.partner
 }
 
@@ -62,14 +69,15 @@ export function budgetAmountForView(
 export function sumBudgetSplit(
   items: SplittableBudgetItem[],
   userId: string | undefined | null,
-  partnerId: string | undefined | null
+  partnerId: string | undefined | null,
+  rule?: SplitRule
 ): { total: number; user: number; partner: number } {
   let total = 0
   let user = 0
   let partner = 0
   for (const item of items) {
     total += item.amount
-    const split = splitBudgetItem(item, userId, partnerId)
+    const split = splitBudgetItem(item, userId, partnerId, rule)
     user += split.user
     partner += split.partner
   }

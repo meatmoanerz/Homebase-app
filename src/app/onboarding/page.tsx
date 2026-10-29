@@ -11,7 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, ArrowLeft, User, Calendar, Wallet, Users, Sparkles, Check, Copy, Loader2 } from 'lucide-react'
+import { ArrowRight, ArrowLeft, User, Calendar, Wallet, Users, Sparkles, Check, Copy, Loader2, Scale } from 'lucide-react'
+import { HouseholdModelPicker, GENERIC_MODEL_EXAMPLES } from '@/components/household/household-model-picker'
+import { HOUSEHOLD_MODEL_LABELS, type HouseholdModel } from '@/lib/household/economy'
+import { getCurrentBudgetPeriod } from '@/lib/utils/budget-period'
 import type { Database } from '@/types/database'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
@@ -21,6 +24,7 @@ const STEPS = [
   { id: 'salary', title: 'När får du lön?', description: 'Vi anpassar din budget efter din löneperiod' },
   { id: 'income', title: 'Vad är din inkomst?', description: 'Du kan lägga till fler inkomster senare' },
   { id: 'partner', title: 'Har du en partner?', description: 'Ni kan dela budget och utgifter' },
+  { id: 'economy', title: 'Hur delar ni på ekonomin?', description: 'Exemplen utgår från en hyra på 10 000 kr' },
   { id: 'complete', title: 'Allt klart!', description: 'Du är redo att börja använda Homebase' },
 ]
 
@@ -32,6 +36,7 @@ export default function OnboardingPage() {
   const [incomeName, setIncomeName] = useState('Lön')
   const [incomeAmount, setIncomeAmount] = useState('')
   const [partnerChoice, setPartnerChoice] = useState<'skip' | 'invite' | 'code' | null>(null)
+  const [economyModel, setEconomyModel] = useState<HouseholdModel>('budget')
   const [inviteCode, setInviteCode] = useState('')
   const [generatedCode, setGeneratedCode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -123,16 +128,20 @@ export default function OnboardingPage() {
     }
   }
 
+  // The economy step only matters together with a partner
+  const withPartner = partnerChoice === 'invite' || partnerChoice === 'code'
+
   async function handleNext() {
     if (step === STEPS.length - 1) {
       await completeOnboarding()
       return
     }
-    setStep(step + 1)
+    setStep(step === 3 && !withPartner ? 5 : step + 1)
   }
 
   function handleBack() {
-    if (step > 0) setStep(step - 1)
+    if (step === 5 && !withPartner) setStep(3)
+    else if (step > 0) setStep(step - 1)
   }
 
   async function completeOnboarding() {
@@ -195,6 +204,23 @@ export default function OnboardingPage() {
         }
       }
 
+      // The household economy model, in force from the current budget period
+      if (withPartner) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase.from('shared_account_defaults') as any).upsert(
+            {
+              user_id: userId,
+              effective_from: getCurrentBudgetPeriod(parseInt(salaryDay) || 25).period,
+              model: economyModel,
+            },
+            { onConflict: 'user_id,effective_from' }
+          )
+        } catch (economyError) {
+          console.error('Household model error (non-fatal):', economyError)
+        }
+      }
+
       // Wait a bit for Supabase to sync
       await new Promise(resolve => setTimeout(resolve, 500))
 
@@ -218,7 +244,8 @@ export default function OnboardingPage() {
       case 1: return salaryDay !== ''
       case 2: return true // Income is optional
       case 3: return true // Partner is optional
-      case 4: return true
+      case 4: return true // Economy model has a default
+      case 5: return true
       default: return false
     }
   }
@@ -262,7 +289,8 @@ export default function OnboardingPage() {
                   {step === 1 && <Calendar className="w-6 h-6 text-hb-cognac" />}
                   {step === 2 && <Wallet className="w-6 h-6 text-hb-cognac" />}
                   {step === 3 && <Users className="w-6 h-6 text-hb-cognac" />}
-                  {step === 4 && <Sparkles className="w-6 h-6 text-hb-cognac" />}
+                  {step === 4 && <Scale className="w-6 h-6 text-hb-cognac" />}
+                  {step === 5 && <Sparkles className="w-6 h-6 text-hb-cognac" />}
                 </div>
                 <CardTitle className="text-xl">{STEPS[step].title}</CardTitle>
                 <CardDescription>{STEPS[step].description}</CardDescription>
@@ -455,8 +483,18 @@ export default function OnboardingPage() {
                   </div>
                 )}
 
-                {/* Step 4: Complete */}
+                {/* Step 4: Household economy */}
                 {step === 4 && (
+                  <div className="space-y-3">
+                    <HouseholdModelPicker value={economyModel} onChange={setEconomyModel} examples={GENERIC_MODEL_EXAMPLES} />
+                    <p className="text-xs text-muted-foreground">
+                      Er partner ser samma val. Ni kan ändra det när som helst under Inställningar › Partner.
+                    </p>
+                  </div>
+                )}
+
+                {/* Step 5: Complete */}
+                {step === 5 && (
                   <div className="text-center space-y-4">
                     <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center mx-auto">
                       <Check className="w-10 h-10 text-success" />
@@ -482,6 +520,12 @@ export default function OnboardingPage() {
                           Inkomst: {parseInt(incomeAmount).toLocaleString('sv-SE')} kr
                         </li>
                       )}
+                      {withPartner && (
+                        <li className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-success" />
+                          Ekonomi: {HOUSEHOLD_MODEL_LABELS[economyModel]}
+                        </li>
+                      )}
                       <li className="flex items-center gap-2">
                         <Check className="h-4 w-4 text-success" />
                         Standardkategorier skapas
@@ -492,7 +536,7 @@ export default function OnboardingPage() {
 
                 {/* Navigation Buttons */}
                 <div className="flex gap-3 pt-4">
-                  {step > 0 && step < 4 && (
+                  {step > 0 && step < 5 && (
                     <Button
                       variant="outline"
                       onClick={handleBack}

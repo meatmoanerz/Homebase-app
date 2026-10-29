@@ -39,7 +39,7 @@ const economyItems = [
   { href: '/savings', label: 'Sparmål', icon: Target, description: 'Mål och framsteg' },
   { href: '/settings/loans', label: 'Lån', icon: Landmark, description: 'Saldo och amortering' },
   { href: '/receipts', label: 'Kvitton', icon: Receipt, description: 'Inköp och priser' },
-  { href: '/settings/shared-account', label: 'Gemensamt konto', icon: Wallet, description: 'Månadens överföring' },
+  { href: '/settings/shared-account', label: 'Gemensam ekonomi', icon: Wallet, description: 'Månadens överföringar' },
   { href: '/settings/ccm', label: 'Kreditkort', icon: CreditCard, description: 'Fakturor och kort' },
 ]
 

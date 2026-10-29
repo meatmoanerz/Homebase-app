@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { LoadingPage } from '@/components/shared/loading-spinner'
+import { HouseholdEconomySettings } from '@/components/household/household-economy-settings'
 import { getInitials } from '@/lib/utils/formatters'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Users, Copy, UserPlus, Check, LinkIcon, AlertCircle, Unlink, Calendar } from 'lucide-react'
@@ -273,6 +274,8 @@ export default function PartnerSettingsPage() {
               </div>
             </CardContent>
           </Card>
+
+          <HouseholdEconomySettings />
 
           {/* Disconnect button */}
           <Card className="border-0 shadow-sm border-destructive/20">
