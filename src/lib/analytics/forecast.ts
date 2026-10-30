@@ -1,5 +1,5 @@
 import { shiftPeriod } from '@/lib/utils/budget-period'
-import { isInvoiceLine, periodsBetween, type AnalyticsRow } from '@/lib/analytics/analytics'
+import { isInvoiceLine, isVoluntarySavings, periodsBetween, type AnalyticsRow } from '@/lib/analytics/analytics'
 
 /**
  * Spending forecast per budget period.
@@ -15,6 +15,10 @@ import { isInvoiceLine, periodsBetween, type AnalyticsRow } from '@/lib/analytic
  *  - No history but an active recurring expense: the recurring amount.
  *  - Credit-card invoice with purchases already on it: the known invoice
  *    (entered amount, or registered purchases + the days still to come).
+ *  - Voluntary savings (savings other than amortisation): a decision, not a
+ *    pattern, so never projected from history. The running period counts what
+ *    is saved, or the rest of the budget's plan; months ahead count none —
+ *    what is left of the income is the room to save.
  * The running period = what is already spent + the expected remainder.
  */
 
@@ -48,7 +52,7 @@ export interface Trend {
   direction: 'up' | 'down'
 }
 
-export type ForecastMethod = 'median' | 'mean' | 'trend' | 'loan' | 'recurring' | 'invoice'
+export type ForecastMethod = 'median' | 'mean' | 'trend' | 'loan' | 'recurring' | 'invoice' | 'savings'
 
 /** A credit-card invoice paid in a period, as far as it is known (see knownCardInvoices). */
 export interface KnownInvoice {
@@ -87,6 +91,8 @@ export interface ForecastMonth {
   spend: number
   low: number
   high: number
+  /** Voluntary savings included in spend (running period only). */
+  savings: number
   income: number | null
 }
 
@@ -125,6 +131,8 @@ interface ForecastInput {
   coverageRows?: AnalyticsRow[]
   /** Credit-card invoices already known per budget period, household totals. */
   cardInvoices?: Map<string, KnownInvoice>
+  /** Voluntary savings planned for the running period per category (selected person's share), from the budget. */
+  savingsPlan?: Map<string, { name: string; amount: number }>
 }
 
 export interface PeriodCoverage {
@@ -300,6 +308,11 @@ export function buildForecast(input: ForecastInput): ForecastResult {
     if (!meta) continue
     acc.set(id, { byPeriod: new Map(), current: 0, valueSum: 0, amountSum: 0, ...meta })
   }
+  // Planned savings not started yet this period.
+  for (const [id, plan] of input.savingsPlan ?? []) {
+    if (acc.has(id) || (input.categoryIds && !input.categoryIds.has(id))) continue
+    acc.set(id, { byPeriod: new Map(), current: 0, valueSum: 0, amountSum: 0, name: plan.name, costType: 'Savings', isInvoice: false })
+  }
 
   const budgetedLoans = input.loans.filter((l) => l.include_in_budget !== false && Number(l.current_balance) > 0)
   const loanMonth = (k: number) => {
@@ -331,6 +344,24 @@ export function buildForecast(input: ForecastInput): ForecastResult {
     let method: ForecastMethod
     let trend: Trend | null = null
     let ahead: CategoryForecast['ahead']
+
+    if (isVoluntarySavings(a.costType, a.name)) {
+      const v = Math.max(a.current, input.savingsPlan?.get(id)?.amount ?? 0)
+      if (v === 0 && !hasHistory) continue
+      categories.push({
+        id,
+        name: a.name,
+        costType: a.costType,
+        isInvoice: a.isInvoice,
+        method: 'savings',
+        history: history.map((p, i) => ({ period: p, value: series[i] })),
+        average: avg,
+        trend: null,
+        ahead: Array.from({ length: horizon }, () => ({ value: 0, low: 0, high: 0 })),
+        current: { actual: a.current, projected: v, low: v, high: v },
+      })
+      continue
+    }
 
     let loanKind: 'interest' | 'amortisation' | null = budgetedLoans.length > 0
       ? isInterestCategory(a.name) ? 'interest' : isAmortisationCategory(a.name) ? 'amortisation' : null
@@ -483,6 +514,7 @@ export function buildForecast(input: ForecastInput): ForecastResult {
     spend: cur.value,
     low: cur.low,
     high: cur.high,
+    savings: categories.reduce((s, c) => s + (c.method === 'savings' ? c.current.projected : 0), 0),
     income: input.incomeFor(currentPeriod) ?? typicalIncome,
   })
   for (let i = 0; i < horizon; i++) {
@@ -495,6 +527,7 @@ export function buildForecast(input: ForecastInput): ForecastResult {
       spend: t.value,
       low: t.low,
       high: t.high,
+      savings: 0,
       income: input.incomeFor(period) ?? typicalIncome,
     })
   }

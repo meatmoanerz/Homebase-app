@@ -44,6 +44,7 @@ import {
   merchantTotals,
   periodsBetween,
   relativeChange,
+  savingsPlanFrom,
   sumRows,
   timeframePeriods,
   toRows,
@@ -279,8 +280,15 @@ export default function AnalysPage() {
       incomeFor: forecastIncomeFor,
       categoryMeta,
       coverageRows,
+      // The plan is the best guess for savings not made yet this period
+      savingsPlan: savingsPlanFrom(
+        budgets.find((b) => b.period === currentPeriod)?.budget_items ?? [],
+        person,
+        user?.id,
+        partner?.id
+      ),
     })
-  }, [view, coverageRows, allRows, catFilter, currentPeriod, earliestPeriod, salaryDay, horizon, loans, recurring, forecastIncomes, person, categoryMeta])
+  }, [view, coverageRows, allRows, catFilter, currentPeriod, earliestPeriod, salaryDay, horizon, loans, recurring, forecastIncomes, person, categoryMeta, budgets, user?.id, partner?.id])
   const forecastHistory = useMemo(() => {
     if (!forecast) return []
     const totals = totalsByPeriod(catFilter ? allRows.filter((r) => catFilter.has(r.expense.category_id || '')) : allRows)

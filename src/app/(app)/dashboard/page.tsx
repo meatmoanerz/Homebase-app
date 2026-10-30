@@ -26,7 +26,7 @@ import { useAllLoans } from '@/hooks/use-loans'
 import { useActiveRecurringExpenses } from '@/hooks/use-recurring-expenses'
 import { useCreditCards } from '@/hooks/use-credit-cards'
 import { useCCMInvoices } from '@/hooks/use-ccm-invoices'
-import { budgetTotal, isInvoiceLine, personShare, toRows } from '@/lib/analytics/analytics'
+import { budgetTotal, isInvoiceLine, personShare, savingsPlanFrom, toRows } from '@/lib/analytics/analytics'
 import { buildForecast } from '@/lib/analytics/forecast'
 import { knownCardInvoices } from '@/lib/analytics/card-invoices'
 import { getBudgetPeriod, getDaysUntilSalary, getPeriodProgress } from '@/lib/utils/budget-period'
@@ -143,7 +143,11 @@ export default function DashboardPage() {
       categoryMeta: new Map(),
       coverageRows: person === 'all' ? rows : toRows(allExpenses, salaryDay, 'all', user?.id),
     }
-    const consumption = buildForecast({ ...base, rows: rows.filter((r) => !isInvoiceLine(r.expense)) })
+    const consumption = buildForecast({
+      ...base,
+      rows: rows.filter((r) => !isInvoiceLine(r.expense)),
+      savingsPlan: savingsPlanFrom(budgetItems, person, user?.id, partner?.id, splitRule),
+    })
     if (consumption.historyPeriods.length < 2) return null
     const cash = buildForecast({
       ...base,
@@ -157,7 +161,7 @@ export default function DashboardPage() {
       }),
     })
     return { consumption, cash }
-  }, [isCurrentPeriod, allExpenses, salaryDay, person, user?.id, currentPeriod.period, loans, recurring, creditCards, ccmInvoices])
+  }, [isCurrentPeriod, allExpenses, salaryDay, person, user?.id, partner?.id, splitRule, budgetItems, currentPeriod.period, loans, recurring, creditCards, ccmInvoices])
   const forecast = forecasts?.consumption ?? null
 
   const deviations = useMemo<CategoryDeviation[]>(() => {
@@ -230,7 +234,13 @@ export default function DashboardPage() {
   const partnerSpent = calcPersonSpend(expenses, 'partner', user?.id)
 
   const currentForecast = forecast?.months[0] ?? null
-  const cashForecast = forecasts?.cash.months[0] ?? null
+  // Room to save = income minus the forecast for costs and amortisation
+  // (voluntary savings left out), set against the savings in the plan.
+  const plannedSavings = [...savingsPlanFrom(budgetItems, person, user?.id, partner?.id, splitRule).values()]
+    .reduce((sum, p) => sum + p.amount, 0)
+  const savingsRoom = currentForecast && totalIncome > 0
+    ? { room: totalIncome - (currentForecast.spend - currentForecast.savings), planned: plannedSavings }
+    : null
   const nextInvoice = forecasts?.cash.categories.find((c) => c.knownInvoice)?.knownInvoice ?? null
   const scopeLabel = person === 'me' ? `${user?.first_name || 'Din'}s andel` : person === 'partner' ? `${partner?.first_name || 'Partner'}s andel` : null
 
@@ -265,7 +275,7 @@ export default function DashboardPage() {
         cashOut={cashOut}
         hasBudget={hasBudget}
         forecast={currentForecast ? { spend: currentForecast.spend, low: currentForecast.low, high: currentForecast.high } : null}
-        cashOutForecast={cashForecast ? cashForecast.spend : null}
+        savingsRoom={savingsRoom}
         nextInvoice={nextInvoice ? { value: nextInvoice.value, registered: nextInvoice.registered } : null}
         daysLeft={isCurrentPeriod ? getDaysUntilSalary(salaryDay) : null}
         scopeLabel={scopeLabel}

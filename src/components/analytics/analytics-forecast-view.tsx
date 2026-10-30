@@ -38,6 +38,7 @@ const METHOD_LABEL: Record<CategoryForecast['method'], string> = {
   loan: 'från lånen',
   recurring: 'återkommande',
   invoice: 'känd faktura',
+  savings: 'planerat sparande',
 }
 
 export function AnalyticsForecastView({
@@ -152,7 +153,7 @@ export function AnalyticsForecastView({
         <Tile label={`Utgifter ${horizon} mån`} value={formatCurrency(futureSpend)} />
         <Tile label="Inkomst" value={showIncome && futureIncome != null ? formatCurrency(futureIncome) : '–'} />
         <Tile
-          label="Kvar"
+          label="Utrymme att spara"
           value={showIncome && futureIncome != null ? formatCurrency(futureIncome - futureSpend) : '–'}
           tone={showIncome && futureIncome != null ? (futureIncome - futureSpend >= 0 ? 'good' : 'bad') : undefined}
         />
@@ -203,7 +204,7 @@ export function AnalyticsForecastView({
             <span className="text-xs text-muted-foreground">~{formatCurrency(future[0].spend)}</span>
           </div>
           <p className="text-[11px] text-muted-foreground mt-0.5">Prognos per kategori</p>
-          <CategoryGroup title="Fasta, lån och sparande" items={fixed} onSelect={setSelected} />
+          <CategoryGroup title="Fasta och lån" items={fixed} onSelect={setSelected} />
           <CategoryGroup title="Rörliga" items={variable} onSelect={setSelected} showRange />
         </section>
       )}
@@ -213,6 +214,8 @@ export function AnalyticsForecastView({
         kostnader som median av de senaste tre, ränta och amortering från lånen, rörliga som snitt av de senaste sex med
         spann efter hur mycket månaderna varierat{forecast.enoughForTrends ? ' och tydliga trender (dämpade framåt)' : ''}.
         Kortköp räknas när de görs; kreditkortsfakturan räknas inte, eftersom den betalar köp som redan finns med.
+        Frivilligt sparande gissas aldrig fram: innevarande månad räknas det som är sparat eller resten av budgetens
+        plan, månader framåt inget alls — det som blir över är utrymmet att spara. Amortering räknas som en kostnad.
         {forecast.excludedPeriods.length > 0 && (
           <>
             {' '}Utelämnade: {periodList(forecast.excludedPeriods)} — för få transaktioner eller dagar med köp jämfört med en

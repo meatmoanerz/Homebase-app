@@ -91,6 +91,10 @@ Kreditkort-raden (kategorin med `excludes_from_expense_total = true`) är
 - Gemensam ekonomi är kassaflöde: CCM-rader räknas inte i insättningen,
   de betalas via Kreditkort-raden.
 - Kod: `src/lib/utils/spend-calc.ts` (`calcConsumption`, `calcCashOut`).
+- Sparande syns i utfallet mot budget, men frivilligt sparande (allt utom
+  Amortering) gissas aldrig fram i prognosen: innevarande månad räknas gjort
+  sparande eller resten av planen, månader framåt inget. Utrymme att spara =
+  inkomst − prognos för kostnader och amortering.
 
 ---
 

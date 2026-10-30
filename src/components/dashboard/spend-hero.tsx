@@ -19,8 +19,8 @@ interface SpendHeroProps {
   hasBudget: boolean
   /** Projected consumption for the running period (null when not the current period). */
   forecast?: { spend: number; low: number; high: number } | null
-  /** Projected money leaving the account this period, invoices included. */
-  cashOutForecast?: number | null
+  /** Income minus projected costs and amortisation, and the voluntary savings planned. */
+  savingsRoom?: { room: number; planned: number } | null
   /** Credit-card invoice drawn next period: total and what is already on the card. */
   nextInvoice?: { value: number; registered: number } | null
   /** Days left until next salary (running period only). */
@@ -36,11 +36,12 @@ interface SpendHeroProps {
  * Every purchase counts once when it is made, card purchases included,
  * so the number moves the moment you buy something.
  *
- * SECONDARY (small row): cash flow — income minus what leaves the account,
- * so far and projected at next salary, and the card invoice that follows
+ * SECONDARY (small row): cash flow so far — income minus what leaves the
+ * account — plus the room to save this period (income minus projected costs
+ * and amortisation, against the plan) and the card invoice that follows
  * next period (the purchases pushed forward).
  */
-export function SpendHero({ spent, budget, income, cashOut, hasBudget, forecast, cashOutForecast, nextInvoice, daysLeft, scopeLabel }: SpendHeroProps) {
+export function SpendHero({ spent, budget, income, cashOut, hasBudget, forecast, savingsRoom, nextInvoice, daysLeft, scopeLabel }: SpendHeroProps) {
   const remaining = budget - spent
   const overBudget = hasBudget && remaining < 0
   const spentRatio = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0
@@ -139,13 +140,18 @@ export function SpendHero({ spent, budget, income, cashOut, hasBudget, forecast,
           </div>
         </div>
 
-        {(cashOutForecast != null && income > 0) || nextInvoice ? (
+        {savingsRoom || nextInvoice ? (
           <div className="mt-2.5 space-y-1 text-[12px] text-muted-foreground">
-            {cashOutForecast != null && income > 0 && (
-              <div className="flex justify-between gap-3">
-                <span>Kassaflöde vid lön</span>
-                <span className={cn('font-medium', income - cashOutForecast < 0 ? 'text-destructive' : 'text-foreground')}>
-                  ~{income - cashOutForecast >= 0 && '+'}{formatCurrency(income - cashOutForecast)}
+            {savingsRoom && (
+              <div className="flex justify-between items-start gap-3">
+                <span>Utrymme att spara</span>
+                <span className="text-right">
+                  <span className={cn('font-medium', savingsRoom.room < savingsRoom.planned ? 'text-destructive' : 'text-foreground')}>
+                    ~{formatCurrency(savingsRoom.room)}
+                  </span>
+                  {savingsRoom.planned >= 1 && (
+                    <span className="block text-[11px]">planerat {formatCurrency(savingsRoom.planned)}</span>
+                  )}
                 </span>
               </div>
             )}

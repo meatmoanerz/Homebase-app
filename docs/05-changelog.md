@@ -7,6 +7,14 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-10-30 — Prognos: frivilligt sparande gissas inte fram
+
+- Frivilligt sparande (Savings utom Amortering) prognostiseras aldrig från historiken.
+  Innevarande månad: gjort eller resten av budgetens plan; månader framåt: inget.
+  Amortering räknas som kostnad. Utfall mot budget visar sparandet som förut.
+- Dashboarden: "Utrymme att spara" (inkomst − prognos för kostnader och
+  amortering) mot planerat sparande ersätter "Kassaflöde vid lön".
+
 ## 2026-10-30 — Förbrukning och kassaflöde, kortfakturan i prognosen
 
 - Kortköp räknas en gång: förbrukning (huvud-KPI) = varje köp på köpdagen,

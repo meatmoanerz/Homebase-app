@@ -106,6 +106,11 @@ export function isInvoiceLine(row: { category?: { excludes_from_expense_total?: 
   return row.category?.excludes_from_expense_total === true
 }
 
+/** Savings you choose to make; amortisation is booked as savings but is not optional. */
+export function isVoluntarySavings(costType: string | null | undefined, name: string | null | undefined): boolean {
+  return costType === 'Savings' && !/amortering/i.test(name ?? '')
+}
+
 export interface AnalyticsRow {
   expense: ExpenseWithCategory
   period: string
@@ -253,12 +258,39 @@ function tidyMerchantName(description: string): string {
   return name
 }
 
+type BudgetLikeItem = SplittableBudgetItem & {
+  category_id: string | null
+  name?: string | null
+  category?: { excludes_from_expense_total?: boolean | null; cost_type?: string | null; name?: string | null } | null
+}
+
 export interface BudgetLike {
   period: string
-  budget_items?: Array<SplittableBudgetItem & {
-    category_id: string | null
-    category?: { excludes_from_expense_total?: boolean | null } | null
-  }>
+  budget_items?: BudgetLikeItem[]
+}
+
+/**
+ * Voluntary savings planned in a period's budget, per category, as the
+ * chosen person's share. Feeds the forecast: the plan is the best guess for
+ * savings not made yet this period.
+ */
+export function savingsPlanFrom(
+  items: BudgetLikeItem[],
+  person: Perspective,
+  userId: string | undefined,
+  partnerId: string | undefined | null,
+  rule?: SplitRule
+): Map<string, { name: string; amount: number }> {
+  const plan = new Map<string, { name: string; amount: number }>()
+  for (const item of items) {
+    const name = item.category?.name ?? item.name ?? ''
+    if (!item.category_id || !isVoluntarySavings(item.category?.cost_type, name)) continue
+    const split = person === 'all' ? null : splitBudgetItem(item, userId, partnerId, rule)
+    const amount = split ? (person === 'me' ? split.user : split.partner) : item.amount
+    const existing = plan.get(item.category_id)
+    plan.set(item.category_id, { name, amount: (existing?.amount ?? 0) + amount })
+  }
+  return plan
 }
 
 /**
