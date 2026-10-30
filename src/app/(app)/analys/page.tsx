@@ -179,6 +179,9 @@ export default function AnalysPage() {
     [allRows, prevPeriods, prevCutoff, catFilter]
   )
   const total = sumRows(rows)
+  // Savings (incl. amortisation) are part of the total; shown split out so
+  // what you live on and what you put aside can be told apart.
+  const savingsTotal = sumRows(rows.filter((r) => r.expense.category?.cost_type === 'Savings'))
   const prevTotal = prevPeriods.length > 0 ? sumRows(prevRows) : null
 
   const { data: incomes } = usePeriodIncomes(chartPeriods)
@@ -596,6 +599,20 @@ export default function AnalysPage() {
             </span>
           )}
         </div>
+        {savingsTotal >= 1 && total - savingsTotal >= 1 && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] mt-1.5">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--chart-spend)' }} />
+              <span className="text-muted-foreground">Förbrukning</span>
+              <span className="font-medium">{formatCurrency(total - savingsTotal)}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full shrink-0 bg-hb-green" />
+              <span className="text-muted-foreground">Sparande</span>
+              <span className="font-medium">{formatCurrency(savingsTotal)}</span>
+            </span>
+          </div>
+        )}
         <div className="text-[12px] text-muted-foreground mt-1">
           {rows.length} transaktioner
           {periods.length > 1 && ` · snitt ${formatCurrency(total / periods.length)}/mån`}
