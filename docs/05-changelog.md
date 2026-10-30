@@ -7,6 +7,17 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-10-30 — Förbrukning och kassaflöde, kortfakturan i prognosen
+
+- Kortköp räknas en gång: förbrukning (huvud-KPI) = varje köp på köpdagen,
+  Kreditkort-raden räknas inte (varken utfall eller budget som jämförs). Den är
+  kassaflöde. Gemensam ekonomi oförändrad, men CCM-rader hoppas över i insättningen.
+- Prognos: kortfakturan räknas per kort från köpen som redan ligger på den +
+  kortets takt för okända dagar (se `03-ccm-avstamning.md`). Dashboarden visar
+  kassaflöde vid lön och nästa kortfaktura; analysen delar upp förbrukning/sparande.
+- Regeln om spend i avsnitt 1 av `00-projektinstruktion.md` är föreslagen till Tim
+  för manuell uppdatering. Dokumentationen godkänd av Tim.
+
 ## 2026-10-29 — Gemensam ekonomi, sparmål via trigger, budgetens källrader
 
 - Sparmål: bidrag skapas/flyttas/tas bort av en DB-trigger på `expenses`

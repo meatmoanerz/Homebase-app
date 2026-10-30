@@ -1,6 +1,6 @@
 # 03 — CCM / Amex-avstämning
 
-Senast uppdaterad: 2026-09-16
+Senast uppdaterad: 2026-10-30
 
 ## Kritiskt: `is_ccm`
 
@@ -69,6 +69,47 @@ SUM(
 ```
 
 Med rakt `amount` blir totalen fel så fort ett utlägg finns i perioden.
+
+---
+
+## Kreditkort i förbrukning och kassaflöde
+
+Ett kortköp räknas **en gång** som förbrukning: på köpdagen, i sin kategori.
+Kreditkort-raden (kategorin med `excludes_from_expense_total = true`) är
+**kassaflöde**, inte förbrukning — den betalar köp som redan räknats.
+
+| | Förbrukning | Kassaflöde |
+|---|---|---|
+| Bankköp | Ja, köpdagen | Ja, köpdagen |
+| Kortköp | Ja, köpdagen | Nej |
+| Kreditkort-raden (fakturan) | Nej | Ja, när den dras |
+
+- Budgeten är en plan. CCM-knappen per rad styr om beloppet dras från kontot
+  denna period eller skjuts till nästa kortfaktura. Kreditkort-raden = fakturor
+  som dras i perioden. Förbrukning = alla rader utom Kreditkort.
+- Utfallet följer varje transaktions faktiska `is_ccm`, inte CCM-knappen.
+- Gemensam ekonomi är kassaflöde: CCM-rader räknas inte i insättningen,
+  de betalas via Kreditkort-raden.
+- Kod: `src/lib/utils/spend-calc.ts` (`calcConsumption`, `calcCashOut`).
+
+---
+
+## Kortfakturan i prognosen
+
+`src/lib/analytics/card-invoices.ts`. Samma kalkyl för alla kort, från kortets
+`invoice_break_date` och `due_day`:
+
+- **Fakturaperiod:** brytdatum → dagen före nästa brytdatum. Förfallodagen
+  avgör vilken budgetperiod fakturan dras i.
+- **Inlagt fakturabelopp** (`ccm_invoices.actual_amount > 0`) gäller exakt.
+- **Annars:** registrerade köp i fakturaperioden (utläggs-CASE) + kortets takt
+  × okända dagar.
+- **Känt till och med:** dagen före kortets senaste CSV-import, eller senaste
+  köpet om det är senare. Dagar däremellan utan köp räknas som 0 kr.
+- **Takt:** snitt per dag av de tre senaste helt kända fakturaperioderna sedan
+  kortet började användas (tomma perioder = 0), vägd mot takten hittills i den
+  öppna perioden (14 dagars vikt). Nytt kort utan historik: egen takt efter 7 dagar.
+- Månad 2 och framåt utan köp: medianen av fakturaraden.
 
 ---
 
