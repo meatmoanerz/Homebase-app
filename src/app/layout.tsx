@@ -46,9 +46,11 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    // Status bar is see-through: the page background (and the header) runs
-    // up behind the clock/battery instead of a black bar
-    statusBarStyle: "black-translucent",
+    // No statusBarStyle on purpose: with black-translucent, iOS 26+ draws a dark
+    // gradient over the status bar and leaves a black band at the bottom
+    // (WebKit 301108). Without it the status bar is solid in theme-color, i.e.
+    // the page background. iOS reads this only when the app is added to the
+    // Home Screen.
     title: "Homebase",
     // Launch images for the home-screen app (iOS shows black without them).
     // Generated from the app icon on the brand sand colour; same layout as AppSplash.
