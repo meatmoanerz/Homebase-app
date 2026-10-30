@@ -1548,11 +1548,12 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
                 <div className="p-3 rounded-lg bg-muted/50">
                   <p className="text-muted-foreground text-xs">Förbrukning</p>
                   <p className="font-semibold">{formatCurrency(totalConsumption)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Allt ni köper i perioden, med kort eller från kontot</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Allt ni köper i perioden</p>
                 </div>
                 <div className="p-3 rounded-lg bg-success/10">
                   <p className="text-muted-foreground text-xs">Sparande</p>
                   <p className="font-semibold text-success">{formatCurrency(totalSavings)}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Inkl. amortering</p>
                 </div>
               </div>
 
@@ -1561,10 +1562,8 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
                 <div className="p-3 rounded-lg bg-muted/50">
                   <p className="text-muted-foreground text-xs">Dras från kontot</p>
                   <p className="font-semibold">{formatCurrency(totalCashflow)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {totalInvoice > 0
-                      ? `Räkningar och köp från kontot, plus kortfakturan ${formatCurrency(totalInvoice)}`
-                      : 'Räkningar och köp från kontot'}
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {totalInvoice > 0 ? `Varav kortfaktura ${formatCurrency(totalInvoice)}` : 'Räkningar och köp'}
                   </p>
                 </div>
                 {/* CCM - only show if CCM is enabled and has CCM expenses */}
@@ -1572,10 +1571,10 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
                   <div className="p-3 rounded-lg bg-hb-sand-deep/10 border border-hb-terracotta/20">
                     <div className="flex items-center gap-1.5">
                       <CreditCard className="w-3.5 h-3.5 text-hb-terracotta shrink-0" />
-                      <p className="text-muted-foreground text-xs">Skjuts till nästa månad</p>
+                      <p className="text-muted-foreground text-xs">Nästa kortfaktura</p>
                     </div>
                     <p className="font-semibold text-hb-terracotta">{formatCurrency(totalCCM)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Kortköp, dras med nästa kortfaktura</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Dras nästa månad</p>
                   </div>
                 )}
               </div>

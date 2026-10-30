@@ -37,8 +37,8 @@ interface SpendHeroProps {
  * so the number moves the moment you buy something.
  *
  * SECONDARY (small row): cash flow — income minus what leaves the account,
- * with the projected balance at next salary and the card invoice that
- * follows next period (the purchases pushed forward).
+ * so far and projected at next salary, and the card invoice that follows
+ * next period (the purchases pushed forward).
  */
 export function SpendHero({ spent, budget, income, cashOut, hasBudget, forecast, cashOutForecast, nextInvoice, daysLeft, scopeLabel }: SpendHeroProps) {
   const remaining = budget - spent
@@ -119,7 +119,7 @@ export function SpendHero({ spent, budget, income, cashOut, hasBudget, forecast,
         <div className="mt-4 pt-3.5 border-t border-dashed border-border flex justify-between items-end">
           <div>
             <div className="label-caps text-muted-foreground">
-              Kassaflöde
+              Kassaflöde hittills
             </div>
             <div className={cn(
               'font-serif-kpi text-[18px] md:text-[22px] mt-1',
@@ -143,14 +143,14 @@ export function SpendHero({ spent, budget, income, cashOut, hasBudget, forecast,
           <div className="mt-2.5 space-y-1 text-[12px] text-muted-foreground">
             {cashOutForecast != null && income > 0 && (
               <div className="flex justify-between gap-3">
-                <span>Kvar på kontot vid lön</span>
+                <span>Kassaflöde vid lön</span>
                 <span className={cn('font-medium', income - cashOutForecast < 0 ? 'text-destructive' : 'text-foreground')}>
-                  ~{formatCurrency(income - cashOutForecast)}
+                  ~{income - cashOutForecast >= 0 && '+'}{formatCurrency(income - cashOutForecast)}
                 </span>
               </div>
             )}
             {nextInvoice && (
-              <div className="flex justify-between gap-3">
+              <div className="flex justify-between items-start gap-3">
                 <span className="flex items-center gap-1.5">
                   <CreditCard className="w-3.5 h-3.5 shrink-0" />
                   Kortfaktura nästa period
