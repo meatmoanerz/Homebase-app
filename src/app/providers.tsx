@@ -7,6 +7,7 @@ import { MotionConfig } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useKeyboard } from '@/hooks/use-keyboard'
 import { useCapacitorInit } from '@/hooks/use-capacitor'
+import { THEME_COLOR } from '@/lib/utils/theme-color'
 
 // Component to initialize keyboard detection globally
 function KeyboardDetector() {
@@ -20,13 +21,13 @@ function CapacitorInit() {
   return null
 }
 
-// Keeps theme-color on the page background when the user picks a theme in the
-// app that differs from the system one (the meta tags only follow the system)
+// Keeps theme-color in step when the user switches theme in the app
+// (the meta tags only follow the system setting)
 function ThemeColorSync() {
   const { resolvedTheme } = useTheme()
   useEffect(() => {
     if (!resolvedTheme) return
-    const color = resolvedTheme === 'dark' ? '#1a1510' : '#f4ede3'
+    const color = resolvedTheme === 'dark' ? THEME_COLOR.dark : THEME_COLOR.light
     document
       .querySelectorAll('meta[name="theme-color"]')
       .forEach((meta) => meta.setAttribute('content', color))

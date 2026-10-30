@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { THEME_COLOR } from '@/lib/utils/theme-color'
 
 /**
  * Initializes Capacitor native plugins (StatusBar, SplashScreen).
@@ -24,9 +25,9 @@ export function useCapacitorInit() {
       const isDark = document.documentElement.classList.contains('dark')
       await StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light })
 
-      // iOS: set status bar background to match app background
+      // iOS: set status bar background to match the header
       if (Capacitor.getPlatform() === 'ios') {
-        await StatusBar.setBackgroundColor({ color: isDark ? '#1a1510' : '#f4ede3' })
+        await StatusBar.setBackgroundColor({ color: isDark ? THEME_COLOR.dark : THEME_COLOR.light })
       }
 
       // Re-apply on theme change
@@ -34,7 +35,7 @@ export function useCapacitorInit() {
         const dark = document.documentElement.classList.contains('dark')
         StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => null)
         if (Capacitor.getPlatform() === 'ios') {
-          StatusBar.setBackgroundColor({ color: dark ? '#1a1510' : '#f4ede3' }).catch(() => null)
+          StatusBar.setBackgroundColor({ color: dark ? THEME_COLOR.dark : THEME_COLOR.light }).catch(() => null)
         }
       })
 

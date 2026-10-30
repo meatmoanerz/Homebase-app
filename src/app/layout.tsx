@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Inter, Fraunces, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
 import { Providers } from "./providers"
+import { THEME_COLOR, themeColorScript } from "@/lib/utils/theme-color"
 
 const inter = Inter({
   variable: "--font-inter",
@@ -48,9 +49,8 @@ export const metadata: Metadata = {
     capable: true,
     // No statusBarStyle on purpose: with black-translucent, iOS 26+ draws a dark
     // gradient over the status bar and leaves a black band at the bottom
-    // (WebKit 301108). Without it the status bar is solid in theme-color, i.e.
-    // the page background. iOS reads this only when the app is added to the
-    // Home Screen.
+    // (WebKit 301108). Without it the status bar is solid in theme-color.
+    // iOS reads this only when the app is added to the Home Screen.
     title: "Homebase",
     // Launch images for the home-screen app (iOS shows black without them).
     // Generated from the app icon on the brand sand colour; same layout as AppSplash.
@@ -75,10 +75,11 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  // Matches the page background so the browser/status bar blends in
+  // Matches the mobile header so the status bar and header read as one bar.
+  // themeColorScript corrects it when the in-app theme differs from the system.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4ede3" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1510" },
+    { media: "(prefers-color-scheme: light)", color: THEME_COLOR.light },
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLOR.dark },
   ],
 }
 
@@ -92,6 +93,8 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${fraunces.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
+        {/* First in body: the theme-color tags in <head> exist by now */}
+        <script dangerouslySetInnerHTML={{ __html: themeColorScript }} />
         <Providers>{children}</Providers>
       </body>
     </html>
