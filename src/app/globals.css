@@ -197,13 +197,18 @@
 html {
   /* No double-tap zoom delay; taps feel instant */
   touch-action: manipulation;
+  /* Fills the area behind the iOS status bar and the overscroll bounce,
+     which otherwise shows black */
+  background-color: var(--background);
+  min-height: 100dvh;
 }
 
 body {
   /* Components have their own :active states, so no grey iOS tap flash */
   -webkit-tap-highlight-color: transparent;
-  background: var(--background-gradient);
-  background-attachment: fixed;
+  background-color: var(--background);
+  background-image: var(--background-gradient);
+  min-height: 100dvh;
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

@@ -26,7 +26,7 @@ export function useCapacitorInit() {
 
       // iOS: set status bar background to match app background
       if (Capacitor.getPlatform() === 'ios') {
-        await StatusBar.setBackgroundColor({ color: isDark ? '#1a1f18' : '#FAFBF9' })
+        await StatusBar.setBackgroundColor({ color: isDark ? '#1a1510' : '#f4ede3' })
       }
 
       // Re-apply on theme change
@@ -34,7 +34,7 @@ export function useCapacitorInit() {
         const dark = document.documentElement.classList.contains('dark')
         StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => null)
         if (Capacitor.getPlatform() === 'ios') {
-          StatusBar.setBackgroundColor({ color: dark ? '#1a1f18' : '#FAFBF9' }).catch(() => null)
+          StatusBar.setBackgroundColor({ color: dark ? '#1a1510' : '#f4ede3' }).catch(() => null)
         }
       })
 

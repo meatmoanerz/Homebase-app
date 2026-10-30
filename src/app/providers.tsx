@@ -1,10 +1,10 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ThemeProvider } from 'next-themes'
+import { ThemeProvider, useTheme } from 'next-themes'
 import { Toaster } from 'sonner'
 import { MotionConfig } from 'framer-motion'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useKeyboard } from '@/hooks/use-keyboard'
 import { useCapacitorInit } from '@/hooks/use-capacitor'
 
@@ -17,6 +17,20 @@ function KeyboardDetector() {
 // Component to initialize Capacitor native plugins (no-op on web)
 function CapacitorInit() {
   useCapacitorInit()
+  return null
+}
+
+// Keeps theme-color on the page background when the user picks a theme in the
+// app that differs from the system one (the meta tags only follow the system)
+function ThemeColorSync() {
+  const { resolvedTheme } = useTheme()
+  useEffect(() => {
+    if (!resolvedTheme) return
+    const color = resolvedTheme === 'dark' ? '#1a1510' : '#f4ede3'
+    document
+      .querySelectorAll('meta[name="theme-color"]')
+      .forEach((meta) => meta.setAttribute('content', color))
+  }, [resolvedTheme])
   return null
 }
 
@@ -45,6 +59,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         enableSystem={true}
         storageKey="stacka-theme"
       >
+        <ThemeColorSync />
         <KeyboardDetector />
         <CapacitorInit />
         {/* Framer animations follow the system "Reduce motion" setting */}
@@ -52,6 +67,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <Toaster
           richColors
           position="top-center"
+          // Status bar is see-through, so keep toasts below the clock
+          mobileOffset={{ top: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
           toastOptions={{
             style: {
               background: 'var(--card)',

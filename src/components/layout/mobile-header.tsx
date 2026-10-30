@@ -102,7 +102,7 @@ export function MobileHeader() {
 
   return (
     <>
-      <header className="md:hidden sticky top-0 z-40 px-5 py-3.5 glass border-b border-border/60">
+      <header className="md:hidden sticky top-0 z-40 px-5 pt-[calc(env(safe-area-inset-top,0px)+14px)] pb-3.5 glass border-b border-border/60">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1 min-w-0">
             {backTo && (

@@ -35,6 +35,10 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
+  // Next only emits the generic mobile-web-app-capable tag; older iOS needs this one
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
   openGraph: {
     title: "Homebase",
     description: "Håll koll på din budget, utgifter och sparande",
@@ -42,7 +46,9 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    // Status bar is see-through: the page background (and the header) runs
+    // up behind the clock/battery instead of a black bar
+    statusBarStyle: "black-translucent",
     title: "Homebase",
     // Launch images for the home-screen app (iOS shows black without them).
     // Generated from the app icon on the brand sand colour; same layout as AppSplash.
