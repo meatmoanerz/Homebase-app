@@ -49,9 +49,12 @@ någon av dem går data eller live-appen sönder på ett sätt som är dyrt att 
   att Tim kör det, eller att ändringen görs i en annan miljö.
 
 **KPI**
-- **spend** = alla köp **inklusive** Kreditkort-kategorin. Exkludera aldrig
-  Kreditkort från spend.
-- **kassaflöde** = bankbaserat. Amex räknas inte nu; SEB/Swedbank dras direkt.
+- **förbrukning** (huvud-KPI) = varje köp en gång, på köpdagen, kortköp
+  inräknade. Kreditkort-raden (fakturan) räknas **aldrig** som förbrukning —
+  den betalar köp som redan räknats.
+- **kassaflöde** = det som lämnar kontot: bankköp + fakturor som dras.
+  Kortköp räknas först när fakturan dras.
+- Detaljer: `docs/03-ccm-avstamning.md`.
 
 ---
 

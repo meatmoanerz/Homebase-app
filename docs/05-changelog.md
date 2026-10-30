@@ -15,8 +15,9 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 - Prognos: kortfakturan räknas per kort från köpen som redan ligger på den +
   kortets takt för okända dagar (se `03-ccm-avstamning.md`). Dashboarden visar
   kassaflöde vid lön och nästa kortfaktura; analysen delar upp förbrukning/sparande.
-- Regeln om spend i avsnitt 1 av `00-projektinstruktion.md` är föreslagen till Tim
-  för manuell uppdatering. Dokumentationen godkänd av Tim.
+- KPI-regeln i avsnitt 1 av `00-projektinstruktion.md` uppdaterad (spend →
+  förbrukning, Kreditkort-raden är kassaflöde), på Tims uttryckliga begäran.
+  Dokumentationen godkänd av Tim.
 
 ## 2026-10-29 — Gemensam ekonomi, sparmål via trigger, budgetens källrader
 
