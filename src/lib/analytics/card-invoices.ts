@@ -1,8 +1,8 @@
-import { addDays, differenceInCalendarDays } from 'date-fns'
+import { addDays, differenceInCalendarDays, format } from 'date-fns'
 import type { ExpenseWithCategory } from '@/types'
 import { shiftPeriod } from '@/lib/utils/budget-period'
 import { isInvoiceLine } from '@/lib/analytics/analytics'
-import { median, type KnownInvoice } from '@/lib/analytics/forecast'
+import type { KnownInvoice } from '@/lib/analytics/forecast'
 import {
   getInvoiceBudgetPeriod,
   groupExpensesByCardAndPeriod,
@@ -13,18 +13,27 @@ import {
 
 /**
  * Credit-card invoices that are already (partly) known, per budget period in
- * which they are paid. Household totals over all cards.
+ * which they are paid. Household totals over all cards; every card is handled
+ * the same way, from its own break date and due day.
  *
  * Per card and invoice period:
  *  - Invoice amount entered in the CCM → exact.
  *  - Otherwise the purchases registered on that invoice, plus an estimate for
- *    the days not covered yet (from the day after the card's latest imported
- *    purchase to the break date), at the card's usual daily rate.
+ *    the days not covered yet, at the card's pace (see cardPace).
  * A period is only returned when something is actually known for it — a pure
  * estimate is left to the regular forecast.
  */
 
+/** Fully known invoice periods the card's usual pace is taken from. */
 const RATE_WINDOW = 3
+/**
+ * Weight, in days, of the card's usual pace against the pace seen so far in
+ * the open invoice period. After two weeks of data the open period counts as
+ * much as the history, so a card that suddenly gets used a lot shows quickly.
+ */
+const PRIOR_DAYS = 14
+/** Without history, the open period alone needs this many days to say anything. */
+const MIN_OBSERVED_DAYS = 7
 /** Invoices tend to carry a few purchases nobody registered. */
 const UNREGISTERED_MARGIN = 0.05
 
@@ -37,6 +46,24 @@ export function invoiceWindow(invoicePeriod: string, breakDate: number): { start
 }
 
 const daysIn = (start: Date, end: Date) => Math.max(0, differenceInCalendarDays(end, start) + 1)
+const toDate = (day: string) => new Date(`${day}T00:00:00`)
+
+/**
+ * The last day the card's purchases are known for: the day before its latest
+ * bank-file import (a file covers up to the day it was exported), or its latest
+ * purchase if that is later. Days after it may still get purchases.
+ */
+export function cardCoveredUntil(purchases: ExpenseWithCategory[]): Date | null {
+  let until: string | null = null
+  for (const e of purchases) {
+    if (!until || e.date > until) until = e.date
+    if (e.import_source === 'csv' && e.created_at) {
+      const imported = format(addDays(new Date(e.created_at), -1), 'yyyy-MM-dd')
+      if (imported > until) until = imported
+    }
+  }
+  return until ? toDate(until) : null
+}
 
 export function knownCardInvoices(params: {
   /** Budget periods to look up (running period and the ones ahead). */
@@ -54,27 +81,33 @@ export function knownCardInvoices(params: {
 
   for (const card of cards) {
     const byPeriod = grouped.get(card.id) ?? new Map<string, ExpenseWithCategory[]>()
-    const entered = (period: string) =>
-      Number(invoices.find((i) => i.credit_card_id === card.id && i.period === period)?.actual_amount) || 0
+    const window = (p: string) => invoiceWindow(p, card.invoice_break_date)
+    const entered = (p: string) =>
+      Number(invoices.find((i) => i.credit_card_id === card.id && i.period === p)?.actual_amount) || 0
+    const registered = (p: string) => sumCardExpenses(byPeriod.get(p) ?? [])
+    const coveredUntil = cardCoveredUntil([...byPeriod.values()].flat())
 
-    // Imported up to the card's latest purchase; later days are unknown.
-    let latest: string | null = null
-    for (const list of byPeriod.values()) {
-      for (const e of list) if (!latest || e.date > latest) latest = e.date
+    // Usual spend per day: mean over the latest fully known invoice periods
+    // since the card was first used — periods without purchases count as 0.
+    const used = [
+      ...byPeriod.keys(),
+      ...invoices.filter((i) => i.credit_card_id === card.id && Number(i.actual_amount) > 0).map((i) => i.period),
+    ].sort()
+    const history: number[] = []
+    if (coveredUntil && used.length > 0) {
+      for (let p = used[0]; window(p).end <= coveredUntil; p = shiftPeriod(p, 1)) {
+        const { start, end } = window(p)
+        history.push((entered(p) || registered(p)) / daysIn(start, end))
+      }
     }
-    const dataUntil = latest ? new Date(`${latest}T00:00:00`) : null
+    const recent = history.slice(-RATE_WINDOW)
+    const usualPace = recent.length ? recent.reduce((s, v) => s + v, 0) / recent.length : null
 
-    // Usual spend per day, from the latest fully imported invoice periods.
-    const rates = [...byPeriod.keys()]
-      .filter((p) => dataUntil && invoiceWindow(p, card.invoice_break_date).end < dataUntil)
-      .sort()
-      .slice(-RATE_WINDOW)
-      .map((p) => {
-        const { start, end } = invoiceWindow(p, card.invoice_break_date)
-        const amount = entered(p) || sumCardExpenses(byPeriod.get(p) ?? [])
-        return amount / Math.max(1, daysIn(start, end))
-      })
-    const rate = median(rates)
+    /** Pace for the rest of an invoice period: its own pace so far, leaning on the usual pace. */
+    const cardPace = (seen: number, seenDays: number) => {
+      if (usualPace != null) return (seen + usualPace * PRIOR_DAYS) / (seenDays + PRIOR_DAYS)
+      return seenDays >= MIN_OBSERVED_DAYS ? seen / seenDays : 0
+    }
 
     for (const budgetPeriod of budgetPeriods) {
       // Invoice periods paid in this budget period (normally exactly one).
@@ -88,15 +121,19 @@ export function knownCardInvoices(params: {
         if (exact > 0) {
           part = { value: exact, low: exact, high: exact, registered: exact, estimated: 0 }
         } else {
-          const registered = sumCardExpenses(byPeriod.get(invoicePeriod) ?? [])
-          const { start, end } = invoiceWindow(invoicePeriod, card.invoice_break_date)
-          const unknownFrom = dataUntil && dataUntil >= start ? addDays(dataUntil, 1) : start
-          const estimated = dataUntil ? rate * daysIn(unknownFrom, end) : 0
+          const known = registered(invoicePeriod)
+          const { start, end } = window(invoicePeriod)
+          let estimated = 0
+          if (coveredUntil) {
+            const seenDays = coveredUntil < start ? 0 : daysIn(start, coveredUntil < end ? coveredUntil : end)
+            const unknownDays = daysIn(start, end) - seenDays
+            estimated = cardPace(known, seenDays) * unknownDays
+          }
           part = {
-            value: registered + estimated,
-            low: registered + estimated * 0.5,
-            high: registered * (1 + UNREGISTERED_MARGIN) + estimated * 1.5,
-            registered,
+            value: known + estimated,
+            low: known + estimated * 0.5,
+            high: known * (1 + UNREGISTERED_MARGIN) + estimated * 1.5,
+            registered: known,
             estimated,
           }
         }
