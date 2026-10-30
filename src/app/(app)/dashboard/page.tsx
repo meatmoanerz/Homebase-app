@@ -24,8 +24,11 @@ import { usePerspective } from '@/hooks/use-perspective'
 import { useAllExpenses } from '@/hooks/use-analytics'
 import { useAllLoans } from '@/hooks/use-loans'
 import { useActiveRecurringExpenses } from '@/hooks/use-recurring-expenses'
+import { useCreditCards } from '@/hooks/use-credit-cards'
+import { useCCMInvoices } from '@/hooks/use-ccm-invoices'
 import { budgetTotal, personShare, toRows } from '@/lib/analytics/analytics'
 import { buildForecast } from '@/lib/analytics/forecast'
+import { knownCardInvoices } from '@/lib/analytics/card-invoices'
 import { getBudgetPeriod, getDaysUntilSalary, getPeriodProgress } from '@/lib/utils/budget-period'
 import { splitBudgetItem } from '@/lib/utils/budget-split'
 import { motion } from 'framer-motion'
@@ -102,6 +105,8 @@ export default function DashboardPage() {
   const { data: allExpenses = [] } = useAllExpenses()
   const { data: loans = [] } = useAllLoans()
   const { data: recurring = [] } = useActiveRecurringExpenses()
+  const { data: creditCards = [] } = useCreditCards()
+  const { data: ccmInvoices = [] } = useCCMInvoices()
 
   const budgetItems = useMemo(() => budget?.budget_items ?? [], [budget])
   // Income-share split for categories shared "Efter inkomst"
@@ -134,9 +139,16 @@ export default function DashboardPage() {
       incomeFor: () => null,
       categoryMeta: new Map(),
       coverageRows: person === 'all' ? rows : toRows(allExpenses, salaryDay, 'all', user?.id),
+      cardInvoices: knownCardInvoices({
+        budgetPeriods: [currentPeriod.period, shiftPeriod(currentPeriod.period, 1)],
+        cards: creditCards,
+        expenses: allExpenses,
+        invoices: ccmInvoices,
+        salaryDay,
+      }),
     })
     return result.historyPeriods.length >= 2 ? result : null
-  }, [isCurrentPeriod, allExpenses, salaryDay, person, user?.id, currentPeriod.period, loans, recurring])
+  }, [isCurrentPeriod, allExpenses, salaryDay, person, user?.id, currentPeriod.period, loans, recurring, creditCards, ccmInvoices])
 
   const deviations = useMemo<CategoryDeviation[]>(() => {
     const actualByCategory = new Map<string, number>()

@@ -13,6 +13,8 @@ import { isInvoiceLine, periodsBetween, type AnalyticsRow } from '@/lib/analytic
  *    those months varied. With ≥ 6 months of history a linear trend is fitted;
  *    a clear trend moves the forecast, damped so it never runs away.
  *  - No history but an active recurring expense: the recurring amount.
+ *  - Credit-card invoice with purchases already on it: the known invoice
+ *    (entered amount, or registered purchases + the days still to come).
  * The running period = what is already spent + the expected remainder.
  */
 
@@ -46,7 +48,18 @@ export interface Trend {
   direction: 'up' | 'down'
 }
 
-export type ForecastMethod = 'median' | 'mean' | 'trend' | 'loan' | 'recurring'
+export type ForecastMethod = 'median' | 'mean' | 'trend' | 'loan' | 'recurring' | 'invoice'
+
+/** A credit-card invoice paid in a period, as far as it is known (see knownCardInvoices). */
+export interface KnownInvoice {
+  value: number
+  low: number
+  high: number
+  /** Entered invoice amounts and purchases already registered on the invoices. */
+  registered: number
+  /** Expected purchases for the days not imported yet. */
+  estimated: number
+}
 
 export interface CategoryForecast {
   id: string
@@ -62,6 +75,8 @@ export interface CategoryForecast {
   ahead: Array<{ value: number; low: number; high: number }>
   /** Running period: spent so far and projected landing. */
   current: { actual: number; projected: number; low: number; high: number }
+  /** Known credit-card invoice for the next period (selected person's share). */
+  knownInvoice?: KnownInvoice
 }
 
 export interface ForecastMonth {
@@ -108,6 +123,8 @@ interface ForecastInput {
    * person's view doesn't make a complete month look empty.
    */
   coverageRows?: AnalyticsRow[]
+  /** Credit-card invoices already known per budget period, household totals. */
+  cardInvoices?: Map<string, KnownInvoice>
 }
 
 export interface PeriodCoverage {
@@ -298,6 +315,12 @@ export function buildForecast(input: ForecastInput): ForecastResult {
     return { interest, amortisation }
   }
 
+  // Known card invoices go to one invoice category (the household's main
+  // Kreditkort line), so two partners' invoice categories don't both get them.
+  const invoiceCategoryId = input.cardInvoices?.size
+    ? [...acc].filter(([, a]) => a.isInvoice).sort((x, y) => y[1].amountSum - x[1].amountSum)[0]?.[0]
+    : undefined
+
   const categories: CategoryForecast[] = []
   for (const [id, a] of acc) {
     const series = history.map((p) => a.byPeriod.get(p) || 0)
@@ -392,6 +415,37 @@ export function buildForecast(input: ForecastInput): ForecastResult {
       }
     }
 
+    // Card invoices: what is already on them beats the median.
+    let knownInvoice: KnownInvoice | undefined
+    if (id === invoiceCategoryId && input.cardInvoices) {
+      const share = (k: KnownInvoice): KnownInvoice => ({
+        value: k.value * personRatio,
+        low: k.low * personRatio,
+        high: k.high * personRatio,
+        registered: k.registered * personRatio,
+        estimated: k.estimated * personRatio,
+      })
+      ahead = ahead.map((step, i) => {
+        const k = input.cardInvoices!.get(shiftPeriod(currentPeriod, i + 1))
+        return k ? share(k) : step
+      })
+      const next = input.cardInvoices.get(shiftPeriod(currentPeriod, 1))
+      if (next) {
+        method = 'invoice'
+        knownInvoice = share(next)
+      }
+      const now = input.cardInvoices.get(currentPeriod)
+      if (now) {
+        const k = share(now)
+        current = {
+          actual: a.current,
+          projected: Math.max(a.current, k.value),
+          low: Math.max(a.current, k.low),
+          high: Math.max(a.current, k.high),
+        }
+      }
+    }
+
     categories.push({
       id,
       name: a.name,
@@ -403,6 +457,7 @@ export function buildForecast(input: ForecastInput): ForecastResult {
       trend,
       ahead,
       current,
+      knownInvoice,
     })
   }
 
