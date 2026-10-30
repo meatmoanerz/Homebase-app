@@ -14,7 +14,7 @@ import { getCurrency, formatCurrencyAmount, convertFromSEK } from '@/lib/utils/c
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, ChevronRight, ChevronDown, Calendar, Target, Archive, FolderOpen } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
-import { calcTotalSpend, calcPersonSpend } from '@/lib/utils/spend-calc'
+import { calcConsumption, calcPersonSpend, isCardInvoice } from '@/lib/utils/spend-calc'
 import { getBudgetStatus, budgetStatusBarClass } from '@/lib/utils/budget-status'
 import type { TemporaryBudgetWithCategories } from '@/types'
 import { sumBudgetSplit } from '@/lib/utils/budget-split'
@@ -182,22 +182,29 @@ function BudgetCard({ budget, index, isCurrent, salaryDay, hasPartner, userName,
   const { totalSpent, userSpent, partnerSpent } = useMemo(() => {
     if (!expenses) return { totalSpent: 0, userSpent: 0, partnerSpent: 0 }
     return {
-      totalSpent: calcTotalSpend(expenses),
+      totalSpent: calcConsumption(expenses),
       userSpent: calcPersonSpend(expenses, 'user', userId),
       partnerSpent: calcPersonSpend(expenses, 'partner', userId),
     }
   }, [expenses, userId])
 
-  const budgetedExpenses = (budget.total_expenses || 0) + (budget.total_savings || 0)
+  // Consumption budget: every row except Kreditkort (the invoice is cash flow;
+  // its purchases are budgeted in their own categories)
+  const consumptionItems = useMemo(
+    () => (budget.budget_items || []).filter((item) => !isCardInvoice(item)),
+    [budget.budget_items]
+  )
+  const budgetedExpenses = (budget.budget_items || []).length > 0
+    ? consumptionItems.reduce((sum, item) => sum + item.amount, 0)
+    : (budget.total_expenses || 0) + (budget.total_savings || 0)
   // Per-person budget from explicit budget_item_assignments (50/50 fallback per item)
   const { userBudget, partnerBudget } = useMemo(() => {
-    const items = budget.budget_items || []
-    if (items.length === 0) {
+    if (consumptionItems.length === 0) {
       return { userBudget: budgetedExpenses / 2, partnerBudget: budgetedExpenses / 2 }
     }
-    const split = sumBudgetSplit(items, userId, partnerId, splitRule)
+    const split = sumBudgetSplit(consumptionItems, userId, partnerId, splitRule)
     return { userBudget: split.user, partnerBudget: split.partner }
-  }, [budget.budget_items, budgetedExpenses, userId, partnerId, splitRule])
+  }, [consumptionItems, budgetedExpenses, userId, partnerId, splitRule])
   const spentRatio = budgetedExpenses > 0 ? (totalSpent / budgetedExpenses) * 100 : 0
   const remaining = budgetedExpenses - totalSpent
   const isOver = remaining < 0

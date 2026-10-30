@@ -4,21 +4,25 @@ import { motion } from 'framer-motion'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { cn } from '@/lib/utils/cn'
 import Link from 'next/link'
-import { Telescope, ChevronRight } from 'lucide-react'
+import { Telescope, ChevronRight, CreditCard } from 'lucide-react'
 import { getBudgetStatus, budgetStatusBarClass } from '@/lib/utils/budget-status'
 
 interface SpendHeroProps {
-  /** Spend tracking total this period (excl. credit-card invoice category) */
+  /** Consumption this period: every purchase once, credit-card invoice line excluded */
   spent: number
-  /** Budget for expenses this period (0 if none set) */
+  /** Consumption budget this period, Kreditkort row excluded (0 if none set) */
   budget: number
   /** Income that landed on the account this period */
   income: number
   /** Direct withdrawals (excl. credit-card purchases) */
   cashOut: number
   hasBudget: boolean
-  /** Projected landing for the running period (null when not the current period). */
+  /** Projected consumption for the running period (null when not the current period). */
   forecast?: { spend: number; low: number; high: number } | null
+  /** Projected money leaving the account this period, invoices included. */
+  cashOutForecast?: number | null
+  /** Credit-card invoice drawn next period: total and what is already on the card. */
+  nextInvoice?: { value: number; registered: number } | null
   /** Days left until next salary (running period only). */
   daysLeft?: number | null
   /** e.g. "Tims andel" when the perspective is a single person. */
@@ -28,15 +32,15 @@ interface SpendHeroProps {
 /**
  * Main hero on the dashboard.
  *
- * PRIMARY (big number): spend tracking vs budget — "kvar att spendera".
- * This is the honest total: adding credit-card purchases makes it move,
- * so you always see how much you've really spent.
+ * PRIMARY (big number): consumption vs budget — "kvar att spendera".
+ * Every purchase counts once when it is made, card purchases included,
+ * so the number moves the moment you buy something.
  *
- * SECONDARY (small row): cash flow — income minus direct withdrawals.
- * Shown for context but never as the headline, to avoid the false
- * comfort of credit-card purchases not moving the big number.
+ * SECONDARY (small row): cash flow — income minus what leaves the account,
+ * with the projected balance at next salary and the card invoice that
+ * follows next period (the purchases pushed forward).
  */
-export function SpendHero({ spent, budget, income, cashOut, hasBudget, forecast, daysLeft, scopeLabel }: SpendHeroProps) {
+export function SpendHero({ spent, budget, income, cashOut, hasBudget, forecast, cashOutForecast, nextInvoice, daysLeft, scopeLabel }: SpendHeroProps) {
   const remaining = budget - spent
   const overBudget = hasBudget && remaining < 0
   const spentRatio = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0
@@ -134,6 +138,33 @@ export function SpendHero({ spent, budget, income, cashOut, hasBudget, forecast,
             </div>
           </div>
         </div>
+
+        {(cashOutForecast != null && income > 0) || nextInvoice ? (
+          <div className="mt-2.5 space-y-1 text-[12px] text-muted-foreground">
+            {cashOutForecast != null && income > 0 && (
+              <div className="flex justify-between gap-3">
+                <span>Kvar på kontot vid lön</span>
+                <span className={cn('font-medium', income - cashOutForecast < 0 ? 'text-destructive' : 'text-foreground')}>
+                  ~{formatCurrency(income - cashOutForecast)}
+                </span>
+              </div>
+            )}
+            {nextInvoice && (
+              <div className="flex justify-between gap-3">
+                <span className="flex items-center gap-1.5">
+                  <CreditCard className="w-3.5 h-3.5 shrink-0" />
+                  Kortfaktura nästa period
+                </span>
+                <span className="text-right">
+                  <span className="font-medium text-foreground">~{formatCurrency(nextInvoice.value)}</span>
+                  {nextInvoice.value - nextInvoice.registered >= 1 && (
+                    <span className="block text-[11px]">{formatCurrency(nextInvoice.registered)} redan på kortet</span>
+                  )}
+                </span>
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
     </motion.div>
   )

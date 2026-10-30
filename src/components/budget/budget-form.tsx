@@ -743,6 +743,17 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
 
   const totalCashflow = totalExpenses - totalCCM
 
+  // Kreditkort row = invoices drawn this period (cash flow). Its purchases are
+  // budgeted in their own categories, so it is not part of consumption.
+  const totalInvoice = useMemo(() => {
+    return [...fixed, ...variable].reduce((sum, cat) => {
+      const item = budgetItems[cat.id]
+      return sum + (cat.excludes_from_expense_total && item ? (item.total || 0) : 0)
+    }, 0)
+  }, [fixed, variable, budgetItems])
+  // Consumption = everything bought this period, by card or from the account
+  const totalConsumption = totalExpenses - totalInvoice
+
   // Only cashflow expenses + savings affect this month's balance (CCM is paid next month)
   const totalBudgeted = totalCashflow + totalSavings
   const remaining = totalIncome - totalBudgeted  // CCM does NOT reduce remaining this month
@@ -1532,11 +1543,12 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
             </div>
 
             <div className="space-y-3">
-              {/* First row: Fasta & Rörliga */}
+              {/* Consumption: what you live on this period */}
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="p-3 rounded-lg bg-muted/50">
-                  <p className="text-muted-foreground text-xs">Kassaflöde (Fasta + Rörliga)</p>
-                  <p className="font-semibold">{formatCurrency(totalCashflow)}</p>
+                  <p className="text-muted-foreground text-xs">Förbrukning</p>
+                  <p className="font-semibold">{formatCurrency(totalConsumption)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Allt ni köper i perioden, med kort eller från kontot</p>
                 </div>
                 <div className="p-3 rounded-lg bg-success/10">
                   <p className="text-muted-foreground text-xs">Sparande</p>
@@ -1544,17 +1556,29 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
                 </div>
               </div>
 
-              {/* CCM row - only show if CCM is enabled and has CCM expenses */}
-              {user?.ccm_enabled && totalCCM > 0 && (
-                <div className="p-3 rounded-lg bg-hb-sand-deep/10 border border-hb-terracotta/20">
-                  <div className="flex items-center gap-2 mb-1">
-                    <CreditCard className="w-4 h-4 text-hb-terracotta" />
-                    <p className="text-muted-foreground text-xs">CCM (betalas nästa månad)</p>
-                  </div>
-                  <p className="font-semibold text-hb-terracotta">{formatCurrency(totalCCM)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Påverkar ej denna månads kassaflöde</p>
+              {/* Cash flow: what leaves the account, and what the card pushes forward */}
+              <div className={cn('grid gap-3 text-sm', user?.ccm_enabled && totalCCM > 0 ? 'grid-cols-2' : 'grid-cols-1')}>
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <p className="text-muted-foreground text-xs">Dras från kontot</p>
+                  <p className="font-semibold">{formatCurrency(totalCashflow)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {totalInvoice > 0
+                      ? `Räkningar och köp från kontot, plus kortfakturan ${formatCurrency(totalInvoice)}`
+                      : 'Räkningar och köp från kontot'}
+                  </p>
                 </div>
-              )}
+                {/* CCM - only show if CCM is enabled and has CCM expenses */}
+                {user?.ccm_enabled && totalCCM > 0 && (
+                  <div className="p-3 rounded-lg bg-hb-sand-deep/10 border border-hb-terracotta/20">
+                    <div className="flex items-center gap-1.5">
+                      <CreditCard className="w-3.5 h-3.5 text-hb-terracotta shrink-0" />
+                      <p className="text-muted-foreground text-xs">Skjuts till nästa månad</p>
+                    </div>
+                    <p className="font-semibold text-hb-terracotta">{formatCurrency(totalCCM)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Kortköp, dras med nästa kortfaktura</p>
+                  </div>
+                )}
+              </div>
 
               {/* Kvar totalt - full width */}
               <div className={cn(
@@ -1569,7 +1593,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
                   {formatCurrency(remaining)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Efter kassaflöde och sparande {user?.ccm_enabled && totalCCM > 0 && '(CCM ej inräknat)'}
+                  Efter det som dras från kontot och sparande {user?.ccm_enabled && totalCCM > 0 && '(kortköpen dras nästa månad)'}
                 </p>
               </div>
             </div>

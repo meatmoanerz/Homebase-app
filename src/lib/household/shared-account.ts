@@ -20,7 +20,7 @@ export interface SharedAccountSummary {
   partner: number
 }
 
-type SummaryItem = SplittableBudgetItem & { category_id: string | null; name: string }
+type SummaryItem = SplittableBudgetItem & { category_id: string | null; name: string; is_ccm?: boolean | null }
 
 /**
  * What each of you deposits to the shared account: the budget rows of the
@@ -29,6 +29,9 @@ type SummaryItem = SplittableBudgetItem & { category_id: string | null; name: st
  * rows add up exactly to the per-person totals.
  * `extraCategories` are shared categories without a budget row this period;
  * they are listed at 0 kr so a missing budget line is visible.
+ * Rows paid by card (is_ccm) are left out: that money leaves the account with
+ * the card invoice, which is the Kreditkort row — counting both would make
+ * you deposit it twice.
  */
 export function computeSharedAccountSummary(
   items: SummaryItem[],
@@ -40,7 +43,7 @@ export function computeSharedAccountSummary(
 ): SharedAccountSummary {
   let userGetsOddKrona = true
   const rows: SharedAccountRow[] = items
-    .filter((item) => item.category_id && categoryIds.has(item.category_id))
+    .filter((item) => item.category_id && categoryIds.has(item.category_id) && !item.is_ccm)
     .map((item) => {
       const split = splitBudgetItem(item, userId, partnerId, rule)
       const amount = Math.round(item.amount)

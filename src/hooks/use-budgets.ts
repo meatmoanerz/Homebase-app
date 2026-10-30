@@ -10,6 +10,7 @@ export type BudgetListEntry = Budget & {
     id: string
     amount: number
     category_id: string | null
+    category?: { excludes_from_expense_total: boolean } | null
     budget_item_assignments?: BudgetItemAssignment[]
   }[]
 }
@@ -28,6 +29,7 @@ export function useBudgets() {
             id,
             amount,
             category_id,
+            category:categories(excludes_from_expense_total),
             budget_item_assignments(*)
           )
         `)

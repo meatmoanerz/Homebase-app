@@ -210,9 +210,9 @@ export function AnalyticsForecastView({
 
       <p className="text-[11px] text-muted-foreground px-1 leading-relaxed">
         Prognosen bygger på {forecast.historyPeriods.length} hela månader ({periodList(forecast.historyPeriods)}): fasta
-        kostnader som median av de senaste tre, ränta och amortering från lånen, kreditkortsfakturan från köpen som redan
-        ligger på den, rörliga som snitt av de senaste sex med
+        kostnader som median av de senaste tre, ränta och amortering från lånen, rörliga som snitt av de senaste sex med
         spann efter hur mycket månaderna varierat{forecast.enoughForTrends ? ' och tydliga trender (dämpade framåt)' : ''}.
+        Kortköp räknas när de görs; kreditkortsfakturan räknas inte, eftersom den betalar köp som redan finns med.
         {forecast.excludedPeriods.length > 0 && (
           <>
             {' '}Utelämnade: {periodList(forecast.excludedPeriods)} — för få transaktioner eller dagar med köp jämfört med en
@@ -274,7 +274,6 @@ function CategoryGroup({
                 </span>
                 <span className="block text-[11px] text-muted-foreground">
                   {METHOD_LABEL[c.method]}
-                  {c.knownInvoice && c.knownInvoice.estimated >= 1 && ` · varav ~${formatCurrency(c.knownInvoice.estimated)} uppskattat`}
                   {showRange && ` · ${formatCurrency(c.ahead[0].low)}–${formatCurrency(c.ahead[0].high)}`}
                 </span>
               </span>
@@ -385,16 +384,6 @@ function CategoryForecastSheet({ category, onOpenChange }: { category: CategoryF
               {category.trend.direction === 'up' ? <TrendingUp className="w-4 h-4 shrink-0 mt-0.5" /> : <TrendingDown className="w-4 h-4 shrink-0 mt-0.5" />}
               <span>
                 {category.name} {trendText(category.trend)}. Prognosen följer trenden men dämpas för varje månad framåt.
-              </span>
-            </div>
-          ) : category.knownInvoice ? (
-            <div className="rounded-2xl bg-secondary/50 px-3.5 py-3 text-[13px] text-muted-foreground flex gap-2.5">
-              <Info className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>
-                Fakturan som betalas nästa månad: {formatCurrency(category.knownInvoice.registered)} ligger redan på den
-                {category.knownInvoice.estimated >= 1
-                  ? `, och ~${formatCurrency(category.knownInvoice.estimated)} väntas för dagarna fram till brytdatum.`
-                  : ' — alla köp är inne.'}
               </span>
             </div>
           ) : category.method === 'mean' && category.history.length >= MIN_TREND_MONTHS ? (

@@ -42,6 +42,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils/cn'
+import { isInvoiceLine } from '@/lib/analytics/analytics'
 import { getBudgetStatus, budgetStatusBarClass, budgetStatusTextClass } from '@/lib/utils/budget-status'
 import type { BudgetItem, Category, ExpenseWithCategory } from '@/types'
 import { budgetAmountForView, type SplittableBudgetItem } from '@/lib/utils/budget-split'
@@ -201,6 +202,15 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
   // Calculate totals based on view mode
   // Per-person budget amounts come from explicit budget_item_assignments,
   // with 50/50 as fallback when no assignment exists
+  // The Kreditkort row is cash flow (the invoice), not consumption: its
+  // purchases are already in their own categories. Left out of the totals.
+  const invoiceCategoryIds = useMemo(() => {
+    const ids = new Set<string>()
+    budget?.budget_items?.forEach((item) => { if (item.category_id && isInvoiceLine(item)) ids.add(item.category_id) })
+    expenses?.forEach((e) => { if (e.category_id && isInvoiceLine(e)) ids.add(e.category_id) })
+    return ids
+  }, [budget, expenses])
+
   const totals = useMemo(() => {
     const itemBudget = (item: BudgetItem & SplittableBudgetItem) =>
       budgetAmountForView(item, viewMode, user?.id, partner?.id, splitRule)
@@ -213,6 +223,11 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
     const variableActual = enhancedGroupedItems.variable.reduce((sum, item) => sum + (actualSpending[item.category_id || ''] || 0), 0)
     const savingsActual = enhancedGroupedItems.savings.reduce((sum, item) => sum + (actualSpending[item.category_id || ''] || 0), 0)
 
+    const invoiceItems = [...enhancedGroupedItems.fixed, ...enhancedGroupedItems.variable]
+      .filter((item) => invoiceCategoryIds.has(item.category_id || ''))
+    const invoiceBudgeted = invoiceItems.reduce((sum, item) => sum + itemBudget(item), 0)
+    const invoiceActual = invoiceItems.reduce((sum, item) => sum + (actualSpending[item.category_id || ''] || 0), 0)
+
     return {
       fixedBudgeted,
       variableBudgeted,
@@ -220,10 +235,10 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
       fixedActual,
       variableActual,
       savingsActual,
-      totalBudgeted: fixedBudgeted + variableBudgeted + savingsBudgeted,
-      totalActual: fixedActual + variableActual,
+      totalBudgeted: fixedBudgeted + variableBudgeted + savingsBudgeted - invoiceBudgeted,
+      totalActual: fixedActual + variableActual - invoiceActual,
     }
-  }, [enhancedGroupedItems, actualSpending, viewMode, user?.id, partner?.id, splitRule])
+  }, [enhancedGroupedItems, actualSpending, viewMode, user?.id, partner?.id, splitRule, invoiceCategoryIds])
 
   // Get expenses filtered by category and view mode
   const getExpensesForCategory = (categoryId: string) => {

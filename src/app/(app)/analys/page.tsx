@@ -23,10 +23,7 @@ import { useBudgets } from '@/hooks/use-budgets'
 import { useAllExpenses, usePeriodIncomes } from '@/hooks/use-analytics'
 import { useAllLoans } from '@/hooks/use-loans'
 import { useActiveRecurringExpenses } from '@/hooks/use-recurring-expenses'
-import { useCreditCards } from '@/hooks/use-credit-cards'
-import { useCCMInvoices } from '@/hooks/use-ccm-invoices'
 import { assessCoverage, buildForecast } from '@/lib/analytics/forecast'
-import { knownCardInvoices } from '@/lib/analytics/card-invoices'
 import { AnalyticsForecastView, type ForecastHorizon } from '@/components/analytics/analytics-forecast-view'
 import { ExpenseEditDialog } from '@/components/expenses/expense-edit-dialog'
 import { AssignmentPill } from '@/components/shared/assignment-pill'
@@ -103,8 +100,6 @@ export default function AnalysPage() {
   const { data: budgets = [] } = useBudgets()
   const { data: loans = [] } = useAllLoans()
   const { data: recurring = [] } = useActiveRecurringExpenses()
-  const { data: creditCards = [] } = useCreditCards()
-  const { data: ccmInvoices = [] } = useCCMInvoices()
 
   const earliestPeriod = useMemo(() => {
     const oldest = expenses[expenses.length - 1]
@@ -113,8 +108,10 @@ export default function AnalysPage() {
 
   // Free-text search narrows everything on the page (e.g. "ica" this year).
   const searchTerm = query.trim().toLowerCase()
+  // Consumption: every purchase once. The Kreditkort invoice line pays for card
+  // purchases already counted in their own categories, so it is left out.
   const allRows = useMemo(() => {
-    const rows = toRows(expenses, salaryDay, person, user?.id)
+    const rows = toRows(expenses, salaryDay, person, user?.id).filter((r) => !isInvoiceLine(r.expense))
     if (!searchTerm) return rows
     // Match from the start of a word: "ica" finds "ICA NARA", not "AMERICAN".
     const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -125,7 +122,7 @@ export default function AnalysPage() {
   const categoryOptions = useMemo<CategoryOption[]>(() => {
     const map = new Map<string, CategoryOption>()
     for (const e of expenses) {
-      if (!e.category_id || !e.category || map.has(e.category_id)) continue
+      if (!e.category_id || !e.category || map.has(e.category_id) || isInvoiceLine(e)) continue
       map.set(e.category_id, {
         id: e.category_id,
         name: e.category.name,
@@ -252,19 +249,6 @@ export default function AnalysPage() {
     () => new Map(categoryOptions.map((c) => [c.id, { name: c.name, costType: c.costType, isInvoice: c.isInvoice }])),
     [categoryOptions]
   )
-  // Card invoices already known (purchases on them) for the running period and ahead.
-  const cardInvoices = useMemo(
-    () => view === 'forecast'
-      ? knownCardInvoices({
-          budgetPeriods: periodsBetween(currentPeriod, shiftPeriod(currentPeriod, horizon)),
-          cards: creditCards,
-          expenses,
-          invoices: ccmInvoices,
-          salaryDay,
-        })
-      : undefined,
-    [view, currentPeriod, horizon, creditCards, expenses, ccmInvoices, salaryDay]
-  )
   const forecast = useMemo(() => {
     if (view !== 'forecast') return null
     const forecastIncomeFor = (period: string) => {
@@ -292,9 +276,8 @@ export default function AnalysPage() {
       incomeFor: forecastIncomeFor,
       categoryMeta,
       coverageRows,
-      cardInvoices,
     })
-  }, [view, coverageRows, allRows, catFilter, currentPeriod, earliestPeriod, salaryDay, horizon, loans, recurring, forecastIncomes, person, categoryMeta, cardInvoices])
+  }, [view, coverageRows, allRows, catFilter, currentPeriod, earliestPeriod, salaryDay, horizon, loans, recurring, forecastIncomes, person, categoryMeta])
   const forecastHistory = useMemo(() => {
     if (!forecast) return []
     const totals = totalsByPeriod(catFilter ? allRows.filter((r) => catFilter.has(r.expense.category_id || '')) : allRows)

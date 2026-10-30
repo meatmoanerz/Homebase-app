@@ -4,25 +4,22 @@ import type { CostAssignment } from '@/types'
 /**
  * Two parallel KPIs in Homebase — kept strictly separate.
  *
- * 1. SPEND ("vad konsumerar vi denna period") — the MAIN KPI
- *    Sum of ALL expenses in the period, regardless of payment source.
- *    Bank purchases, Amex purchases, AND the credit-card invoice line
- *    (Kreditkort category — last month's Amex purchases being paid now)
- *    all count. Nothing is excluded. You budget against spend.
+ * 1. CONSUMPTION / FÖRBRUKNING ("vad lever vi för denna period") — the MAIN KPI
+ *    Every purchase counted ONCE, on its purchase date, in its own category —
+ *    bank purchases and credit-card purchases alike. The credit-card invoice
+ *    line (Kreditkort category, flagged excludes_from_expense_total) is NOT
+ *    consumption: it pays off card debt for purchases already counted.
+ *    You budget against consumption.
  *
- *    No double counting: this month's Amex purchases land on NEXT month's
- *    invoice, while the invoice paid this month is LAST month's purchases.
- *    They never overlap.
- *
- * 2. CASH FLOW ("vad lämnar kontot just nu") — secondary
+ * 2. CASH FLOW / KASSAFLÖDE ("vad lämnar kontot just nu") — secondary
  *    Income minus money that actually leaves the account this period.
- *    This month's Amex purchases are excluded (they hit a future invoice),
- *    but the credit-card invoice paid this month IS counted (it's drawn now),
+ *    This period's card purchases are excluded (they hit a future invoice),
+ *    but the credit-card invoice paid this period IS counted (it's drawn now),
  *    as are all bank purchases.
  *
- *    The whole point of tracking both: you set a budget against spend, but
- *    cash flow warns you if that budget is unaffordable in terms of money
- *    actually leaving the account this period.
+ * The difference between them is the card debt: purchases made but not yet
+ * paid. Over a year the two add up to roughly the same — they only differ in
+ * when a cost shows.
  */
 
 export interface ExpenseForCalc {
@@ -36,17 +33,18 @@ export interface ExpenseForCalc {
   } | null
 }
 
+/** The Kreditkort invoice line (expense or budget row): paying card debt, not consumption. */
+export function isCardInvoice(row: { category?: { excludes_from_expense_total?: boolean | null } | null }): boolean {
+  return row.category?.excludes_from_expense_total === true
+}
+
 /**
  * Is this expense an Amex/credit-card PURCHASE made this period?
  * (Not the invoice payment — an actual purchase that will hit a future invoice.)
- *
- * The Kreditkort invoice category is flagged excludes_from_expense_total;
- * it is NOT a purchase, it's the invoice being paid now, so it does NOT
- * count as a future-invoice item.
  */
-function isCreditPurchaseThisPeriod(expense: ExpenseForCalc): boolean {
+export function isCreditPurchaseThisPeriod(expense: ExpenseForCalc): boolean {
   // The invoice-payment line is not a credit purchase
-  if (expense.category?.excludes_from_expense_total === true) return false
+  if (isCardInvoice(expense)) return false
 
   if (expense.is_ccm === true) return true
   if (expense.bank && ['amex', 'norwegian'].includes(expense.bank.toLowerCase())) return true
@@ -54,10 +52,10 @@ function isCreditPurchaseThisPeriod(expense: ExpenseForCalc): boolean {
 }
 
 /**
- * SPEND total — sum of everything. Nothing excluded.
+ * CONSUMPTION total — every purchase once; the credit-card invoice line excluded.
  */
-export function calcTotalSpend(expenses: ExpenseForCalc[]): number {
-  return expenses.reduce((sum, e) => sum + e.amount, 0)
+export function calcConsumption(expenses: ExpenseForCalc[]): number {
+  return expenses.reduce((sum, e) => (isCardInvoice(e) ? sum : sum + e.amount), 0)
 }
 
 /**
@@ -80,7 +78,7 @@ export function calcCashFlow(income: number, expenses: ExpenseForCalc[]): number
 }
 
 /**
- * A person's share of total spend.
+ * A person's share of consumption (credit-card invoice line excluded).
  *   - personal → 100% to the row's owner (user_id)
  *   - partner  → 100% to the owner's partner
  *   - shared   → 50/50
@@ -94,7 +92,9 @@ export function calcPersonSpend(
 ): number {
   const who = perspective === 'user' ? 'me' : 'partner'
   return expenses.reduce(
-    (sum, e) => sum + e.amount * personShare({ user_id: e.user_id ?? '', cost_assignment: (e.cost_assignment ?? 'personal') as CostAssignment }, who, viewerId),
+    (sum, e) => isCardInvoice(e)
+      ? sum
+      : sum + e.amount * personShare({ user_id: e.user_id ?? '', cost_assignment: (e.cost_assignment ?? 'personal') as CostAssignment }, who, viewerId),
     0
   )
 }

@@ -98,9 +98,12 @@ export function personShare(
   return (person === 'me') === belongsToViewer ? 1 : 0
 }
 
-/** The credit-card invoice line (Kreditkort) — not a purchase in itself. */
-export function isInvoiceLine(expense: Pick<ExpenseWithCategory, 'category'>): boolean {
-  return expense.category?.excludes_from_expense_total === true
+/**
+ * The credit-card invoice line (Kreditkort), as an expense or a budget row —
+ * not a purchase in itself, it pays for purchases already counted.
+ */
+export function isInvoiceLine(row: { category?: { excludes_from_expense_total?: boolean | null } | null }): boolean {
+  return row.category?.excludes_from_expense_total === true
 }
 
 export interface AnalyticsRow {
@@ -252,10 +255,17 @@ function tidyMerchantName(description: string): string {
 
 export interface BudgetLike {
   period: string
-  budget_items?: Array<SplittableBudgetItem & { category_id: string | null }>
+  budget_items?: Array<SplittableBudgetItem & {
+    category_id: string | null
+    category?: { excludes_from_expense_total?: boolean | null } | null
+  }>
 }
 
-/** Budgeted amount for the periods, optional categories and person. */
+/**
+ * Budgeted consumption for the periods, optional categories and person.
+ * The Kreditkort row is left out: it budgets the invoice (cash flow), and the
+ * purchases on it are already budgeted in their own categories.
+ */
 export function budgetTotal(
   budgets: BudgetLike[],
   periods: Set<string>,
@@ -270,7 +280,9 @@ export function budgetTotal(
   const budgetedPeriods = new Set<string>()
   for (const b of budgets) {
     if (!periods.has(b.period)) continue
-    const items = (b.budget_items || []).filter((i) => !categoryIds || categoryIds.has(i.category_id || ''))
+    const items = (b.budget_items || []).filter(
+      (i) => !isInvoiceLine(i) && (!categoryIds || categoryIds.has(i.category_id || ''))
+    )
     if ((b.budget_items || []).length > 0) budgetedPeriods.add(b.period)
     for (const item of items) {
       if (person === 'all') total += item.amount

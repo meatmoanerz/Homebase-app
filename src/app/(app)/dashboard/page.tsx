@@ -17,7 +17,7 @@ import { BudgetDeviations, type CategoryDeviation } from '@/components/dashboard
 import { MoneyShortcuts } from '@/components/dashboard/money-shortcuts'
 import { SettlementShortcut } from '@/components/dashboard/settlement-shortcut'
 import { PeriodStrip } from '@/components/shared/period-strip'
-import { calcCashOut, calcPersonSpend } from '@/lib/utils/spend-calc'
+import { calcCashOut, calcConsumption, calcPersonSpend, isCreditPurchaseThisPeriod } from '@/lib/utils/spend-calc'
 import { sumBudgetSplit } from '@/lib/utils/budget-split'
 import { useHouseholdEconomy } from '@/hooks/use-household-economy'
 import { usePerspective } from '@/hooks/use-perspective'
@@ -26,7 +26,7 @@ import { useAllLoans } from '@/hooks/use-loans'
 import { useActiveRecurringExpenses } from '@/hooks/use-recurring-expenses'
 import { useCreditCards } from '@/hooks/use-credit-cards'
 import { useCCMInvoices } from '@/hooks/use-ccm-invoices'
-import { budgetTotal, personShare, toRows } from '@/lib/analytics/analytics'
+import { budgetTotal, isInvoiceLine, personShare, toRows } from '@/lib/analytics/analytics'
 import { buildForecast } from '@/lib/analytics/forecast'
 import { knownCardInvoices } from '@/lib/analytics/card-invoices'
 import { getBudgetPeriod, getDaysUntilSalary, getPeriodProgress } from '@/lib/utils/budget-period'
@@ -118,12 +118,15 @@ export default function DashboardPage() {
     [expenses, person, user?.id]
   )
 
-  const forecast = useMemo(() => {
+  // Two forecasts for the running period from the same history:
+  //  - consumption: every purchase in its category, the Kreditkort line left out
+  //  - cash out: bank-paid rows plus the card invoices drawn in the period,
+  //    taken from the purchases already on them (see knownCardInvoices)
+  const forecasts = useMemo(() => {
     if (!isCurrentPeriod || allExpenses.length === 0) return null
     const rows = toRows(allExpenses, salaryDay, person, user?.id)
     const oldest = allExpenses[allExpenses.length - 1]
-    const result = buildForecast({
-      rows,
+    const base = {
       currentPeriod: currentPeriod.period,
       earliestPeriod: oldest ? getBudgetPeriod(new Date(`${oldest.date}T00:00:00`), salaryDay).period : null,
       periodProgress: getPeriodProgress(salaryDay) / 100,
@@ -139,6 +142,12 @@ export default function DashboardPage() {
       incomeFor: () => null,
       categoryMeta: new Map(),
       coverageRows: person === 'all' ? rows : toRows(allExpenses, salaryDay, 'all', user?.id),
+    }
+    const consumption = buildForecast({ ...base, rows: rows.filter((r) => !isInvoiceLine(r.expense)) })
+    if (consumption.historyPeriods.length < 2) return null
+    const cash = buildForecast({
+      ...base,
+      rows: rows.filter((r) => !isCreditPurchaseThisPeriod(r.expense)),
       cardInvoices: knownCardInvoices({
         budgetPeriods: [currentPeriod.period, shiftPeriod(currentPeriod.period, 1)],
         cards: creditCards,
@@ -147,8 +156,9 @@ export default function DashboardPage() {
         salaryDay,
       }),
     })
-    return result.historyPeriods.length >= 2 ? result : null
+    return { consumption, cash }
   }, [isCurrentPeriod, allExpenses, salaryDay, person, user?.id, currentPeriod.period, loans, recurring, creditCards, ccmInvoices])
+  const forecast = forecasts?.consumption ?? null
 
   const deviations = useMemo<CategoryDeviation[]>(() => {
     const actualByCategory = new Map<string, number>()
@@ -161,7 +171,8 @@ export default function DashboardPage() {
     )
     const byCategory = new Map<string, CategoryDeviation>()
     for (const item of budgetItems) {
-      if (!item.category_id) continue
+      // Kreditkort budgets the invoice (cash flow), not consumption
+      if (!item.category_id || isInvoiceLine(item)) continue
       const amount = person === 'all'
         ? item.amount
         : person === 'me'
@@ -197,9 +208,9 @@ export default function DashboardPage() {
     ? monthlyTotal
     : person === 'all' ? (householdIncome?.total_income ?? 0) : 0
 
-  // SPEND (main KPI): every expense in the period, credit-card invoice included.
-  const totalSpent = scoped.reduce((sum, e) => sum + e.amount, 0)
-  // CASH FLOW out (secondary): this period's credit-card purchases excluded.
+  // CONSUMPTION (main KPI): every purchase once, the credit-card invoice line excluded.
+  const totalSpent = calcConsumption(scoped)
+  // CASH FLOW out (secondary): this period's credit-card purchases excluded, the invoice included.
   const cashOut = calcCashOut(scoped)
 
   const budgetForPerson = budgetTotal(
@@ -214,11 +225,13 @@ export default function DashboardPage() {
   const hasBudget = budgetForPerson > 0
 
   // Per person: assignment-based budget split, owner-aware spend.
-  const split = sumBudgetSplit(budgetItems, user?.id, partner?.id, splitRule)
+  const split = sumBudgetSplit(budgetItems.filter((item) => !isInvoiceLine(item)), user?.id, partner?.id, splitRule)
   const userSpent = calcPersonSpend(expenses, 'user', user?.id)
   const partnerSpent = calcPersonSpend(expenses, 'partner', user?.id)
 
   const currentForecast = forecast?.months[0] ?? null
+  const cashForecast = forecasts?.cash.months[0] ?? null
+  const nextInvoice = forecasts?.cash.categories.find((c) => c.knownInvoice)?.knownInvoice ?? null
   const scopeLabel = person === 'me' ? `${user?.first_name || 'Din'}s andel` : person === 'partner' ? `${partner?.first_name || 'Partner'}s andel` : null
 
   return (
@@ -252,6 +265,8 @@ export default function DashboardPage() {
         cashOut={cashOut}
         hasBudget={hasBudget}
         forecast={currentForecast ? { spend: currentForecast.spend, low: currentForecast.low, high: currentForecast.high } : null}
+        cashOutForecast={cashForecast ? cashForecast.spend : null}
+        nextInvoice={nextInvoice ? { value: nextInvoice.value, registered: nextInvoice.registered } : null}
         daysLeft={isCurrentPeriod ? getDaysUntilSalary(salaryDay) : null}
         scopeLabel={scopeLabel}
       />
