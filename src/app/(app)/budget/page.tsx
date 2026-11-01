@@ -60,7 +60,7 @@ export default function BudgetListPage() {
       </motion.div>
 
       {/* Mobile "ny budget" small pill */}
-      <div className="md:hidden flex justify-end -mt-2">
+      <div className="md:hidden flex justify-end pt-1">
         <Link
           href="/budget/new"
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-hb-nav text-hb-nav-foreground text-xs font-medium"

@@ -8,6 +8,7 @@ import { useUser } from '@/hooks/use-user'
 import { useIncomes } from '@/hooks/use-incomes'
 import { useBudgets } from '@/hooks/use-budgets'
 import { useRecentExpenses } from '@/hooks/use-expenses'
+import { useHasIncomeForCurrentPeriod } from '@/hooks/use-monthly-incomes'
 import { useIntros, useMarkIntroSeen } from '@/hooks/use-modules'
 import { cn } from '@/lib/utils/cn'
 
@@ -47,6 +48,7 @@ export function GettingStartedChecklist() {
   const { data: incomes, isLoading: incomesLoading } = useIncomes()
   const { data: budgets, isLoading: budgetsLoading } = useBudgets()
   const { data: expenses, isLoading: expensesLoading } = useRecentExpenses(1)
+  const { data: hasPeriodIncome } = useHasIncomeForCurrentPeriod()
   const installed = useIsInstalled()
   const [showInstallHelp, setShowInstallHelp] = useState(false)
 
@@ -58,8 +60,8 @@ export function GettingStartedChecklist() {
       id: 'income',
       title: 'Lägg in din lön',
       body: 'Så vet budgeten hur mycket du har att fördela',
-      href: '/settings/profile',
-      done: (incomes ?? []).some((i) => i.user_id === user.id),
+      href: '/budget/income',
+      done: !!hasPeriodIncome || (incomes ?? []).some((i) => i.user_id === user.id),
     },
     {
       id: 'expense',

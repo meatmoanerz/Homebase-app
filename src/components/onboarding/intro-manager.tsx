@@ -9,6 +9,7 @@ import { TOUR_PATHS, getTour, introKey, type TourKey } from '@/components/onboar
 
 // Waits for the page's own entry animation before measuring targets.
 const SHOW_DELAY_MS = 700
+const OPEN_DIALOG_SELECTOR = '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]'
 
 /**
  * Shows a page's introduction the first time the user opens it. Mounted once
@@ -28,8 +29,25 @@ export function IntroManager() {
 
   useEffect(() => {
     if (!eligible || !tour) return
-    const timer = window.setTimeout(() => setReadyTour(tour), SHOW_DELAY_MS)
-    return () => window.clearTimeout(timer)
+    // A modal dialog (e.g. the income reminder) blocks clicks everywhere else,
+    // so the tour waits until no dialog is open.
+    let poll: number | undefined
+    const timer = window.setTimeout(() => {
+      const tryShow = () => {
+        if (document.querySelector(OPEN_DIALOG_SELECTOR)) return false
+        setReadyTour(tour)
+        return true
+      }
+      if (!tryShow()) {
+        poll = window.setInterval(() => {
+          if (tryShow()) window.clearInterval(poll)
+        }, 400)
+      }
+    }, SHOW_DELAY_MS)
+    return () => {
+      window.clearTimeout(timer)
+      window.clearInterval(poll)
+    }
   }, [eligible, tour])
 
   const active = eligible && readyTour === tour ? tour : null

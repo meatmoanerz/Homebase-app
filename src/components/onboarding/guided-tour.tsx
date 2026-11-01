@@ -110,7 +110,13 @@ export function GuidedTour({ steps, onClose }: GuidedTourProps) {
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[200]" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+    <div
+      className="fixed inset-0 z-[200]"
+      style={{ pointerEvents: 'auto' }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tour-title"
+    >
       {/* Click shield + dimming. With a target the spotlight's shadow dims instead. */}
       <div className={cn('absolute inset-0', !rect && 'bg-black/55')} onClick={(e) => e.stopPropagation()} />
 

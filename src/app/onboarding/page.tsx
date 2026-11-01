@@ -236,6 +236,28 @@ export default function OnboardingPage() {
         } catch (incomeError) {
           console.error('Income creation error (non-fatal):', incomeError)
         }
+
+        // The budget and the income reminder read the period's income, not the
+        // standing one above, so register it for the running period too.
+        try {
+          const period = getCurrentBudgetPeriod(parseInt(salaryDay) || 25).period
+          const { data: existingMonthly } = await supabase
+            .from('monthly_incomes')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('period', period)
+            .eq('name', 'Lön')
+            .maybeSingle()
+          if (!existingMonthly) {
+            await fetch('/api/monthly-incomes', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ period, name: 'Lön', amount }),
+            })
+          }
+        } catch (monthlyError) {
+          console.error('Monthly income creation error (non-fatal):', monthlyError)
+        }
       }
 
       if (withPartner) {
