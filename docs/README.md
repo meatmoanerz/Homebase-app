@@ -15,6 +15,7 @@ människa.
 | [`04-kodflode.md`](04-kodflode.md) | Byggflöde, byggnoter, frontend-fällor | Innan du ändrar kod eller felsöker UI |
 | [`05-changelog.md`](05-changelog.md) | Vad som ändrats och när | För att förstå nuläget |
 | [`06-kvitton.md`](06-kvitton.md) | Läsa av och spara kvitton (SQL-mall) | När Tim delar ett kvitto |
+| [`07-lansering.md`](07-lansering.md) | Kvar att göra inför lansering | Innan nya användare släpps in |
 
 `00-projektinstruktion.md` är den enda filen som **inte** läses från repot i
 normalfallet — dess innehåll klistras in manuellt i projektinstruktionen hos den

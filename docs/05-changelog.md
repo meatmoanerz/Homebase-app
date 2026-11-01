@@ -7,6 +7,15 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-01 — Lansering: onboarding, rundturer, genvägsnycklar och säkerhet
+
+- Partnerkopplingar låsta (egna rader, bara väntande inbjudan, bara koppla från)
+  och `/api/setup-user` läser användaren från sessionen.
+- Ny onboarding med modulval, rundturer första gången en sida öppnas, "Kom igång"
+  på översikten och egna nycklar under Mer › iPhone-genvägar.
+- Nya kolumner `profiles.enabled_modules` och `profiles.seen_intros`. Ny fil
+  `07-lansering.md` med det som är kvar. Tillagt på Tims begäran.
+
 ## 2026-10-30 — Prognos: frivilligt sparande gissas inte fram
 
 - Frivilligt sparande (Savings utom Amortering) prognostiseras aldrig från historiken.
