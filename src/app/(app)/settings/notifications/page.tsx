@@ -137,7 +137,7 @@ export default function NotificationSettingsPage() {
               <div>
                 <CardTitle className="text-sm font-medium">Denna enhet</CardTitle>
                 <CardDescription className="text-xs">
-                  Notiser aktiveras per enhet — gör detta på både din och Amandas mobil
+                  Notiser aktiveras per enhet — gör det på varje telefon som ska få påminnelser
                 </CardDescription>
               </div>
             </div>

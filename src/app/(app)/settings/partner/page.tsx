@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { LoadingPage } from '@/components/shared/loading-spinner'
 import { HouseholdEconomySettings } from '@/components/household/household-economy-settings'
 import { getInitials } from '@/lib/utils/formatters'
+import { generateInviteCode as makeInviteCode, INVITE_TTL_MS } from '@/lib/onboarding/invite-code'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Users, Copy, UserPlus, Check, LinkIcon, AlertCircle, Unlink, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
@@ -65,7 +66,7 @@ export default function PartnerSettingsPage() {
     if (!user) return
     setError('')
     
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase()
+    const code = makeInviteCode()
     
     // Delete any existing pending invites first
     await supabase
@@ -81,7 +82,7 @@ export default function PartnerSettingsPage() {
       initiated_by: user.id,
       invite_code: code,
       status: 'pending',
-      expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      expires_at: new Date(Date.now() + INVITE_TTL_MS).toISOString(),
     })
 
     if (error) {
@@ -331,7 +332,7 @@ export default function PartnerSettingsPage() {
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Giltig i 1 timme
+                      Giltig i 24 timmar
                     </p>
                   </div>
                 )}

@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { useCategories } from '@/hooks/use-categories'
 import { createClient } from '@/lib/supabase/client'
+import { IntroManager } from '@/components/onboarding/intro-manager'
 
 /**
  * Prefetches critical shared data at app shell mount so it's ready
@@ -61,6 +62,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* Warms the cache for shared data used on every page */}
       <AppPrefetch />
       <OnboardingGate />
+      <IntroManager />
       {/* Skip to content link for accessibility */}
       <a
         href="#main-content"

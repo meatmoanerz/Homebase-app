@@ -7,15 +7,17 @@ import { Home, Wallet, MoreHorizontal, Plus, BarChart3, Inbox, Target, Landmark 
 import { useUser, usePartner } from '@/hooks/use-user'
 import { usePerspective } from '@/hooks/use-perspective'
 import { NotificationBell } from '@/components/layout/notification-bell'
+import { useModules } from '@/hooks/use-modules'
+import type { OptionalModule } from '@/lib/onboarding/modules'
 
-const navItems = [
+const navItems: { href: string; icon: typeof Home; label: string; module?: OptionalModule }[] = [
   { href: '/dashboard',       icon: Home,       label: 'Översikt'      },
   { href: '/analys',          icon: BarChart3,  label: 'Analys'        },
   { href: '/budget',          icon: Wallet,     label: 'Budget'        },
   { href: '/expenses',        icon: Plus,       label: 'Ny utgift'     },
   { href: '/import',          icon: Inbox,      label: 'Importera'     },
-  { href: '/savings',         icon: Target,     label: 'Sparmål'       },
-  { href: '/settings/loans',  icon: Landmark,   label: 'Lån'           },
+  { href: '/savings',         icon: Target,     label: 'Sparmål', module: 'savings' },
+  { href: '/settings/loans',  icon: Landmark,   label: 'Lån',     module: 'loans'   },
   { href: '/settings',        icon: MoreHorizontal, label: 'Mer'     },
 ]
 
@@ -81,8 +83,11 @@ function PerspectiveAvatars() {
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { isEnabled } = useModules()
+  // Optional modules the user hasn't switched on stay out of the menu.
+  const visibleItems = navItems.filter((item) => !item.module || isEnabled(item.module))
   // Longest matching href wins, so /settings/loans marks Lån, not Inställningar.
-  const activeHref = navItems
+  const activeHref = visibleItems
     .map((i) => i.href)
     .filter((href) => pathname === href || pathname.startsWith(href + '/'))
     .sort((a, b) => b.length - a.length)[0]
@@ -100,7 +105,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex flex-col gap-0.5 flex-1" aria-label="Huvudnavigation">
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = item.href === activeHref
           const Icon = item.icon
 

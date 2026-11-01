@@ -1,17 +1,10 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { isOptionalModule, type OptionalModule } from '@/lib/onboarding/modules'
 
-// Use service role key to bypass RLS
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-)
+// Creates or updates the signed-in user's profile and seeds default categories.
+// The user is always taken from the session cookie, never from the request
+// body, so one user can never write to another user's profile.
 
 const DEFAULT_CATEGORIES = [
   // Fixed expenses
@@ -48,193 +41,95 @@ const DEFAULT_CATEGORIES = [
 
 export async function POST(request: Request) {
   try {
-    const { userId, email, firstName, lastName, salaryDay, onboardingCompleted } = await request.json()
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
+    const supabase = await createClient()
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
+    const userId = claimsData?.claims?.sub
+    if (claimsError || !userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const email = typeof claimsData?.claims?.email === 'string' ? claimsData.claims.email : ''
 
-    console.log('Setting up user:', userId, { firstName, lastName, salaryDay, onboardingCompleted })
+    const payload = (await request.json().catch(() => ({}))) as Record<string, unknown>
+    const firstName = typeof payload.firstName === 'string' ? payload.firstName.trim().slice(0, 80) : ''
+    const lastName = typeof payload.lastName === 'string' ? payload.lastName.trim().slice(0, 80) : undefined
+    const salaryDayRaw = Number(payload.salaryDay)
+    const salaryDay = Number.isInteger(salaryDayRaw) && salaryDayRaw >= 1 && salaryDayRaw <= 31 ? salaryDayRaw : undefined
+    const onboardingCompleted = typeof payload.onboardingCompleted === 'boolean' ? payload.onboardingCompleted : undefined
+    const enabledModules: OptionalModule[] | undefined = Array.isArray(payload.enabledModules)
+      ? payload.enabledModules.filter(isOptionalModule)
+      : undefined
 
-    // 1. Check if profile exists
-    const { data: existingProfile, error: profileCheckError } = await supabaseAdmin
+    // The generated types lag the live schema (new profile columns, category columns).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = createServiceClient() as any
+
+    const { data: existingProfile } = await admin
       .from('profiles')
-      .select('*')
+      .select('id')
       .eq('id', userId)
-      .single()
+      .maybeSingle()
 
-    console.log('Profile check:', { existingProfile, profileCheckError })
-
-    // 2. Create or update profile
     if (!existingProfile) {
-      const { data: newProfile, error: profileError } = await supabaseAdmin
-        .from('profiles')
-        .insert({
-          id: userId,
-          email: email || '',
-          first_name: firstName || 'User',
-          last_name: lastName || '',
-          salary_day: salaryDay ? parseInt(salaryDay) : 25,
-          onboarding_completed: onboardingCompleted ?? false,
-          currency: 'SEK',
-          language: 'sv',
-          theme: 'light',
-          ccm_enabled: false,
-          ccm_invoice_break_date: 1,
-        })
-        .select()
-        .single()
-
-      console.log('Profile creation:', { newProfile, profileError })
-
+      const { error: profileError } = await admin.from('profiles').insert({
+        id: userId,
+        email,
+        first_name: firstName || 'Användare',
+        last_name: lastName ?? '',
+        salary_day: salaryDay ?? 25,
+        onboarding_completed: onboardingCompleted ?? false,
+        currency: 'SEK',
+        language: 'sv',
+        theme: 'light',
+        ccm_enabled: enabledModules?.includes('ccm') ?? false,
+        ccm_invoice_break_date: 1,
+        // New users start with only the modules they pick (none until onboarding).
+        enabled_modules: enabledModules ?? [],
+        seen_intros: [],
+      })
       if (profileError) {
-        return NextResponse.json({ 
-          error: 'Failed to create profile', 
-          details: profileError 
-        }, { status: 500 })
+        console.error('Setup: profile insert failed', profileError)
+        return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 })
       }
     } else {
-      // Update existing profile
-      const updateData: any = {}
+      const updateData: Record<string, unknown> = {}
       if (firstName) updateData.first_name = firstName
       if (lastName !== undefined) updateData.last_name = lastName
-      if (salaryDay) updateData.salary_day = parseInt(salaryDay)
+      if (salaryDay !== undefined) updateData.salary_day = salaryDay
       if (onboardingCompleted !== undefined) updateData.onboarding_completed = onboardingCompleted
+      if (enabledModules !== undefined) {
+        updateData.enabled_modules = enabledModules
+        updateData.ccm_enabled = enabledModules.includes('ccm')
+      }
 
       if (Object.keys(updateData).length > 0) {
-        const { data: updatedProfile, error: updateError } = await supabaseAdmin
-          .from('profiles')
-          .update(updateData)
-          .eq('id', userId)
-          .select()
-          .single()
-
-        console.log('Profile update:', { updatedProfile, updateError })
-
+        const { error: updateError } = await admin.from('profiles').update(updateData).eq('id', userId)
         if (updateError) {
-          return NextResponse.json({ 
-            error: 'Failed to update profile', 
-            details: updateError 
-          }, { status: 500 })
+          console.error('Setup: profile update failed', updateError)
+          return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
         }
       }
     }
 
-    // 3. Check if categories exist
-    const { data: existingCategories, error: catCheckError } = await supabaseAdmin
+    const { data: existingCategories } = await admin
       .from('categories')
       .select('id')
       .eq('user_id', userId)
       .limit(1)
 
-    console.log('Categories check:', { count: existingCategories?.length, catCheckError })
-
-    // 4. Create categories if they don't exist
-    if (!existingCategories || existingCategories.length === 0) {
-      const categoriesWithUserId = DEFAULT_CATEGORIES.map(cat => ({
-        ...cat,
-        user_id: userId,
-      }))
-
-      const { data: newCategories, error: catError } = await supabaseAdmin
+    const categoriesCreated = !existingCategories || existingCategories.length === 0
+    if (categoriesCreated) {
+      const { error: catError } = await admin
         .from('categories')
-        .insert(categoriesWithUserId)
-        .select()
-
-      console.log('Categories creation:', { count: newCategories?.length, catError })
-
+        .insert(DEFAULT_CATEGORIES.map((cat) => ({ ...cat, user_id: userId })))
       if (catError) {
-        return NextResponse.json({ 
-          error: 'Failed to create categories', 
-          details: catError 
-        }, { status: 500 })
+        console.error('Setup: category seed failed', catError)
+        return NextResponse.json({ error: 'Failed to create categories' }, { status: 500 })
       }
     }
 
-    // 5. Clean up duplicate incomes (keep the first one)
-    const { data: allIncomes } = await supabaseAdmin
-      .from('incomes')
-      .select('id, name, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: true })
-
-    if (allIncomes && allIncomes.length > 1) {
-      // Group by name and find duplicates
-      const seen = new Set<string>()
-      const duplicateIds: string[] = []
-      
-      for (const income of allIncomes) {
-        if (seen.has(income.name)) {
-          duplicateIds.push(income.id)
-        } else {
-          seen.add(income.name)
-        }
-      }
-
-      if (duplicateIds.length > 0) {
-        await supabaseAdmin
-          .from('incomes')
-          .delete()
-          .in('id', duplicateIds)
-        
-        console.log('Cleaned up duplicate incomes:', duplicateIds.length)
-      }
-    }
-
-    const duplicatesRemoved = allIncomes && allIncomes.length > 0
-      ? allIncomes.length - new Set(allIncomes.map(i => i.name)).size
-      : 0
-
-    return NextResponse.json({ 
-      success: true, 
-      message: 'User setup complete',
-      categoriesCreated: !existingCategories || existingCategories.length === 0,
-      duplicatesRemoved,
-      onboarding_completed: onboardingCompleted ?? false
-    })
-
+    return NextResponse.json({ success: true, categoriesCreated })
   } catch (error) {
     console.error('Setup error:', error)
-    return NextResponse.json({ 
-      error: 'Internal server error', 
-      details: error instanceof Error ? error.message : 'Unknown error' 
-    }, { status: 500 })
-  }
-}
-
-// GET route to check onboarding status
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
-    }
-
-    const { data: profile, error } = await supabaseAdmin
-      .from('profiles')
-      .select('onboarding_completed, first_name, last_name, salary_day')
-      .eq('id', userId)
-      .single()
-
-    if (error) {
-      return NextResponse.json({ 
-        error: 'Failed to fetch profile', 
-        details: error 
-      }, { status: 500 })
-    }
-
-    return NextResponse.json({ 
-      onboarding_completed: profile?.onboarding_completed ?? false,
-      profile: profile
-    })
-
-  } catch (error) {
-    console.error('Get profile error:', error)
-    return NextResponse.json({ 
-      error: 'Internal server error', 
-      details: error instanceof Error ? error.message : 'Unknown error' 
-    }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

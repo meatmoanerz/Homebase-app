@@ -1,6 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useUser } from '@/hooks/use-user'
+import { useResetIntros } from '@/hooks/use-modules'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
@@ -12,7 +14,8 @@ import {
   CreditCard,
   Users,
   Calendar,
-  TrendingUp
+  TrendingUp,
+  RotateCcw
 } from 'lucide-react'
 
 const helpTopics = [
@@ -50,6 +53,8 @@ const helpTopics = [
 
 export default function HelpPage() {
   const router = useRouter()
+  const { data: user } = useUser()
+  const resetIntros = useResetIntros()
 
   return (
     <div className="p-4 space-y-4">
@@ -90,6 +95,19 @@ export default function HelpPage() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Replay the introductions */}
+      <Button
+        variant="outline"
+        className="w-full"
+        disabled={!user || resetIntros.isPending}
+        onClick={() =>
+          user && resetIntros.mutate({ userId: user.id }, { onSuccess: () => router.push('/dashboard') })
+        }
+      >
+        <RotateCcw className="w-4 h-4 mr-2" />
+        Visa introduktionen igen
+      </Button>
 
       {/* Help Topics */}
       <motion.div

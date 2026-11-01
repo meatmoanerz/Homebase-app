@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -11,43 +11,81 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, ArrowLeft, User, Calendar, Wallet, Users, Sparkles, Check, Copy, Loader2, Scale } from 'lucide-react'
+import {
+  ArrowRight, ArrowLeft, User, Wallet, Users, Sparkles, Check, Copy, Loader2, Scale,
+  LayoutGrid, Target, Landmark, CreditCard, Receipt, PlusCircle, FileSearch, Home,
+} from 'lucide-react'
 import { HouseholdModelPicker, GENERIC_MODEL_EXAMPLES } from '@/components/household/household-model-picker'
 import { HOUSEHOLD_MODEL_LABELS, type HouseholdModel } from '@/lib/household/economy'
 import { getCurrentBudgetPeriod } from '@/lib/utils/budget-period'
+import { MODULE_INFO, type OptionalModule } from '@/lib/onboarding/modules'
+import { generateInviteCode as makeInviteCode, INVITE_TTL_MS } from '@/lib/onboarding/invite-code'
+import { cn } from '@/lib/utils/cn'
 import type { Database } from '@/types/database'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
+type StepId = 'about' | 'income' | 'partner' | 'economy' | 'modules' | 'complete'
 
-const STEPS = [
-  { id: 'name', title: 'Vad heter du?', description: 'Vi vill lära känna dig' },
-  { id: 'salary', title: 'När får du lön?', description: 'Vi anpassar din budget efter din löneperiod' },
-  { id: 'income', title: 'Vad är din inkomst?', description: 'Du kan lägga till fler inkomster senare' },
-  { id: 'partner', title: 'Har du en partner?', description: 'Ni kan dela budget och utgifter' },
-  { id: 'economy', title: 'Hur delar ni på ekonomin?', description: 'Exemplen utgår från en hyra på 10 000 kr' },
-  { id: 'complete', title: 'Allt klart!', description: 'Du är redo att börja använda Homebase' },
-]
+const STEP_META: Record<StepId, { title: string; description: string; icon: typeof User }> = {
+  about: { title: 'Välkommen till Homebase', description: 'Två snabba frågor så att budgeten följer din lön', icon: User },
+  income: { title: 'Vad får du ut i lön?', description: 'Används för att räkna ut vad du har kvar att budgetera', icon: Wallet },
+  partner: { title: 'Delar du ekonomi med någon?', description: 'Ni ser varandras delade utgifter och budget', icon: Users },
+  economy: { title: 'Hur delar ni på ekonomin?', description: 'Exemplen utgår från en hyra på 10 000 kr', icon: Scale },
+  modules: { title: 'Vad vill du hålla koll på?', description: 'Översikt, utgifter och budget ingår alltid. Välj till fler delar om du vill', icon: LayoutGrid },
+  complete: { title: 'Allt är klart!', description: 'Var vill du börja?', icon: Sparkles },
+}
+
+const MODULE_ICONS: Record<OptionalModule, typeof User> = {
+  savings: Target,
+  loans: Landmark,
+  ccm: CreditCard,
+  receipts: Receipt,
+  shared: Wallet,
+}
+
+// Shared economy only makes sense with a partner, so it is offered there only.
+const SOLO_MODULES: OptionalModule[] = ['savings', 'loans', 'ccm', 'receipts']
+const DAYS = Array.from({ length: 31 }, (_, i) => i + 1)
+
+const JOIN_ERRORS: Record<string, string> = {
+  invalid_or_expired_code: 'Koden finns inte eller har gått ut. Be din partner skapa en ny.',
+  cannot_join_own_invite: 'Det där är din egen kod. Ange koden du fått av din partner.',
+  already_connected: 'Någon av er är redan kopplad till en partner.',
+}
 
 export default function OnboardingPage() {
-  const [step, setStep] = useState(0)
+  const [stepIndex, setStepIndex] = useState(0)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [salaryDay, setSalaryDay] = useState('25')
-  const [incomeName, setIncomeName] = useState('Lön')
   const [incomeAmount, setIncomeAmount] = useState('')
   const [partnerChoice, setPartnerChoice] = useState<'skip' | 'invite' | 'code' | null>(null)
   const [economyModel, setEconomyModel] = useState<HouseholdModel>('budget')
   const [inviteCode, setInviteCode] = useState('')
   const [generatedCode, setGeneratedCode] = useState('')
+  const [joinedPartner, setJoinedPartner] = useState(false)
+  const [joinError, setJoinError] = useState('')
+  const [modules, setModules] = useState<OptionalModule[]>([])
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
-  const isCompletingRef = useRef(false) // Prevent double submission
-  
+  const isCompletingRef = useRef(false)
+
   const router = useRouter()
   const supabase = createClient()
 
-  // Load user profile on mount
+  const withPartner = partnerChoice === 'invite' || joinedPartner
+
+  // Economy is only asked together with a partner.
+  const steps = useMemo<StepId[]>(
+    () => ['about', 'income', 'partner', ...(withPartner ? (['economy'] as StepId[]) : []), 'modules', 'complete'],
+    [withPartner]
+  )
+  const step = steps[Math.min(stepIndex, steps.length - 1)]
+  const meta = STEP_META[step]
+  const StepIcon = meta.icon
+  const progress = ((stepIndex + 1) / steps.length) * 100
+
   useEffect(() => {
     async function loadProfile() {
       try {
@@ -56,58 +94,45 @@ export default function OnboardingPage() {
           router.push('/login')
           return
         }
-        
         setUserId(user.id)
 
-        // Try to get profile
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .single() as { data: Profile | null }
+          .maybeSingle() as { data: Profile | null }
 
-        if (profile) {
-          // If onboarding is already completed, redirect to dashboard
-          if (profile.onboarding_completed) {
-            router.replace('/dashboard')
-            return
-          }
-
-          // Pre-fill from profile if available
-          if (profile.first_name) setFirstName(profile.first_name)
-          if (profile.last_name) setLastName(profile.last_name)
-          if (profile.salary_day) setSalaryDay(profile.salary_day.toString())
-        } else {
-          // Get name from user metadata if profile doesn't exist
-          const metadata = user.user_metadata
-          if (metadata?.first_name) setFirstName(metadata.first_name)
-          if (metadata?.last_name) setLastName(metadata.last_name)
-          if (metadata?.name) {
-            const parts = metadata.name.split(' ')
-            setFirstName(parts[0] || '')
-            setLastName(parts.slice(1).join(' ') || '')
-          }
+        if (profile?.onboarding_completed) {
+          router.replace('/dashboard')
+          return
         }
+
+        const metadata = user.user_metadata ?? {}
+        const metaFirst = metadata.first_name || (typeof metadata.name === 'string' ? metadata.name.split(' ')[0] : '')
+        const metaLast = metadata.last_name || (typeof metadata.name === 'string' ? metadata.name.split(' ').slice(1).join(' ') : '')
+        // The DB trigger fills first_name with a placeholder until onboarding.
+        setFirstName(metaFirst || profile?.first_name || '')
+        setLastName(metaLast || profile?.last_name || '')
+        if (profile?.salary_day) setSalaryDay(profile.salary_day.toString())
       } catch (error) {
         console.error('Error loading profile:', error)
       } finally {
         setInitialLoading(false)
       }
     }
-
     loadProfile()
   }, [supabase, router])
 
-  const progress = ((step + 1) / STEPS.length) * 100
+  // Partner users most likely want the shared overview; preselect it once.
+  useEffect(() => {
+    if (withPartner) setModules((m) => (m.includes('shared') ? m : [...m, 'shared']))
+    else setModules((m) => m.filter((x) => x !== 'shared'))
+  }, [withPartner])
 
-  async function generateInviteCode() {
+  async function createInviteCode() {
     if (!userId) return
-    
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase()
-    setGeneratedCode(code)
-    
+    const code = makeInviteCode()
     try {
-      // Delete any existing pending invites from this user first
       await supabase
         .from('partner_connections')
         .delete()
@@ -115,88 +140,97 @@ export default function OnboardingPage() {
         .eq('status', 'pending')
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('partner_connections') as any).insert({
+      const { error } = await (supabase.from('partner_connections') as any).insert({
         user1_id: userId,
-        user2_id: userId, // Placeholder
+        user2_id: userId, // Placeholder until the partner joins
         initiated_by: userId,
         invite_code: code,
         status: 'pending',
-        expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour
+        expires_at: new Date(Date.now() + INVITE_TTL_MS).toISOString(),
       })
+      if (error) throw error
+      setGeneratedCode(code)
     } catch (error) {
       console.error('Error creating invite:', error)
+      toast.error('Kunde inte skapa en kod. Försök igen.')
     }
   }
 
-  // The economy step only matters together with a partner
-  const withPartner = partnerChoice === 'invite' || partnerChoice === 'code'
+  async function joinWithCode(): Promise<boolean> {
+    setJoinError('')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc('join_partner_connection', {
+      p_invite_code: inviteCode.trim().toUpperCase(),
+      p_user_id: userId,
+    })
+    if (error || !data?.success) {
+      setJoinError(JOIN_ERRORS[data?.error as string] ?? 'Kunde inte koppla ihop er. Försök igen.')
+      return false
+    }
+    setJoinedPartner(true)
+    toast.success('Ni är nu ihopkopplade!')
+    return true
+  }
 
   async function handleNext() {
-    if (step === STEPS.length - 1) {
-      await completeOnboarding()
+    if (step === 'partner' && partnerChoice === 'code' && !joinedPartner) {
+      setLoading(true)
+      const ok = await joinWithCode()
+      setLoading(false)
+      // Joining changes the step list (economy appears); move to it explicitly.
+      if (ok) setStepIndex(steps.indexOf('partner') + 1)
       return
     }
-    setStep(step === 3 && !withPartner ? 5 : step + 1)
+    setStepIndex((i) => Math.min(i + 1, steps.length - 1))
   }
 
   function handleBack() {
-    if (step === 5 && !withPartner) setStep(3)
-    else if (step > 0) setStep(step - 1)
+    setStepIndex((i) => Math.max(i - 1, 0))
   }
 
-  async function completeOnboarding() {
-    // Prevent double submission
+  function toggleModule(module: OptionalModule) {
+    setModules((current) => (current.includes(module) ? current.filter((m) => m !== module) : [...current, module]))
+  }
+
+  async function completeOnboarding(destination: string) {
     if (!userId || isCompletingRef.current) return
     isCompletingRef.current = true
     setLoading(true)
-    
+
     try {
-      // Use API route for all updates (bypasses RLS issues)
-      const { data: { user: authUser } } = await supabase.auth.getUser()
       const setupResponse = await fetch('/api/setup-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
-          email: authUser?.email || '',
           firstName,
           lastName,
           salaryDay,
-          onboardingCompleted: true, // Mark as completed
+          enabledModules: modules,
+          onboardingCompleted: true,
         }),
       })
-      
-      const setupResult = await setupResponse.json()
-      console.log('Setup result:', setupResult)
-      
       if (!setupResponse.ok) {
-        console.error('Setup API error:', setupResult)
-        throw new Error(setupResult.error || 'Failed to complete onboarding')
+        const result = await setupResponse.json().catch(() => ({}))
+        throw new Error(result.error || 'Failed to complete onboarding')
       }
 
-      // Create income if provided - check for existing first
-      if (incomeAmount && parseFloat(incomeAmount) > 0) {
+      const amount = parseFloat(incomeAmount)
+      if (amount > 0) {
         try {
-          // Check if income with same name already exists
           const { data: existingIncome } = await supabase
             .from('incomes')
             .select('id')
             .eq('user_id', userId)
-            .eq('name', incomeName || 'Lön')
+            .eq('name', 'Lön')
             .maybeSingle()
 
           if (!existingIncome) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await (supabase.from('incomes') as any).insert({
-              user_id: userId,
-              name: incomeName || 'Lön',
-              amount: parseFloat(incomeAmount),
-            })
+            await (supabase.from('incomes') as any).insert({ user_id: userId, name: 'Lön', amount })
           } else {
-            // Update existing income instead
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (supabase.from('incomes') as any)
-              .update({ amount: parseFloat(incomeAmount) })
+              .update({ amount })
               .eq('id', (existingIncome as { id: string }).id)
           }
         } catch (incomeError) {
@@ -204,7 +238,6 @@ export default function OnboardingPage() {
         }
       }
 
-      // The household economy model, in force from the current budget period
       if (withPartner) {
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -221,32 +254,24 @@ export default function OnboardingPage() {
         }
       }
 
-      // Wait a bit for Supabase to sync
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      toast.success('Välkommen till Homebase! 🎉')
-      
-      // Use replace instead of push to prevent going back
-      router.replace('/dashboard')
-      router.refresh() // Force refresh to get updated data
+      toast.success(`Välkommen, ${firstName}!`)
+      router.replace(destination)
+      router.refresh()
     } catch (error) {
       console.error('Onboarding error:', error)
       toast.error('Något gick fel. Försök igen.')
-      isCompletingRef.current = false // Allow retry on error
-    } finally {
+      isCompletingRef.current = false
       setLoading(false)
     }
   }
 
   const isStepValid = () => {
     switch (step) {
-      case 0: return firstName.trim().length > 0
-      case 1: return salaryDay !== ''
-      case 2: return true // Income is optional
-      case 3: return true // Partner is optional
-      case 4: return true // Economy model has a default
-      case 5: return true
-      default: return false
+      case 'about': return firstName.trim().length > 0 && salaryDay !== ''
+      case 'partner':
+        if (partnerChoice === 'code') return joinedPartner || inviteCode.trim().length === 6
+        return partnerChoice !== null
+      default: return true
     }
   }
 
@@ -258,17 +283,15 @@ export default function OnboardingPage() {
     )
   }
 
+  const offeredModules: OptionalModule[] = withPartner ? [...SOLO_MODULES, 'shared'] : SOLO_MODULES
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-hb-sand via-hb-sand-deep/30 to-hb-sage/50">
       <div className="w-full max-w-md">
-        {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">
-              Steg {step + 1} av {STEPS.length}
-            </span>
-            <span className="text-sm font-medium text-hb-cognac">
-              {Math.round(progress)}%
+              Steg {stepIndex + 1} av {steps.length}
             </span>
           </div>
           <Progress value={progress} className="h-2" />
@@ -280,291 +303,303 @@ export default function OnboardingPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.25 }}
           >
             <Card className="border-0 shadow-xl bg-white/90 dark:bg-card/90 backdrop-blur">
               <CardHeader className="text-center">
                 <div className="mx-auto w-12 h-12 rounded-full bg-hb-sage/30 flex items-center justify-center mb-4">
-                  {step === 0 && <User className="w-6 h-6 text-hb-cognac" />}
-                  {step === 1 && <Calendar className="w-6 h-6 text-hb-cognac" />}
-                  {step === 2 && <Wallet className="w-6 h-6 text-hb-cognac" />}
-                  {step === 3 && <Users className="w-6 h-6 text-hb-cognac" />}
-                  {step === 4 && <Scale className="w-6 h-6 text-hb-cognac" />}
-                  {step === 5 && <Sparkles className="w-6 h-6 text-hb-cognac" />}
+                  <StepIcon className="w-6 h-6 text-hb-cognac" />
                 </div>
-                <CardTitle className="text-xl">{STEPS[step].title}</CardTitle>
-                <CardDescription>{STEPS[step].description}</CardDescription>
+                <CardTitle className="text-xl">{meta.title}</CardTitle>
+                <CardDescription>{meta.description}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Step 0: Name */}
-                {step === 0 && (
+                {step === 'about' && (
                   <>
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">Förnamn *</Label>
-                      <Input
-                        id="firstName"
-                        placeholder="Anna"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        autoComplete="given-name"
-                        autoFocus
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="firstName">Förnamn</Label>
+                        <Input
+                          id="firstName"
+                          placeholder="Anna"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          autoComplete="given-name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lastName">Efternamn</Label>
+                        <Input
+                          id="lastName"
+                          placeholder="Andersson"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          autoComplete="family-name"
+                        />
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="lastName">Efternamn</Label>
-                      <Input
-                        id="lastName"
-                        placeholder="Andersson"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        autoComplete="family-name"
-                      />
+                      <Label htmlFor="salaryDay">Vilken dag får du lön?</Label>
+                      <Select value={salaryDay} onValueChange={setSalaryDay}>
+                        <SelectTrigger id="salaryDay" className="h-12">
+                          <SelectValue placeholder="Välj dag" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DAYS.map((day) => (
+                            <SelectItem key={day} value={day.toString()}>
+                              Den {day}:e
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Budgeten räknas från lön till lön, inte per kalendermånad.
+                        Får du lön den 25:e gäller perioden 25:e–24:e.
+                      </p>
                     </div>
                   </>
                 )}
 
-                {/* Step 1: Salary Day */}
-                {step === 1 && (
-                  <div className="space-y-2">
-                    <Label>Vilken dag i månaden får du lön?</Label>
-                    <Select value={salaryDay} onValueChange={setSalaryDay}>
-                      <SelectTrigger className="h-12">
-                        <SelectValue placeholder="Välj dag" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[25, 26, 27, 28, 29, 30, 31, 1, 2, 3, 4, 5, 10, 15, 20].map((day) => (
-                          <SelectItem key={day} value={day.toString()}>
-                            Den {day}:e
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Detta hjälper oss att visa rätt budgetperiod för dig.
-                    </p>
-                  </div>
-                )}
-
-                {/* Step 2: Income */}
-                {step === 2 && (
+                {step === 'income' && (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="incomeName">Typ av inkomst</Label>
-                      <Input
-                        id="incomeName"
-                        placeholder="Lön"
-                        value={incomeName}
-                        onChange={(e) => setIncomeName(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="incomeAmount">Belopp (efter skatt)</Label>
+                      <Label htmlFor="incomeAmount">Lön efter skatt per månad</Label>
                       <div className="relative">
                         <Input
                           id="incomeAmount"
                           type="number"
-                          placeholder="30000"
+                          inputMode="numeric"
+                          placeholder="30 000"
                           value={incomeAmount}
                           onChange={(e) => setIncomeAmount(e.target.value)}
-                          className="pr-12"
+                          className="pr-12 h-12"
                         />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-                          kr
-                        </span>
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">kr</span>
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Du kan hoppa över detta och lägga till senare.
+                      Har du fler inkomster, som barnbidrag eller hyresintäkt, lägger du till dem under Mer › Profil.
+                      Du kan också hoppa över det här.
                     </p>
                   </>
                 )}
 
-                {/* Step 3: Partner */}
-                {step === 3 && (
+                {step === 'partner' && (
                   <div className="space-y-4">
-                    {!partnerChoice && (
+                    {(partnerChoice === null || partnerChoice === 'skip') && (
                       <div className="space-y-3">
-                        <Button
-                          variant="outline"
-                          className="w-full h-14 justify-start px-4"
-                          onClick={() => setPartnerChoice('invite')}
-                        >
-                          <Users className="mr-3 h-5 w-5" />
-                          <div className="text-left">
-                            <div className="font-medium">Bjud in partner</div>
-                            <div className="text-xs text-muted-foreground">Skapa en inbjudningskod</div>
-                          </div>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="w-full h-14 justify-start px-4"
+                        <ChoiceButton
+                          icon={Users}
+                          title="Ja, bjud in min partner"
+                          subtitle="Du får en kod att skicka"
+                          onClick={() => { setPartnerChoice('invite'); if (!generatedCode) createInviteCode() }}
+                        />
+                        <ChoiceButton
+                          icon={ArrowRight}
+                          title="Jag har fått en kod"
+                          subtitle="Min partner använder redan Homebase"
                           onClick={() => setPartnerChoice('code')}
-                        >
-                          <ArrowRight className="mr-3 h-5 w-5" />
-                          <div className="text-left">
-                            <div className="font-medium">Ange kod</div>
-                            <div className="text-xs text-muted-foreground">Jag har fått en kod</div>
-                          </div>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="w-full"
+                        />
+                        <ChoiceButton
+                          icon={User}
+                          title="Nej, bara jag"
+                          subtitle="Du kan bjuda in någon senare"
+                          selected={partnerChoice === 'skip'}
                           onClick={() => setPartnerChoice('skip')}
-                        >
-                          Hoppa över för nu
-                        </Button>
+                        />
                       </div>
                     )}
 
                     {partnerChoice === 'invite' && (
                       <div className="space-y-4">
-                        {!generatedCode ? (
-                          <Button
-                            className="w-full"
-                            onClick={generateInviteCode}
-                          >
-                            Generera inbjudningskod
-                          </Button>
-                        ) : (
-                          <div className="p-4 bg-hb-sage/20 rounded-xl text-center">
-                            <p className="text-sm text-muted-foreground mb-2">Din inbjudningskod:</p>
+                        <div className="p-4 bg-hb-sage/20 rounded-xl text-center">
+                          <p className="text-sm text-muted-foreground mb-2">Skicka den här koden till din partner</p>
+                          {generatedCode ? (
                             <div className="flex items-center justify-center gap-2">
-                              <span className="text-2xl font-bold tracking-widest text-hb-cognac">
-                                {generatedCode}
-                              </span>
+                              <span className="text-2xl font-bold tracking-widest text-hb-cognac">{generatedCode}</span>
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                aria-label="Kopiera koden"
                                 onClick={() => {
                                   navigator.clipboard.writeText(generatedCode)
-                                  toast.success('Kod kopierad!')
+                                  toast.success('Koden är kopierad')
                                 }}
                               >
                                 <Copy className="h-4 w-4" />
                               </Button>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-2">
-                              Giltig i 1 timme
-                            </p>
-                          </div>
-                        )}
-                        <Button
-                          variant="ghost"
-                          onClick={() => setPartnerChoice(null)}
-                        >
+                          ) : (
+                            <Loader2 className="w-5 h-5 animate-spin mx-auto text-hb-cognac" />
+                          )}
+                          <p className="text-xs text-muted-foreground mt-3">
+                            Din partner skapar ett konto och väljer &quot;Jag har fått en kod&quot;. Koden gäller i 24 timmar.
+                            Du kan fortsätta direkt, ni kopplas ihop när koden används.
+                          </p>
+                        </div>
+                        <Button variant="ghost" onClick={() => setPartnerChoice(null)}>
                           <ArrowLeft className="mr-2 h-4 w-4" />
-                          Tillbaka
+                          Välj något annat
                         </Button>
                       </div>
                     )}
 
                     {partnerChoice === 'code' && (
                       <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="inviteCode">Ange kod</Label>
-                          <Input
-                            id="inviteCode"
-                            placeholder="ABC123"
-                            value={inviteCode}
-                            onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                            className="text-center text-lg tracking-widest"
-                            maxLength={6}
-                          />
-                        </div>
-                        <Button
-                          variant="ghost"
-                          onClick={() => setPartnerChoice(null)}
-                        >
-                          <ArrowLeft className="mr-2 h-4 w-4" />
-                          Tillbaka
-                        </Button>
+                        {joinedPartner ? (
+                          <div className="p-4 bg-success/10 rounded-xl text-center text-sm">
+                            <Check className="w-5 h-5 text-success mx-auto mb-1" />
+                            Ni är ihopkopplade.
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Label htmlFor="inviteCode">Koden från din partner</Label>
+                            <Input
+                              id="inviteCode"
+                              placeholder="ABC123"
+                              value={inviteCode}
+                              onChange={(e) => { setInviteCode(e.target.value.toUpperCase()); setJoinError('') }}
+                              className="text-center text-lg tracking-widest h-12"
+                              maxLength={6}
+                              autoCapitalize="characters"
+                              autoComplete="off"
+                            />
+                            {joinError && <p className="text-sm text-destructive">{joinError}</p>}
+                          </div>
+                        )}
+                        {!joinedPartner && (
+                          <Button variant="ghost" onClick={() => { setPartnerChoice(null); setJoinError('') }}>
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Välj något annat
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Step 4: Household economy */}
-                {step === 4 && (
+                {step === 'economy' && (
                   <div className="space-y-3">
                     <HouseholdModelPicker value={economyModel} onChange={setEconomyModel} examples={GENERIC_MODEL_EXAMPLES} />
                     <p className="text-xs text-muted-foreground">
-                      Er partner ser samma val. Ni kan ändra det när som helst under Inställningar › Partner.
+                      Ni kan ändra det när som helst under Mer › Partner.
                     </p>
                   </div>
                 )}
 
-                {/* Step 5: Complete */}
-                {step === 5 && (
-                  <div className="text-center space-y-4">
-                    <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center mx-auto">
-                      <Check className="w-10 h-10 text-success" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-lg">Välkommen, {firstName}!</p>
-                      <p className="text-muted-foreground text-sm mt-1">
-                        Du är nu redo att ta kontroll över din ekonomi.
-                      </p>
-                    </div>
-                    <ul className="text-left space-y-2 text-sm">
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-success" />
-                        Profil skapad
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-success" />
-                        Lönedag: den {salaryDay}:e
-                      </li>
-                      {incomeAmount && (
-                        <li className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-success" />
-                          Inkomst: {parseInt(incomeAmount).toLocaleString('sv-SE')} kr
-                        </li>
-                      )}
-                      {withPartner && (
-                        <li className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-success" />
-                          Ekonomi: {HOUSEHOLD_MODEL_LABELS[economyModel]}
-                        </li>
-                      )}
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-success" />
-                        Standardkategorier skapas
-                      </li>
-                    </ul>
+                {step === 'modules' && (
+                  <div className="space-y-2.5">
+                    {offeredModules.map((id) => {
+                      const info = MODULE_INFO[id]
+                      const Icon = MODULE_ICONS[id]
+                      const selected = modules.includes(id)
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          role="checkbox"
+                          aria-checked={selected}
+                          onClick={() => toggleModule(id)}
+                          className={cn(
+                            'w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-colors',
+                            selected ? 'border-hb-cognac bg-hb-sage/20' : 'border-border hover:bg-muted/40'
+                          )}
+                        >
+                          <div className="w-9 h-9 rounded-lg bg-hb-sage/25 flex items-center justify-center shrink-0">
+                            <Icon className="w-[18px] h-[18px] text-hb-cognac" aria-hidden="true" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm">{info.label}</p>
+                            <p className="text-xs text-muted-foreground">{info.description}</p>
+                          </div>
+                          <div
+                            className={cn(
+                              'w-5 h-5 rounded-md border flex items-center justify-center shrink-0',
+                              selected ? 'bg-hb-cognac border-hb-cognac' : 'border-muted-foreground/40'
+                            )}
+                          >
+                            {selected && <Check className="w-3.5 h-3.5 text-white" />}
+                          </div>
+                        </button>
+                      )
+                    })}
+                    <p className="text-xs text-muted-foreground pt-1">
+                      Osäker? Hoppa över. Du slår på delar när du vill under Mer › Funktioner.
+                    </p>
                   </div>
                 )}
 
-                {/* Navigation Buttons */}
+                {step === 'complete' && (
+                  <div className="space-y-4">
+                    <ul className="space-y-1.5 text-sm">
+                      <SummaryRow>Lönedag den {salaryDay}:e</SummaryRow>
+                      {parseFloat(incomeAmount) > 0 && (
+                        <SummaryRow>Lön {parseInt(incomeAmount).toLocaleString('sv-SE')} kr</SummaryRow>
+                      )}
+                      {joinedPartner && <SummaryRow>Kopplad till din partner</SummaryRow>}
+                      {partnerChoice === 'invite' && <SummaryRow>Inbjudan skickad ({generatedCode})</SummaryRow>}
+                      {withPartner && <SummaryRow>Ekonomi: {HOUSEHOLD_MODEL_LABELS[economyModel]}</SummaryRow>}
+                      {modules.length > 0 && (
+                        <SummaryRow>Tillval: {modules.map((m) => MODULE_INFO[m].label).join(', ')}</SummaryRow>
+                      )}
+                    </ul>
+                    <div className="space-y-2.5 pt-2">
+                      <ChoiceButton
+                        icon={FileSearch}
+                        title="Importera från banken"
+                        subtitle="Läs in en CSV-fil från SEB, Swedbank m.fl."
+                        disabled={loading}
+                        onClick={() => completeOnboarding('/import')}
+                      />
+                      <ChoiceButton
+                        icon={PlusCircle}
+                        title="Lägg till en utgift"
+                        subtitle="Skriv in ett köp för hand"
+                        disabled={loading}
+                        onClick={() => completeOnboarding('/expenses')}
+                      />
+                      <ChoiceButton
+                        icon={Home}
+                        title="Visa översikten"
+                        subtitle="Få en rundtur i appen först"
+                        disabled={loading}
+                        onClick={() => completeOnboarding('/dashboard')}
+                      />
+                    </div>
+                    {loading && (
+                      <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Sparar…
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex gap-3 pt-4">
-                  {step > 0 && step < 5 && (
-                    <Button
-                      variant="outline"
-                      onClick={handleBack}
-                      className="flex-1"
-                    >
+                  {stepIndex > 0 && (
+                    <Button variant="outline" onClick={handleBack} className="flex-1" disabled={loading}>
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       Tillbaka
                     </Button>
                   )}
-                  <Button
-                    onClick={handleNext}
-                    disabled={!isStepValid() || loading}
-                    className="flex-1"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sparar...
-                      </>
-                    ) : step === STEPS.length - 1 ? (
-                      'Kom igång!'
-                    ) : (
-                      <>
-                        Nästa
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
+                  {step !== 'complete' && (
+                    <Button onClick={handleNext} disabled={!isStepValid() || loading} className="flex-1">
+                      {loading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : step === 'income' && !incomeAmount ? (
+                        'Hoppa över'
+                      ) : step === 'modules' && modules.length === 0 ? (
+                        'Hoppa över'
+                      ) : step === 'partner' && partnerChoice === 'code' && !joinedPartner ? (
+                        'Koppla ihop'
+                      ) : (
+                        <>
+                          Nästa
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -572,5 +607,45 @@ export default function OnboardingPage() {
         </AnimatePresence>
       </div>
     </div>
+  )
+}
+
+function ChoiceButton({
+  icon: Icon,
+  title,
+  subtitle,
+  onClick,
+  selected,
+  disabled,
+}: {
+  icon: typeof User
+  title: string
+  subtitle: string
+  onClick: () => void
+  selected?: boolean
+  disabled?: boolean
+}) {
+  return (
+    <Button
+      variant="outline"
+      className={cn('w-full h-auto min-h-14 justify-start px-4 py-3', selected && 'border-hb-cognac bg-hb-sage/20')}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <Icon className="mr-3 h-5 w-5 shrink-0" />
+      <div className="text-left whitespace-normal">
+        <div className="font-medium">{title}</div>
+        <div className="text-xs text-muted-foreground">{subtitle}</div>
+      </div>
+    </Button>
+  )
+}
+
+function SummaryRow({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex items-center gap-2">
+      <Check className="h-4 w-4 text-success shrink-0" />
+      <span>{children}</span>
+    </li>
   )
 }

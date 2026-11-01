@@ -33,6 +33,7 @@ import { getBudgetPeriod, getDaysUntilSalary, getPeriodProgress } from '@/lib/ut
 import { splitBudgetItem } from '@/lib/utils/budget-split'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
+import { GettingStartedChecklist } from '@/components/onboarding/getting-started-checklist'
 
 export default function DashboardPage() {
   const [setupDone, setSetupDone] = useState(false)
@@ -62,12 +63,8 @@ export default function DashboardPage() {
         const response = await fetch('/api/setup-user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: authUser.id,
-            email: authUser.email,
-            firstName: user.first_name,
-            lastName: user.last_name,
-          }),
+          // The server reads the user from the session; this only seeds categories.
+          body: JSON.stringify({}),
         })
 
         const result = await response.json()
@@ -259,6 +256,7 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Period strip with arrows */}
+      <div data-tour="period">
       <PeriodStrip
         label={formatPeriodDisplay(selectedPeriod)}
         range={periodRange}
@@ -266,8 +264,10 @@ export default function DashboardPage() {
         onNext={() => setSelectedPeriod((p) => shiftPeriod(p, 1))}
         className="pt-1"
       />
+      </div>
 
       {/* Hero: remaining + forecast (primary) and cash flow (secondary) */}
+      <div data-tour="hero">
       <SpendHero
         spent={totalSpent}
         budget={budgetForPerson}
@@ -280,6 +280,10 @@ export default function DashboardPage() {
         daysLeft={isCurrentPeriod ? getDaysUntilSalary(salaryDay) : null}
         scopeLabel={scopeLabel}
       />
+      </div>
+
+      {/* New users: first steps, ticked off from real data */}
+      {isCurrentPeriod && <GettingStartedChecklist />}
 
       {/* What needs doing */}
       {isCurrentPeriod && <TodoList />}

@@ -88,6 +88,7 @@ export default function AddExpensePage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
         className="flex gap-1 p-1 bg-muted/50 rounded-xl"
+        data-tour="expense-tabs"
       >
         {tabs.map((tab) => (
           <button
