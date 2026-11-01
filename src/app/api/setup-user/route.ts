@@ -1,17 +1,31 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/types/database'
 
-// Use service role key to bypass RLS
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-)
+type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
+
+// Service role (bypasses RLS). Only ever used with the id of the verified
+// session user below.
+function createServiceClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
+
+/**
+ * The signed-in user, verified with Supabase Auth. The user id is never
+ * taken from the request: this route writes with the service role, so a
+ * client-supplied id would let anyone change anyone's profile.
+ */
+async function getSessionUser() {
+  const supabase = await createClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error || !user) return null
+  return user
+}
 
 const DEFAULT_CATEGORIES = [
   // Fixed expenses
@@ -48,13 +62,21 @@ const DEFAULT_CATEGORIES = [
 
 export async function POST(request: Request) {
   try {
-    const { userId, email, firstName, lastName, salaryDay, onboardingCompleted } = await request.json()
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
+    const user = await getSessionUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const userId = user.id
+    const supabaseAdmin = createServiceClient()
 
-    console.log('Setting up user:', userId, { firstName, lastName, salaryDay, onboardingCompleted })
+    const { firstName, lastName, salaryDay, onboardingCompleted } = await request.json() as {
+      firstName?: string
+      lastName?: string
+      salaryDay?: string | number
+      onboardingCompleted?: boolean
+    }
+    const parsedSalaryDay = salaryDay ? parseInt(String(salaryDay), 10) : NaN
+    const validSalaryDay = parsedSalaryDay >= 1 && parsedSalaryDay <= 31 ? parsedSalaryDay : null
 
     // 1. Check if profile exists
     const { data: existingProfile, error: profileCheckError } = await supabaseAdmin
@@ -63,7 +85,9 @@ export async function POST(request: Request) {
       .eq('id', userId)
       .single()
 
-    console.log('Profile check:', { existingProfile, profileCheckError })
+    if (profileCheckError && profileCheckError.code !== 'PGRST116') {
+      return NextResponse.json({ error: 'Failed to read profile' }, { status: 500 })
+    }
 
     // 2. Create or update profile
     if (!existingProfile) {
@@ -71,10 +95,10 @@ export async function POST(request: Request) {
         .from('profiles')
         .insert({
           id: userId,
-          email: email || '',
+          email: user.email || '',
           first_name: firstName || 'User',
           last_name: lastName || '',
-          salary_day: salaryDay ? parseInt(salaryDay) : 25,
+          salary_day: validSalaryDay ?? 25,
           onboarding_completed: onboardingCompleted ?? false,
           currency: 'SEK',
           language: 'sv',
@@ -85,37 +109,25 @@ export async function POST(request: Request) {
         .select()
         .single()
 
-      console.log('Profile creation:', { newProfile, profileError })
-
-      if (profileError) {
-        return NextResponse.json({ 
-          error: 'Failed to create profile', 
-          details: profileError 
-        }, { status: 500 })
+      if (profileError || !newProfile) {
+        return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 })
       }
     } else {
       // Update existing profile
-      const updateData: any = {}
+      const updateData: ProfileUpdate = {}
       if (firstName) updateData.first_name = firstName
       if (lastName !== undefined) updateData.last_name = lastName
-      if (salaryDay) updateData.salary_day = parseInt(salaryDay)
+      if (validSalaryDay) updateData.salary_day = validSalaryDay
       if (onboardingCompleted !== undefined) updateData.onboarding_completed = onboardingCompleted
 
       if (Object.keys(updateData).length > 0) {
-        const { data: updatedProfile, error: updateError } = await supabaseAdmin
+        const { error: updateError } = await supabaseAdmin
           .from('profiles')
           .update(updateData)
           .eq('id', userId)
-          .select()
-          .single()
-
-        console.log('Profile update:', { updatedProfile, updateError })
 
         if (updateError) {
-          return NextResponse.json({ 
-            error: 'Failed to update profile', 
-            details: updateError 
-          }, { status: 500 })
+          return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
         }
       }
     }
@@ -127,7 +139,9 @@ export async function POST(request: Request) {
       .eq('user_id', userId)
       .limit(1)
 
-    console.log('Categories check:', { count: existingCategories?.length, catCheckError })
+    if (catCheckError) {
+      return NextResponse.json({ error: 'Failed to read categories' }, { status: 500 })
+    }
 
     // 4. Create categories if they don't exist
     if (!existingCategories || existingCategories.length === 0) {
@@ -136,18 +150,12 @@ export async function POST(request: Request) {
         user_id: userId,
       }))
 
-      const { data: newCategories, error: catError } = await supabaseAdmin
+      const { error: catError } = await supabaseAdmin
         .from('categories')
         .insert(categoriesWithUserId)
-        .select()
-
-      console.log('Categories creation:', { count: newCategories?.length, catError })
 
       if (catError) {
-        return NextResponse.json({ 
-          error: 'Failed to create categories', 
-          details: catError 
-        }, { status: 500 })
+        return NextResponse.json({ error: 'Failed to create categories' }, { status: 500 })
       }
     }
 
@@ -195,34 +203,26 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('Setup error:', error)
-    return NextResponse.json({ 
-      error: 'Internal server error', 
-      details: error instanceof Error ? error.message : 'Unknown error' 
-    }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-// GET route to check onboarding status
-export async function GET(request: Request) {
+// GET route to check the signed-in user's onboarding status
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
+    const user = await getSessionUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: profile, error } = await supabaseAdmin
+    const { data: profile, error } = await createServiceClient()
       .from('profiles')
       .select('onboarding_completed, first_name, last_name, salary_day')
-      .eq('id', userId)
+      .eq('id', user.id)
       .single()
 
     if (error) {
-      return NextResponse.json({ 
-        error: 'Failed to fetch profile', 
-        details: error 
-      }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
     }
 
     return NextResponse.json({ 
@@ -232,9 +232,6 @@ export async function GET(request: Request) {
 
   } catch (error) {
     console.error('Get profile error:', error)
-    return NextResponse.json({ 
-      error: 'Internal server error', 
-      details: error instanceof Error ? error.message : 'Unknown error' 
-    }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -19,6 +19,7 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { useQueryClient } from '@tanstack/react-query'
+import { createPartnerInvite, joinPartner, partnerErrorMessage } from '@/lib/household/partner-invite'
 
 export default function PartnerSettingsPage() {
   const router = useRouter()
@@ -64,32 +65,13 @@ export default function PartnerSettingsPage() {
   async function generateInviteCode() {
     if (!user) return
     setError('')
-    
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase()
-    
-    // Delete any existing pending invites first
-    await supabase
-      .from('partner_connections')
-      .delete()
-      .eq('initiated_by', user.id)
-      .eq('status', 'pending')
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).from('partner_connections').insert({
-      user1_id: user.id,
-      user2_id: user.id,
-      initiated_by: user.id,
-      invite_code: code,
-      status: 'pending',
-      expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-    })
-
-    if (error) {
-      console.error('Error creating invite:', error)
-      toast.error('Kunde inte skapa inbjudan')
-    } else {
-      setGeneratedCode(code)
+    const result = await createPartnerInvite(supabase)
+    if (result.success) {
+      setGeneratedCode(result.invite_code)
       toast.success('Inbjudningskod skapad!')
+    } else {
+      setError(partnerErrorMessage(result.error))
     }
   }
 
@@ -98,55 +80,21 @@ export default function PartnerSettingsPage() {
     setJoining(true)
     setError('')
 
-    const codeToCheck = inviteCode.toUpperCase().trim()
-
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error: rpcError } = await (supabase as any)
-        .rpc('join_partner_connection', {
-          p_invite_code: codeToCheck,
-          p_user_id: user.id
-        })
-
-      console.log('Join result:', data, 'Error:', rpcError)
-
-      if (rpcError) {
-        console.error('RPC error:', rpcError)
-        setError('Kunde inte gå med. Försök igen.')
-        setJoining(false)
-        return
-      }
-
-      if (!data.success) {
-        switch (data.error) {
-          case 'invalid_or_expired_code':
-            setError('Ogiltig eller utgången kod')
-            break
-          case 'cannot_join_own_invite':
-            setError('Du kan inte gå med i din egen inbjudan')
-            break
-          case 'already_connected':
-            setError('Du är redan kopplad med en partner')
-            break
-          default:
-            setError('Kunde inte gå med. Försök igen.')
-        }
-        setJoining(false)
-        return
-      }
-
-      toast.success('Du är nu kopplad med din partner! 🎉')
-      
-      // Refresh all data
-      await refetchPartner()
-      await refetchConnection()
-      queryClient.invalidateQueries({ queryKey: ['partner'] })
-      queryClient.invalidateQueries({ queryKey: ['partner-connection'] })
-    } catch (err) {
-      console.error('Join error:', err)
-      setError('Ett fel uppstod. Försök igen.')
+    const result = await joinPartner(supabase, inviteCode)
+    if (!result.success) {
+      setError(partnerErrorMessage(result.error))
+      setJoining(false)
+      return
     }
-    
+
+    toast.success('Du är nu kopplad med din partner! 🎉')
+    setInviteCode('')
+    setGeneratedCode('')
+
+    // Everything shared with the partner changes with the connection
+    await refetchPartner()
+    await refetchConnection()
+    queryClient.invalidateQueries()
     setJoining(false)
   }
 
@@ -168,11 +116,10 @@ export default function PartnerSettingsPage() {
         toast.success('Du har kopplat från din partner')
         setShowDisconnectDialog(false)
         
-        // Refresh data
+        // Everything shared with the partner changes with the connection
         await refetchPartner()
         await refetchConnection()
-        queryClient.invalidateQueries({ queryKey: ['partner'] })
-        queryClient.invalidateQueries({ queryKey: ['partner-connection'] })
+        queryClient.invalidateQueries()
       }
     } catch (err) {
       console.error('Disconnect error:', err)

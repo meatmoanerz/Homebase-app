@@ -1,10 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useUser, useSetCCMEnabled } from '@/hooks/use-user'
+import { useSignOut } from '@/hooks/use-sign-out'
 import { useImportBatches } from '@/hooks/use-import-staging'
-import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -30,7 +29,6 @@ import {
   Receipt,
   Bell
 } from 'lucide-react'
-import { toast } from 'sonner'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 /** Everyday money tools — the "Mer" hub's first section, as tiles. */
@@ -66,18 +64,7 @@ export default function SettingsPage() {
   const { data: batches = [] } = useImportBatches()
   const pendingImports = batches.reduce((sum, b) => sum + b.row_count, 0)
   const setCCMEnabled = useSetCCMEnabled()
-  const router = useRouter()
-  const supabase = createClient()
-
-  async function handleLogout() {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      toast.error('Kunde inte logga ut')
-    } else {
-      router.push('/login')
-      router.refresh()
-    }
-  }
+  const handleLogout = useSignOut()
 
   if (isLoading) {
     return <LoadingPage />

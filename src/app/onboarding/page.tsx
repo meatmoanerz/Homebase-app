@@ -15,6 +15,7 @@ import { ArrowRight, ArrowLeft, User, Calendar, Wallet, Users, Sparkles, Check, 
 import { HouseholdModelPicker, GENERIC_MODEL_EXAMPLES } from '@/components/household/household-model-picker'
 import { HOUSEHOLD_MODEL_LABELS, type HouseholdModel } from '@/lib/household/economy'
 import { getCurrentBudgetPeriod } from '@/lib/utils/budget-period'
+import { createPartnerInvite, joinPartner, partnerErrorMessage } from '@/lib/household/partner-invite'
 import type { Database } from '@/types/database'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
@@ -39,6 +40,9 @@ export default function OnboardingPage() {
   const [economyModel, setEconomyModel] = useState<HouseholdModel>('budget')
   const [inviteCode, setInviteCode] = useState('')
   const [generatedCode, setGeneratedCode] = useState('')
+  const [partnerError, setPartnerError] = useState('')
+  const [joining, setJoining] = useState(false)
+  const [partnerJoined, setPartnerJoined] = useState(false)
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
@@ -102,30 +106,30 @@ export default function OnboardingPage() {
 
   async function generateInviteCode() {
     if (!userId) return
-    
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase()
-    setGeneratedCode(code)
-    
-    try {
-      // Delete any existing pending invites from this user first
-      await supabase
-        .from('partner_connections')
-        .delete()
-        .eq('initiated_by', userId)
-        .eq('status', 'pending')
+    setPartnerError('')
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('partner_connections') as any).insert({
-        user1_id: userId,
-        user2_id: userId, // Placeholder
-        initiated_by: userId,
-        invite_code: code,
-        status: 'pending',
-        expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour
-      })
-    } catch (error) {
-      console.error('Error creating invite:', error)
+    const result = await createPartnerInvite(supabase)
+    if (result.success) {
+      setGeneratedCode(result.invite_code)
+    } else {
+      setPartnerError(partnerErrorMessage(result.error))
     }
+  }
+
+  /** Connects to the partner who sent the code. Returns false on failure. */
+  async function joinWithCode(): Promise<boolean> {
+    if (partnerJoined) return true
+    setJoining(true)
+    setPartnerError('')
+    const result = await joinPartner(supabase, inviteCode)
+    setJoining(false)
+    if (!result.success) {
+      setPartnerError(partnerErrorMessage(result.error))
+      return false
+    }
+    setPartnerJoined(true)
+    toast.success('Du är nu kopplad med din partner!')
+    return true
   }
 
   // The economy step only matters together with a partner
@@ -134,6 +138,9 @@ export default function OnboardingPage() {
   async function handleNext() {
     if (step === STEPS.length - 1) {
       await completeOnboarding()
+      return
+    }
+    if (step === 3 && partnerChoice === 'code' && !(await joinWithCode())) {
       return
     }
     setStep(step === 3 && !withPartner ? 5 : step + 1)
@@ -151,14 +158,11 @@ export default function OnboardingPage() {
     setLoading(true)
     
     try {
-      // Use API route for all updates (bypasses RLS issues)
-      const { data: { user: authUser } } = await supabase.auth.getUser()
+      // The API route works on the signed-in user (from the session cookie)
       const setupResponse = await fetch('/api/setup-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId,
-          email: authUser?.email || '',
           firstName,
           lastName,
           salaryDay,
@@ -226,9 +230,8 @@ export default function OnboardingPage() {
 
       toast.success('Välkommen till Homebase! 🎉')
       
-      // Use replace instead of push to prevent going back
-      router.replace('/dashboard')
-      router.refresh() // Force refresh to get updated data
+      // Full page load: the app starts with the finished profile and partner
+      window.location.replace('/dashboard')
     } catch (error) {
       console.error('Onboarding error:', error)
       toast.error('Något gick fel. Försök igen.')
@@ -243,7 +246,7 @@ export default function OnboardingPage() {
       case 0: return firstName.trim().length > 0
       case 1: return salaryDay !== ''
       case 2: return true // Income is optional
-      case 3: return true // Partner is optional
+      case 3: return partnerChoice !== 'code' || partnerJoined || inviteCode.trim().length === 6
       case 4: return true // Economy model has a default
       case 5: return true
       default: return false
@@ -382,6 +385,11 @@ export default function OnboardingPage() {
                 {/* Step 3: Partner */}
                 {step === 3 && (
                   <div className="space-y-4">
+                    {partnerError && (
+                      <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                        {partnerError}
+                      </p>
+                    )}
                     {!partnerChoice && (
                       <div className="space-y-3">
                         <Button
@@ -450,7 +458,11 @@ export default function OnboardingPage() {
                         )}
                         <Button
                           variant="ghost"
-                          onClick={() => setPartnerChoice(null)}
+                          onClick={() => {
+                            setPartnerChoice(null)
+                            setPartnerError('')
+                          }}
+                          disabled={partnerJoined}
                         >
                           <ArrowLeft className="mr-2 h-4 w-4" />
                           Tillbaka
@@ -466,14 +478,22 @@ export default function OnboardingPage() {
                             id="inviteCode"
                             placeholder="ABC123"
                             value={inviteCode}
-                            onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                            onChange={(e) => {
+                              setInviteCode(e.target.value.toUpperCase())
+                              setPartnerError('')
+                            }}
+                            disabled={partnerJoined}
                             className="text-center text-lg tracking-widest"
                             maxLength={6}
                           />
                         </div>
                         <Button
                           variant="ghost"
-                          onClick={() => setPartnerChoice(null)}
+                          onClick={() => {
+                            setPartnerChoice(null)
+                            setPartnerError('')
+                          }}
+                          disabled={partnerJoined}
                         >
                           <ArrowLeft className="mr-2 h-4 w-4" />
                           Tillbaka
@@ -548,13 +568,13 @@ export default function OnboardingPage() {
                   )}
                   <Button
                     onClick={handleNext}
-                    disabled={!isStepValid() || loading}
+                    disabled={!isStepValid() || loading || joining}
                     className="flex-1"
                   >
-                    {loading ? (
+                    {loading || joining ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sparar...
+                        {joining ? 'Kopplar...' : 'Sparar...'}
                       </>
                     ) : step === STEPS.length - 1 ? (
                       'Kom igång!'

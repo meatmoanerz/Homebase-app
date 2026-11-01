@@ -6,41 +6,57 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { toast } from 'sonner'
 import { Loader2, Mail } from 'lucide-react'
 import { motion } from 'framer-motion'
 
+function loginErrorMessage(code: string | undefined, message: string | undefined): string {
+  if (code === 'invalid_credentials' || message === 'Invalid login credentials') {
+    return 'Fel e-post eller lösenord'
+  }
+  if (code === 'email_not_confirmed') {
+    return 'Bekräfta din e-postadress via länken vi skickade innan du loggar in'
+  }
+  if (code === 'over_request_rate_limit' || code === 'over_email_send_rate_limit') {
+    return 'För många försök. Vänta en stund och försök igen.'
+  }
+  return 'Kunde inte logga in. Försök igen.'
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
-  const router = useRouter()
   const supabase = createClient()
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
-    if (error) {
-      toast.error(error.message === 'Invalid login credentials' 
-        ? 'Fel e-post eller lösenord' 
-        : error.message
-      )
-    } else {
-      router.push('/dashboard')
-      router.refresh()
+    if (error || !data.user) {
+      toast.error(loginErrorMessage(error?.code, error?.message))
+      setLoading(false)
+      return
     }
 
-    setLoading(false)
+    // New accounts go through onboarding before the app
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarding_completed')
+      .eq('id', data.user.id)
+      .maybeSingle() as { data: { onboarding_completed: boolean } | null }
+    const destination = profile?.onboarding_completed ? '/dashboard' : '/onboarding'
+
+    // Full page load so nothing cached from an earlier session survives
+    window.location.replace(destination)
   }
 
   async function handleGoogleLogin() {

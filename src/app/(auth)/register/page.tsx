@@ -12,6 +12,22 @@ import { toast } from 'sonner'
 import { Loader2, Mail, User } from 'lucide-react'
 import { motion } from 'framer-motion'
 
+function signupErrorMessage(code: string | undefined): string {
+  switch (code) {
+    case 'weak_password':
+      return 'Lösenordet är för svagt. Välj ett längre eller ovanligare lösenord.'
+    case 'email_address_invalid':
+      return 'Ogiltig e-postadress'
+    case 'over_request_rate_limit':
+    case 'over_email_send_rate_limit':
+      return 'För många försök. Vänta en stund och försök igen.'
+    case 'signup_disabled':
+      return 'Det går inte att skapa nya konton just nu'
+    default:
+      return 'Kunde inte skapa kontot. Försök igen.'
+  }
+}
+
 export default function RegisterPage() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -19,6 +35,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [emailTaken, setEmailTaken] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
@@ -37,11 +54,13 @@ export default function RegisterPage() {
     }
 
     setLoading(true)
+    setEmailTaken(false)
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}/api/auth/callback`,
         data: {
           first_name: firstName,
           last_name: lastName,
@@ -49,15 +68,35 @@ export default function RegisterPage() {
       },
     })
 
-    if (error) {
-      toast.error(error.message)
-    } else {
-      toast.success('Konto skapat! Kontrollera din e-post för verifiering.')
-      router.push('/onboarding')
-      router.refresh()
+    // With email confirmation on, Supabase doesn't reveal that the address is
+    // taken: it returns a user without identities instead of an error.
+    const alreadyRegistered =
+      error?.code === 'user_already_exists' ||
+      error?.message === 'User already registered' ||
+      (!error && data.user?.identities?.length === 0)
+
+    if (alreadyRegistered) {
+      setEmailTaken(true)
+      setLoading(false)
+      return
     }
 
-    setLoading(false)
+    if (error) {
+      toast.error(signupErrorMessage(error.code))
+      setLoading(false)
+      return
+    }
+
+    if (!data.session) {
+      // Email confirmation required: the link brings them back to onboarding
+      toast.success('Konto skapat! Bekräfta din e-post via länken vi skickade.')
+      setLoading(false)
+      router.push('/login')
+      return
+    }
+
+    // Full page load so nothing cached from an earlier session survives
+    window.location.replace('/onboarding')
   }
 
   async function handleGoogleLogin() {
@@ -186,7 +225,10 @@ export default function RegisterPage() {
                     type="email"
                     placeholder="namn@exempel.se"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      setEmailTaken(false)
+                    }}
                     className="pl-10"
                     autoComplete="email"
                     required
@@ -217,6 +259,14 @@ export default function RegisterPage() {
                   required
                 />
               </div>
+              {emailTaken && (
+                <div role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                  Det finns redan ett konto med den här e-postadressen.{' '}
+                  <Link href="/login" className="font-medium underline">
+                    Logga in i stället
+                  </Link>
+                </div>
+              )}
               <Button
                 type="submit"
                 className="w-full h-12"

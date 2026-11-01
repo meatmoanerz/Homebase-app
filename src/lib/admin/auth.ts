@@ -4,7 +4,9 @@ import { cookies } from 'next/headers'
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH
-const JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'fallback-secret-change-in-production'
+// No fallback: a known default secret would let anyone forge an admin session.
+// Without ADMIN_JWT_SECRET admin login is simply disabled.
+const JWT_SECRET = process.env.ADMIN_JWT_SECRET
 
 const COOKIE_NAME = 'admin_session'
 const TOKEN_EXPIRY = '24h'
@@ -17,7 +19,7 @@ export interface AdminPayload {
 }
 
 export async function validateCredentials(username: string, password: string): Promise<boolean> {
-  if (!ADMIN_USERNAME || !ADMIN_PASSWORD_HASH) {
+  if (!ADMIN_USERNAME || !ADMIN_PASSWORD_HASH || !JWT_SECRET) {
     console.error('Admin credentials not configured in environment variables')
     return false
   }
@@ -30,6 +32,7 @@ export async function validateCredentials(username: string, password: string): P
 }
 
 export function generateToken(username: string): string {
+  if (!JWT_SECRET) throw new Error('ADMIN_JWT_SECRET is not set')
   return sign(
     { username, role: 'admin' },
     JWT_SECRET,
@@ -38,6 +41,7 @@ export function generateToken(username: string): string {
 }
 
 export function verifyToken(token: string): AdminPayload | null {
+  if (!JWT_SECRET) return null
   try {
     return verify(token, JWT_SECRET) as AdminPayload
   } catch {

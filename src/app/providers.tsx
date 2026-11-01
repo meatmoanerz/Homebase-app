@@ -1,6 +1,6 @@
 'use client'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query'
 import { ThemeProvider, useTheme } from 'next-themes'
 import { Toaster } from 'sonner'
 import { MotionConfig } from 'framer-motion'
@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { useKeyboard } from '@/hooks/use-keyboard'
 import { useCapacitorInit } from '@/hooks/use-capacitor'
 import { THEME_COLOR } from '@/lib/utils/theme-color'
+import { createClient } from '@/lib/supabase/client'
 
 // Component to initialize keyboard detection globally
 function KeyboardDetector() {
@@ -35,6 +36,26 @@ function ThemeColorSync() {
   return null
 }
 
+// Every query key is shared between accounts (['user'], ['partner'],
+// ['expenses', ...]), so data must never outlive the session it was fetched
+// with. Clears the cache when the session ends or another account signs in
+// (e.g. in another tab).
+function AuthCacheGuard() {
+  const queryClient = useQueryClient()
+  useEffect(() => {
+    let currentUserId: string | null | undefined
+    const { data: { subscription } } = createClient().auth.onAuthStateChange((event, session) => {
+      const nextUserId = session?.user.id ?? null
+      if (event === 'SIGNED_OUT' || (currentUserId !== undefined && nextUserId !== currentUserId)) {
+        queryClient.clear()
+      }
+      currentUserId = nextUserId
+    })
+    return () => subscription.unsubscribe()
+  }, [queryClient])
+  return null
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
@@ -54,6 +75,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <AuthCacheGuard />
       <ThemeProvider
         attribute="class"
         defaultTheme="system"
