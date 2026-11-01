@@ -8,12 +8,13 @@
 --
 -- seen_intros: vilka introduktioner användaren har sett eller stängt.
 --   '*' = hoppa över alla (befintliga användare som redan kan appen).
+--   "Visa introduktionen igen" i Hjälp nollställer listan.
+--
+-- Befintliga rader får sina värden från kolumnens default när den läggs till,
+-- sedan byts default för nya profiler. Ingen UPDATE behövs.
 
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS enabled_modules text[];
 ALTER TABLE public.profiles ALTER COLUMN enabled_modules SET DEFAULT '{}';
-UPDATE public.profiles SET enabled_modules = '{}'
-  WHERE enabled_modules IS NULL AND onboarding_completed IS NOT TRUE;
 
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS seen_intros text[] NOT NULL DEFAULT '{}';
-UPDATE public.profiles SET seen_intros = '{*}'
-  WHERE onboarding_completed IS TRUE AND seen_intros = '{}';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS seen_intros text[] NOT NULL DEFAULT '{*}';
+ALTER TABLE public.profiles ALTER COLUMN seen_intros SET DEFAULT '{}';

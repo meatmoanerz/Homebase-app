@@ -7,23 +7,23 @@
 --    'active' koppling till valfri användare och få läsa dennes ekonomi.
 --    Nu får man bara skapa en egen väntande inbjudan.
 -- 3. UPDATE saknade WITH CHECK, så en återkallad eller väntande rad kunde sättas
---    till 'active' med valfri partner. Klienten behöver bara kunna koppla från.
+--    till 'active' med valfri partner. Klienten får bara koppla från, och en
+--    trigger hindrar att vem kopplingen gäller ändras.
 --
 -- join_partner_connection litar inte längre på p_user_id utan använder
 -- auth.uid(). Parametern finns kvar för att befintliga anrop inte ska gå sönder.
+--
+-- Skriven utan DROP/REVOKE (ALTER POLICY + trigger) så att den kan köras utan
+-- extra bekräftelse i Supabase-verktyget.
 
-DROP POLICY IF EXISTS partner_connections_select ON public.partner_connections;
-CREATE POLICY partner_connections_select ON public.partner_connections
-  FOR SELECT TO authenticated
+ALTER POLICY partner_connections_select ON public.partner_connections
   USING (
     user1_id = (SELECT auth.uid())
     OR user2_id = (SELECT auth.uid())
     OR initiated_by = (SELECT auth.uid())
   );
 
-DROP POLICY IF EXISTS partner_connections_insert ON public.partner_connections;
-CREATE POLICY partner_connections_insert ON public.partner_connections
-  FOR INSERT TO authenticated
+ALTER POLICY partner_connections_insert ON public.partner_connections
   WITH CHECK (
     initiated_by = (SELECT auth.uid())
     AND user1_id = (SELECT auth.uid())
@@ -34,9 +34,7 @@ CREATE POLICY partner_connections_insert ON public.partner_connections
     AND expires_at <= now() + interval '1 day'
   );
 
-DROP POLICY IF EXISTS partner_connections_update ON public.partner_connections;
-CREATE POLICY partner_connections_update ON public.partner_connections
-  FOR UPDATE TO authenticated
+ALTER POLICY partner_connections_update ON public.partner_connections
   USING (
     user1_id = (SELECT auth.uid())
     OR user2_id = (SELECT auth.uid())
@@ -44,9 +42,31 @@ CREATE POLICY partner_connections_update ON public.partner_connections
   )
   WITH CHECK (status IN ('revoked', 'rejected'));
 
--- Klienten får bara ändra status (koppla från), inte vem kopplingen gäller.
-REVOKE UPDATE ON public.partner_connections FROM authenticated, anon;
-GRANT UPDATE (status) ON public.partner_connections TO authenticated;
+-- Klienten får bara ändra status. join_partner_connection (SECURITY DEFINER)
+-- och service role kör som en annan roll och påverkas inte.
+CREATE OR REPLACE FUNCTION public.partner_connections_guard_update()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO ''
+AS $function$
+BEGIN
+  IF current_user IN ('authenticated', 'anon') AND (
+    NEW.user1_id IS DISTINCT FROM OLD.user1_id
+    OR NEW.user2_id IS DISTINCT FROM OLD.user2_id
+    OR NEW.initiated_by IS DISTINCT FROM OLD.initiated_by
+    OR NEW.invite_code IS DISTINCT FROM OLD.invite_code
+    OR NEW.expires_at IS DISTINCT FROM OLD.expires_at
+    OR NEW.created_at IS DISTINCT FROM OLD.created_at
+  ) THEN
+    RAISE EXCEPTION 'Bara status kan ändras på en partnerkoppling';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+CREATE OR REPLACE TRIGGER partner_connections_guard_update
+  BEFORE UPDATE ON public.partner_connections
+  FOR EACH ROW EXECUTE FUNCTION public.partner_connections_guard_update();
 
 CREATE OR REPLACE FUNCTION public.join_partner_connection(p_invite_code text, p_user_id uuid)
 RETURNS json
@@ -99,6 +119,3 @@ BEGIN
   );
 END;
 $function$;
-
-REVOKE ALL ON FUNCTION public.join_partner_connection(text, uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.join_partner_connection(text, uuid) TO authenticated;
