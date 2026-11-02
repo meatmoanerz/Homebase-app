@@ -22,6 +22,13 @@ Allt data är per `user_id` (uuid).
 `shared_account_defaults`, `push_subscriptions`, `notification_settings`,
 `keepalive`.
 
+Veckomat (modul `meals`): `meal_settings`, `store_offers`, `recipes`,
+`recipe_ingredients`, `meal_plans`, `meal_plan_dishes`, `shopping_list_items`.
+Delas inom hushållet; skrivs via `import_meal_plan`. Se `08-veckomat.md`.
+
+`profiles.feature_access` (text[]) styr betafunktioner. Sätts bara av admin —
+en trigger hindrar klienten från att ändra den.
+
 Zplitta använder `split_`-prefixade tabeller i samma projekt. Rör dem inte vid
 Homebase-arbete.
 

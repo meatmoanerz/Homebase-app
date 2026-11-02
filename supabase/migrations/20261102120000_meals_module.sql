@@ -34,6 +34,19 @@ AS $$
     AND (SELECT auth.uid()) IN (pc.user1_id, pc.user2_id)
 $$;
 
+-- Sant om anropet kommer från en klientsession (PostgREST som anon/authenticated).
+-- Funktionerna i private som tar ett user_id svarar då bara för den egna
+-- användaren, även om de skulle gå att nå.
+CREATE OR REPLACE FUNCTION private.is_client_session()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SET search_path TO ''
+AS $$
+  SELECT COALESCE(NULLIF(current_setting('request.jwt.claims', true), '')::jsonb->>'role', '')
+         IN ('anon', 'authenticated')
+$$;
+
 -- Samma hushåll för en given användare (admin-vägen, utan auth.uid()).
 CREATE OR REPLACE FUNCTION private.household_user_ids(p_user_id uuid)
 RETURNS SETOF uuid
@@ -42,12 +55,16 @@ STABLE
 SECURITY DEFINER
 SET search_path TO ''
 AS $$
-  SELECT p_user_id
-  UNION
-  SELECT CASE WHEN pc.user1_id = p_user_id THEN pc.user2_id ELSE pc.user1_id END
-  FROM public.partner_connections pc
-  WHERE pc.status = 'active'
-    AND p_user_id IN (pc.user1_id, pc.user2_id)
+  SELECT h.id
+  FROM (
+    SELECT p_user_id AS id
+    UNION
+    SELECT CASE WHEN pc.user1_id = p_user_id THEN pc.user2_id ELSE pc.user1_id END
+    FROM public.partner_connections pc
+    WHERE pc.status = 'active'
+      AND p_user_id IN (pc.user1_id, pc.user2_id)
+  ) h
+  WHERE NOT private.is_client_session() OR p_user_id = (SELECT auth.uid())
 $$;
 
 ALTER TABLE public.profiles
@@ -86,13 +103,16 @@ STABLE
 SECURITY DEFINER
 SET search_path TO ''
 AS $$
-  SELECT EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = p_user_id AND p_feature = ANY (p.feature_access)
-    )
-    OR EXISTS (
-      SELECT 1 FROM auth.users u
-      WHERE u.id = p_user_id AND lower(u.email) LIKE '%@test.se'
+  SELECT (NOT private.is_client_session() OR p_user_id = (SELECT auth.uid()))
+    AND (
+      EXISTS (
+        SELECT 1 FROM public.profiles p
+        WHERE p.id = p_user_id AND p_feature = ANY (p.feature_access)
+      )
+      OR EXISTS (
+        SELECT 1 FROM auth.users u
+        WHERE u.id = p_user_id AND lower(u.email) LIKE '%@test.se'
+      )
     )
 $$;
 
@@ -338,7 +358,9 @@ END $$;
 -- ---------------------------------------------------------------------------
 
 -- Senaste kvittopris för en vara i hushållets kvitton. Matchar via produkt
--- (products.name / product_aliases) om koppling finns, annars på kvittotexten.
+-- (products.name) om koppling finns, annars på kvittotexten. SECURITY INVOKER:
+-- från en inloggad session gäller kvittotabellernas RLS (bara egna kvitton);
+-- admin-vägen (körning via MCP) ser hela hushållets.
 CREATE OR REPLACE FUNCTION public.latest_receipt_price(p_name text, p_user_id uuid DEFAULT NULL)
 RETURNS TABLE (unit_price numeric, raw_name text, purchase_date date, store_name text, store_chain text)
 LANGUAGE plpgsql

@@ -2,11 +2,12 @@
 
 Senast uppdaterad: 2026-11-02
 
-Status: **beslutat underlag, inget byggt.** Bygger på tre provkörningar i
-chatten (v42, v45) och genomgång mot kod och live-DB 2026-11-02.
+Status: **fas 1 klar (databas), fas 2 (appen) inte påbörjad.** Migration
+`supabase/migrations/20261102120000_meals_module.sql` är körd i live-DB.
+v45 är importerad åt Tim. Bygger på tre provkörningar i chatten (v42, v45).
 
-Läs `01-databas.md` innan du rör schemat. Verifiera live-läget igen innan du
-bygger. Det här dokumentet beskriver plan, inte nuläge, tills fas 1 är klar.
+Läs `01-databas.md` innan du rör schemat. Avsnitt 5 beskriver schemat som det
+är; vyer och körinstruktion (fas 2–3) är fortfarande plan.
 
 ---
 
@@ -226,9 +227,28 @@ Alla nya tabeller har `user_id` och RLS enligt mönstret i `credit_cards`:
 ### 5.3 Funktioner
 
 - `import_meal_plan(payload jsonb, p_user_id uuid default null) returns uuid`
-- `latest_receipt_price(p_user_id uuid, p_name text)` – senaste
-  `receipt_items.unit_price` för en vara, matchad via `products`/`product_aliases`
-  om koppling finns, annars på namn. Används av körningen för 3.5 steg 3.
+  – allt eller inget; fel i payloaden (okänd `dish_keys`, okänd butik, saknat
+  namn) avbryter hela importen.
+- `latest_receipt_price(p_name text, p_user_id uuid default null)` – senaste
+  `receipt_items.unit_price` för en vara, matchad via `products.name` om
+  koppling finns, annars på kvittotexten. Används av körningen för 3.5 steg 3.
+  Från en inloggad session gäller kvittotabellernas RLS (bara egna kvitton);
+  körningen via MCP ser hela hushållets.
+- `has_feature_access(p_feature text)` – för appen, gäller inloggad användare.
+- `my_household_user_ids()` – inloggad användare + aktiv partner, används i RLS.
+- `private.user_has_feature`, `private.household_user_ids` – tar valfritt
+  user_id och används av admin-vägen. Från en klientsession svarar de bara för
+  den egna användaren (`private.is_client_session()`).
+
+Anrop från chatten (MCP, admin):
+
+```sql
+SELECT public.import_meal_plan('<MealPlan-JSON>'::jsonb, '<user_id>');
+SELECT * FROM public.latest_receipt_price('mjölk', '<user_id>');
+```
+
+Payloaden kan ha `"store": {"store_id": "<uuid>"}` i stället för kedja +
+`external_id`. Butiken måste finnas bland hushållets `stores`.
 
 ### 5.4 JSON-kontrakt
 
@@ -320,6 +340,15 @@ inte fungerar för dem.
    (erbjudande / ordinarie / kvitto / uppskattat).
 4. **Arkiverad lista:** går att läsa, bocka av och återställa.
 5. **Inställningar (fas 2):** medlemskap, hushåll, butiker, kalorimål, onlineavgift.
+6. **Startprompt (fas 2):** en liten textruta med kopieringsknapp på
+   veckomatsidan. Texten genereras från användarens inställningar och klistras
+   in i Claude-chatten (Homebase-projektet) för att starta en körning. Den
+   innehåller allt körningen behöver, så att chatten inte läser inställningar
+   från databasen: user_id, år och vecka, hushåll och portioner, middagar och
+   matlådor, kostnoteringar, kalorimål, medlemskap, butiker (namn, kedja,
+   `external_id`, källa, URL, onlineavgift) och de senaste veckornas rätter
+   (namn + `recipe_id`) för att undvika upprepning och kunna återanvända recept.
+   Rutan behöver inte vara läsbar, bara kopierbar.
 
 Senare: byt ut en rätt (Claude API), skala portioner, betyg/favoriter, plan
 mot kvitto, koppling till matbudget.

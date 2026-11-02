@@ -7,6 +7,16 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-02 — Veckomat fas 1: databas
+
+- Migration `meals_module`: sju nya tabeller med hushålls-RLS, `stores` med
+  `external_id` och läsrätt för partner, `profiles.feature_access` med skydd mot
+  ändring från klienten, `import_meal_plan` och `latest_receipt_price`.
+  Testad i transaktion som rullades tillbaka (Tim, Amanda, användare utan
+  åtkomst, anon) innan den kördes.
+- Data: `meals` i `feature_access` för Tim och Amanda, Willys Rissne och Stora
+  Coop Sundby Park som butiker, Tims `meal_settings`, v45 importerad.
+
 ## 2026-11-02 — Docs: underlag för veckomat
 
 - Ny fil `08-veckomat.md`: plan för modulen `meals` (matsedel, inköpslista,
