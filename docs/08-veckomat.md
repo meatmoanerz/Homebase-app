@@ -32,7 +32,10 @@ Alla tre ger **samma JSON** till **samma funktion**, `import_meal_plan` (avsnitt
 
 ---
 
-## 2. Hushållsparametrar (startvärden)
+## 2. Hushållsparametrar (Tims inställningar, exempel)
+
+Värdena nedan är Tims och Amandas inställningar, sparade som data i
+`meal_settings`. De är inte standardvärden i koden.
 
 | Parameter | Värde |
 |---|---|
@@ -269,12 +272,41 @@ Alla nya tabeller har `user_id` och RLS enligt mönstret i `credit_cards`:
 ### 5.5 Säkerhet
 
 - RLS på alla nya tabeller (5.2).
-- MCP-körning skriver som admin via RPC med `p_user_id` = Tim
-  (`b8a41ea4-66f5-4869-98f1-2fe06c4423f3`).
+- MCP-körning skriver som admin via RPC med `p_user_id` = den som beställer
+  körningen (för Tim: `b8a41ea4-66f5-4869-98f1-2fe06c4423f3`, se `01-databas.md`).
+  Id:t står i körinstruktionen, aldrig i appkoden.
 - Claude API-nyckeln finns bara server-side (route handler på Vercel), aldrig i
   klienten eller Capacitor-bygget.
 
-### 5.6 Vyer i appen (MVP)
+### 5.6 Inget hårdkodat, byggt för alla användare
+
+- Appkod, migrationer och funktioner innehåller inga användar-id, namn, e-post,
+  butiker eller hushållsparametrar. Allt sådant är data per användare
+  (`meal_settings`, `stores`, `profiles`).
+- Nya användare utgår från tomma inställningar och fyller i dem i appen.
+  Rimliga standardvärden (t.ex. 4 middagar) får finnas som kolumn-default, men
+  inget som är specifikt för ett hushåll.
+- Delning sker bara via `partner_connections`, aldrig via namngivna konton.
+
+### 5.7 Åtkomst under beta
+
+Så länge körningen görs av Claude-chatten (fas 1–4) är modulen låst. Ingen
+inloggad användare kan starta en körning själv, och ingen ska se en modul som
+inte fungerar för dem.
+
+- Ny kolumn `profiles.feature_access text[] NOT NULL DEFAULT '{}'`.
+- Funktion `has_feature_access(p_user_id uuid, p_feature text) returns boolean`:
+  sant om `p_feature` finns i `feature_access`, **eller** om användarens e-post
+  i `auth.users` slutar på `@test.se`.
+- Tim och Amanda får `'meals'` i `feature_access` med en SQL-uppdatering
+  (data, inte kod).
+- Appen: modulen `meals` visas i modulvalet, menyn och på `/meals` bara om
+  `has_feature_access` är sant. Annars syns den inte alls.
+- `import_meal_plan` avbryter om ägaren saknar åtkomst.
+- När körning via Claude API finns (fas 5) tas spärren bort: `has_feature_access`
+  returnerar sant för `meals` för alla, eller så tas anropen bort.
+
+### 5.8 Vyer i appen (MVP)
 
 1. **Listor:** alla synliga listor, nyast först, med "Ny"-etikett. Arkivet
    längst ner, går att fälla ut.
@@ -298,7 +330,7 @@ mot kvitto, koppling till matbudget.
 
 | Fas | Innehåll | Klar när |
 |---|---|---|
-| 1 | Migration: tabeller, RLS, `stores`-ändringar, `import_meal_plan`, `latest_receipt_price`, `meal_settings` för Tim | v45-data importerad via RPC och läsbar som både Tim och Amanda (testat i BEGIN/ROLLBACK först) |
+| 1 | Migration: tabeller, RLS, `stores`-ändringar, `feature_access` + `has_feature_access`, `import_meal_plan`, `latest_receipt_price`. Data: `meal_settings` och `feature_access` för Tim och Amanda | v45-data importerad via RPC och läsbar som både Tim och Amanda (testat i BEGIN/ROLLBACK först) |
 | 2 | Modul `meals` i appen: listor, arkivering, rätter, recept, inköpslista med realtime, inställningar | Samma innehåll som artefakten syns i appen |
 | 3 | Körinstruktion (skill) för chatt + schemalagd körning via RPC | "Kör veckomat" i chatten ger en ny lista i appen |
 | 4 | Spike: ICA/Coop utan webbläsare. Undersök även tredjepartskällor (Matpriskollen, Tjek/eTilbudsavis) och om Willys-API:t svarar från Vercel | Beslut om källa per kedja |
@@ -326,6 +358,8 @@ mot kvitto, koppling till matbudget.
 | 13 | Kalorier | Visa per vuxen- och barnportion, mål 500–650 kcal |
 | 14 | Listor | Flera synliga samtidigt, namn "v45". Användaren arkiverar själv efter fråga i banner. Inga utkast |
 | 15 | `stores` | Partner får läsrätt |
+| 16 | Hårdkodning | Inga användare, butiker eller hushållsvärden i kod. Allt är data per användare (5.6) |
+| 17 | Åtkomst | Låst till `feature_access` + `@test.se`-konton tills Claude API-körning finns (5.7) |
 
 ---
 

@@ -7,6 +7,14 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-02 — Docs: underlag för veckomat
+
+- Ny fil `08-veckomat.md`: plan för modulen `meals` (matsedel, inköpslista,
+  erbjudanden) med datakällor, tabeller, JSON-kontrakt, prisordning, byggordning
+  och beslut. Inget byggt än. Tillagt på Tims begäran.
+- Beslutat: inget hårdkodat per användare, och modulen är låst till
+  `feature_access` och `@test.se`-konton tills körning via Claude API finns.
+
 ## 2026-11-01 — Lansering: onboarding, rundturer, genvägsnycklar och säkerhet
 
 - Partnerkopplingar låsta (egna rader, bara väntande inbjudan, bara koppla från)
