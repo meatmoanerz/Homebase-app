@@ -1,7 +1,7 @@
 // Optional modules a user can switch on. The core (overview, expenses, budget,
 // import) is always on. See supabase/migrations/20261101130000_profiles_modules_and_intros.sql
 
-export const ALL_OPTIONAL_MODULES = ['savings', 'loans', 'ccm', 'receipts', 'shared'] as const
+export const ALL_OPTIONAL_MODULES = ['savings', 'loans', 'ccm', 'receipts', 'shared', 'meals'] as const
 export type OptionalModule = (typeof ALL_OPTIONAL_MODULES)[number]
 
 export function isOptionalModule(value: unknown): value is OptionalModule {
@@ -46,6 +46,21 @@ export const MODULE_INFO: Record<OptionalModule, ModuleInfo> = {
     description: 'Räkna ut månadens överföringar till ett gemensamt konto',
     href: '/settings/shared-account',
   },
+  meals: {
+    id: 'meals',
+    label: 'Veckomat',
+    description: 'Matsedel, recept och inköpslista utifrån veckans erbjudanden',
+    href: '/meals',
+  },
+}
+
+/**
+ * Modules in beta: only available when the database grants the feature
+ * (profiles.feature_access or a @test.se account, see has_feature_access).
+ * Veckomat is run from Claude chat until the app can call the Claude API.
+ */
+export const GATED_MODULES: Partial<Record<OptionalModule, string>> = {
+  meals: 'meals',
 }
 
 interface ModuleProfile {

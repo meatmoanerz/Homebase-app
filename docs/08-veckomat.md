@@ -2,12 +2,13 @@
 
 Senast uppdaterad: 2026-11-02
 
-Status: **fas 1 klar (databas), fas 2 (appen) inte påbörjad.** Migration
-`supabase/migrations/20261102120000_meals_module.sql` är körd i live-DB.
-v45 är importerad åt Tim. Bygger på tre provkörningar i chatten (v42, v45).
+Status: **fas 1 (databas) och fas 2 (appen) klara, fas 3 (körinstruktion) kvar.**
+Migration `supabase/migrations/20261102120000_meals_module.sql` är körd i
+live-DB, v45 är importerad åt Tim. Appen: `/meals` (listor, arkiv, startprompt),
+`/meals/[id]` (rätter, recept, inköpslista), `/meals/settings`. Kod:
+`src/hooks/use-meals.ts`, `src/components/meals/`, `src/lib/meals/`.
 
-Läs `01-databas.md` innan du rör schemat. Avsnitt 5 beskriver schemat som det
-är; vyer och körinstruktion (fas 2–3) är fortfarande plan.
+Läs `01-databas.md` innan du rör schemat.
 
 ---
 
@@ -230,10 +231,9 @@ Alla nya tabeller har `user_id` och RLS enligt mönstret i `credit_cards`:
   – allt eller inget; fel i payloaden (okänd `dish_keys`, okänd butik, saknat
   namn) avbryter hela importen.
 - `latest_receipt_price(p_name text, p_user_id uuid default null)` – senaste
-  `receipt_items.unit_price` för en vara, matchad via `products.name` om
-  koppling finns, annars på kvittotexten. Används av körningen för 3.5 steg 3.
-  Från en inloggad session gäller kvittotabellernas RLS (bara egna kvitton);
-  körningen via MCP ser hela hushållets.
+  `receipt_items.unit_price` för en vara i hushållets kvitton, matchad via
+  `products.name` om koppling finns, annars på kvittotexten. Används av
+  körningen för 3.5 steg 3.
 - `has_feature_access(p_feature text)` – för appen, gäller inloggad användare.
 - `my_household_user_ids()` – inloggad användare + aktiv partner, används i RLS.
 - `private.user_has_feature`, `private.household_user_ids` – tar valfritt
@@ -386,7 +386,7 @@ mot kvitto, koppling till matbudget.
 | 12 | Upprepning | Ingen rätt två veckor i rad. Prioritera högt betyg |
 | 13 | Kalorier | Visa per vuxen- och barnportion, mål 500–650 kcal |
 | 14 | Listor | Flera synliga samtidigt, namn "v45". Användaren arkiverar själv efter fråga i banner. Inga utkast |
-| 15 | `stores` | Partner får läsrätt |
+| 15 | `stores` och kvitton | Partner får läsrätt på `stores`, `receipts`, `receipt_items`, `products`, `product_aliases`. Ändringar bara på egna rader |
 | 16 | Hårdkodning | Inga användare, butiker eller hushållsvärden i kod. Allt är data per användare (5.6) |
 | 17 | Åtkomst | Låst till `feature_access` + `@test.se`-konton tills Claude API-körning finns (5.7) |
 

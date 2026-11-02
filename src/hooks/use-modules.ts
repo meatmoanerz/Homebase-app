@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/use-user'
+import { useFeatureAccess } from '@/hooks/use-feature-access'
 import {
   ALL_OPTIONAL_MODULES,
+  GATED_MODULES,
   MODULE_INFO,
   isModuleEnabled,
   type OptionalModule,
@@ -19,13 +21,23 @@ type ProfileWithModules = Profile & {
   seen_intros?: string[] | null
 }
 
-/** Which optional modules the signed-in user has switched on. */
+/**
+ * Which optional modules the signed-in user has switched on. A module in
+ * beta (GATED_MODULES) is neither available nor on without access.
+ */
 export function useModules() {
   const { data: user, isLoading } = useUser()
+  const { data: mealsAccess = false } = useFeatureAccess('meals')
   const profile = user as ProfileWithModules | null | undefined
+  const access: Record<string, boolean> = { meals: mealsAccess }
+  const isAvailable = (module: OptionalModule) => {
+    const feature = GATED_MODULES[module]
+    return !feature || access[feature] === true
+  }
   return {
     isLoading,
-    isEnabled: (module: OptionalModule) => isModuleEnabled(profile, module),
+    isAvailable,
+    isEnabled: (module: OptionalModule) => isAvailable(module) && isModuleEnabled(profile, module),
   }
 }
 

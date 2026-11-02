@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight, ArrowLeft, User, Wallet, Users, Sparkles, Check, Copy, Loader2, Scale,
-  LayoutGrid, Target, Landmark, CreditCard, Receipt, PlusCircle, FileSearch, Home,
+  LayoutGrid, Target, Landmark, CreditCard, Receipt, PlusCircle, FileSearch, Home, UtensilsCrossed,
 } from 'lucide-react'
 import { HouseholdModelPicker, GENERIC_MODEL_EXAMPLES } from '@/components/household/household-model-picker'
 import { HOUSEHOLD_MODEL_LABELS, type HouseholdModel } from '@/lib/household/economy'
@@ -41,6 +41,7 @@ const MODULE_ICONS: Record<OptionalModule, typeof User> = {
   ccm: CreditCard,
   receipts: Receipt,
   shared: Wallet,
+  meals: UtensilsCrossed,
 }
 
 // Shared economy only makes sense with a partner, so it is offered there only.

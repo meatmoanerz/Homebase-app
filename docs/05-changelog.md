@@ -7,6 +7,17 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-02 — Veckomat fas 2: appen, och partner läser kvitton
+
+- Ny modul Veckomat (`meals`) under `/meals`: listor med "Ny"-etikett,
+  arkiveringsfråga för passerade veckor, arkiv, receptvy, inköpslista som bockas
+  av i realtid, inställningar (hushåll, mat, medlemskap, butiker) och en
+  startprompt att kopiera till Claude-chatten. Syns bara med åtkomst
+  (`has_feature_access('meals')`).
+- Migration `partner_reads_receipts_and_profile`: partnern kan läsa kvitton,
+  artiklar, produkter och alias. `profiles_select` rättad — partnervillkoret
+  jämförde med kopplingens id och matchade aldrig. Tillagt på Tims begäran.
+
 ## 2026-11-02 — Veckomat fas 1: databas
 
 - Migration `meals_module`: sju nya tabeller med hushålls-RLS, `stores` med

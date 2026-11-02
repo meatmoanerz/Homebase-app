@@ -23,6 +23,7 @@ export const TOUR_PATHS: Record<string, TourKey> = {
   '/settings/loans': 'loans',
   '/settings/ccm': 'ccm',
   '/receipts': 'receipts',
+  '/meals': 'meals',
   '/settings/shared-account': 'shared',
 }
 
@@ -319,6 +320,22 @@ export function getTour(key: TourKey, ctx: TourContext): TourStep[] {
             <>
               <p>Ladda upp matkvitton, till exempel från Kivra eller ICA-appen. Varje vara sparas för sig.</p>
               <p>Med tiden ser du vad du köper mest och hur priserna ändras mellan butiker.</p>
+            </>
+          ),
+        },
+      ]
+
+    case 'meals':
+      return [
+        {
+          title: 'Veckomat',
+          body: (
+            <>
+              <p>Här samlas veckans matsedel: rätter med recept och en inköpslista ni bockar av tillsammans.</p>
+              <p>
+                Listan skapas i Claude-chatten. Kopiera startprompten längst upp och klistra in den i Homebase-projektet,
+                så blir planen en ny lista här.
+              </p>
             </>
           ),
         },

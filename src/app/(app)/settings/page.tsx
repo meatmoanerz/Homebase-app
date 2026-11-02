@@ -31,7 +31,8 @@ import {
   Sparkles,
   Receipt,
   Bell,
-  Smartphone
+  Smartphone,
+  UtensilsCrossed
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
@@ -49,6 +50,7 @@ const economyItems: {
   { href: '/savings', label: 'Sparmål', icon: Target, description: 'Mål och framsteg', module: 'savings' },
   { href: '/settings/loans', label: 'Lån', icon: Landmark, description: 'Saldo och amortering', module: 'loans' },
   { href: '/receipts', label: 'Kvitton', icon: Receipt, description: 'Inköp och priser', module: 'receipts' },
+  { href: '/meals', label: 'Veckomat', icon: UtensilsCrossed, description: 'Matsedel och inköpslista', module: 'meals' },
   { href: '/settings/shared-account', label: 'Gemensam ekonomi', icon: Wallet, description: 'Månadens överföringar', module: 'shared' },
   { href: '/settings/ccm', label: 'Kreditkort', icon: CreditCard, description: 'Fakturor och kort', module: 'ccm' },
 ]
@@ -59,6 +61,7 @@ const MODULE_ICONS: Record<OptionalModule, typeof FileSearch> = {
   ccm: CreditCard,
   receipts: Receipt,
   shared: Wallet,
+  meals: UtensilsCrossed,
 }
 
 const menuItems = [
@@ -84,7 +87,7 @@ export default function SettingsPage() {
   const { data: user, isLoading } = useUser()
   const { data: batches = [] } = useImportBatches()
   const pendingImports = batches.reduce((sum, b) => sum + b.row_count, 0)
-  const { isEnabled } = useModules()
+  const { isEnabled, isAvailable } = useModules()
   const setModuleEnabled = useSetModuleEnabled()
   const router = useRouter()
   const supabase = createClient()
@@ -205,7 +208,7 @@ export default function SettingsPage() {
         </h2>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-0 divide-y divide-border">
-            {ALL_OPTIONAL_MODULES.map((module) => {
+            {ALL_OPTIONAL_MODULES.filter(isAvailable).map((module) => {
               const info = MODULE_INFO[module]
               const Icon = MODULE_ICONS[module]
               const id = `module-${module}`

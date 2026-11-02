@@ -84,6 +84,8 @@ Härleds från `cost_assignment`. Det finns inga andel-kolumner per person i
 - `products.product_group` (text, NULL = gissas från namnet): `barn`, `fisk`,
   `snacks`, `kott`, `mejeri`, `frukt`, `brod`, `dryck`, `skafferi`, `hem`,
   `blommor`, `ovrigt`.
+- Partnern kan läsa hushållets kvitton, artiklar, produkter och alias (egen
+  SELECT-policy per tabell). Ändringar gäller bara egna rader.
 - Inläsning via appen sker i `src/lib/receipts/save-receipt.ts`; samma regler
   gäller vid SQL-insert (sätt `user_id` på alla rader, koppla
   `receipts.expense_id` om köpet finns).
