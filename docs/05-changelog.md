@@ -7,6 +7,16 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-03 — Veckomat fas 3: körinstruktion, basvaror och har hemma
+
+- Ny fil `09-veckomat-korning.md`: hur en körning görs steg för steg, och hur en
+  schemalagd körning sätts upp. Rad i ruttabellen i `00-projektinstruktion.md`.
+- Migration `meals_pantry_on_hand`: `meal_settings.pantry_staples`, `on_hand`,
+  `on_hand_updated_at`, `meal_plans.leftovers`, `import_meal_plan` läser
+  `leftovers`, ny `meal_prompt_context()` för körning utan appen.
+- Appen: basvaror i inställningarna, "Har hemma just nu" under startprompten
+  med förra planens rester som förslag, "Blir över" på listan.
+
 ## 2026-11-02 — Veckomat fas 2: appen, och partner läser kvitton
 
 - Ny modul Veckomat (`meals`) under `/meals`: listor med "Ny"-etikett,

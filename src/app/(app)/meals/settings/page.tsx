@@ -56,6 +56,7 @@ function MealSettingsForm({ initial, inherited }: { initial: SettingsForm; inher
   const save = useSaveMealSettings()
   const [form, setForm] = useState<SettingsForm>(initial)
   const [avoidText, setAvoidText] = useState(initial.avoid.join(', '))
+  const [pantryText, setPantryText] = useState(initial.pantry_staples.join(', '))
 
   function set<K extends keyof SettingsForm>(key: K, value: SettingsForm[K]) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -79,8 +80,8 @@ function MealSettingsForm({ initial, inherited }: { initial: SettingsForm; inher
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
-    const avoid = avoidText.split(',').map((s) => s.trim()).filter(Boolean)
-    save.mutate({ ...form, avoid }, { onSuccess: () => router.push('/meals') })
+    const list = (text: string) => text.split(',').map((s) => s.trim()).filter(Boolean)
+    save.mutate({ ...form, avoid: list(avoidText), pantry_staples: list(pantryText) }, { onSuccess: () => router.push('/meals') })
   }
 
   return (
@@ -154,6 +155,18 @@ function MealSettingsForm({ initial, inherited }: { initial: SettingsForm; inher
             <Label htmlFor="avoid">Undvik</Label>
             <Input id="avoid" value={avoidText} onChange={(e) => setAvoidText(e.target.value)} placeholder="T.ex. svamp, koriander" />
             <p className="text-[11px] text-muted-foreground">Separera med kommatecken</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="pantry">Basvaror som alltid finns hemma</Label>
+            <Input
+              id="pantry"
+              value={pantryText}
+              onChange={(e) => setPantryText(e.target.value)}
+              placeholder="T.ex. olja, salt, peppar, buljong, ris, pasta"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Hamnar aldrig på inköpslistan. Det som bara finns hemma just den här veckan skriver du på Veckomat-sidan.
+            </p>
           </div>
         </div>
       </Card>

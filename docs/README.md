@@ -16,7 +16,8 @@ människa.
 | [`05-changelog.md`](05-changelog.md) | Vad som ändrats och när | För att förstå nuläget |
 | [`06-kvitton.md`](06-kvitton.md) | Läsa av och spara kvitton (SQL-mall) | När Tim delar ett kvitto |
 | [`07-lansering.md`](07-lansering.md) | Kvar att göra inför lansering | Innan nya användare släpps in |
-| [`08-veckomat.md`](08-veckomat.md) | Veckomat: matsedel, inköpslista, erbjudanden | Innan du bygger modulen eller kör "kör veckomat" |
+| [`08-veckomat.md`](08-veckomat.md) | Veckomat: modulen, tabeller, JSON-kontrakt | Innan du ändrar modulen |
+| [`09-veckomat-korning.md`](09-veckomat-korning.md) | Veckomat: så görs en körning | När Tim skriver "kör veckomat" eller klistrar in startprompten |
 
 `00-projektinstruktion.md` är den enda filen som **inte** läses från repot i
 normalfallet — dess innehåll klistras in manuellt i projektinstruktionen hos den

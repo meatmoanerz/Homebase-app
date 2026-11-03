@@ -76,6 +76,7 @@ konversation.
 | Ändra kod, bygga, felsöka UI | `docs/04-kodflode.md` |
 | Förstå vad som ändrats nyligen | `docs/05-changelog.md` |
 | Spara ett kvitto (foto/PDF från Kivra/ICA) | `docs/01-databas.md` + `docs/06-kvitton.md` |
+| Köra veckomat (startprompt eller "kör veckomat") | `docs/08-veckomat.md` + `docs/09-veckomat-korning.md` |
 
 Hittar du inte en fil: säg det och fråga. Fortsätt inte på gissning.
 

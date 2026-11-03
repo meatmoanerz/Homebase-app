@@ -1,12 +1,14 @@
 # 08 — Veckomat
 
-Senast uppdaterad: 2026-11-02
+Senast uppdaterad: 2026-11-03
 
-Status: **fas 1 (databas) och fas 2 (appen) klara, fas 3 (körinstruktion) kvar.**
-Migration `supabase/migrations/20261102120000_meals_module.sql` är körd i
-live-DB, v45 är importerad åt Tim. Appen: `/meals` (listor, arkiv, startprompt),
-`/meals/[id]` (rätter, recept, inköpslista), `/meals/settings`. Kod:
-`src/hooks/use-meals.ts`, `src/components/meals/`, `src/lib/meals/`.
+Status: **fas 1–3 klara** (databas, app, körinstruktion). Kvar: fas 4–6.
+Migrationer `20261102120000_meals_module.sql` och
+`20261103100000_meals_pantry_on_hand.sql` är körda i live-DB. Appen: `/meals`
+(listor, arkiv, startprompt, har hemma), `/meals/[id]` (rätter, recept,
+inköpslista), `/meals/settings`. Kod: `src/hooks/use-meals.ts`,
+`src/components/meals/`, `src/lib/meals/`. **Körningen beskrivs i
+`09-veckomat-korning.md`.**
 
 Läs `01-databas.md` innan du rör schemat.
 
@@ -173,7 +175,9 @@ Claude API ──┘
 - **Ägaren:** från appen/Claude API används alltid `auth.uid()`; `p_user_id`
   ignoreras. Bara när `auth.uid()` saknas (MCP-körning som admin) används
   `p_user_id`. Payloaden innehåller aldrig `user_id`.
-- Erbjudanden sparas i `store_offers`, alla som hämtas, inte bara de som används.
+- Erbjudanden sparas i `store_offers`: de som används plus andra relevanta från
+  vald butik, högst ~50 (en hel kampanjlista är 150–250 rader och för stor för
+  ett anrop från chatten).
 
 ### 5.2 Tabeller
 
@@ -185,8 +189,10 @@ Alla nya tabeller har `user_id` och RLS enligt mönstret i `credit_cards`:
 - `adults`, `kids`, `portions_per_dinner` (3), `dinners_per_week` (4), `lunchboxes_per_week` (6)
 - `diet_notes`, `avoid` (text[]), `kcal_target_min`/`kcal_target_max`
 - `memberships` (text[]: `willys_plus`, `ica_stammis`, `coop_member`)
-- `preferred_store_ids` (uuid[]), `online_fee` (numeric, per butik via jsonb om det behövs)
-- `run_day`/`run_time` (fas 3)
+- `preferred_store_ids` (uuid[]), `online_fees` (jsonb: `{ "<store_id>": 59 }`)
+- `pantry_staples` (text[]): finns alltid hemma, köps aldrig
+- `on_hand` (text) + `on_hand_updated_at`: finns hemma den här veckan, används först
+- `run_day`/`run_time` (oanvända, schemat ligger i Claude-appen)
 
 **`store_offers`** – snapshot per vecka
 - `store_id`, `year`, `iso_week`, `valid_from`, `valid_to`
@@ -208,6 +214,8 @@ Alla nya tabeller har `user_id` och RLS enligt mönstret i `credit_cards`:
 - `is_new` (bool): sätts vid import, nollas när listan öppnas
 - `total_cost_est`, `cost_per_portion_est`, `portions_total`, `kcal_min`, `kcal_max`
 - `notes` (källor, osäkerheter), `source` (`chat` / `schedule` / `app`), `created_at`, `archived_at`
+- `pantry` (text[]): basvaror rätterna antar finns hemma
+- `leftovers` (text[]): det som blir över; föreslås som "har hemma" nästa vecka
 - `actual_cost`, `receipt_id` (valfria, för budgetkoppling senare)
 
 **`meal_plan_dishes`**
@@ -235,6 +243,9 @@ Alla nya tabeller har `user_id` och RLS enligt mönstret i `credit_cards`:
   `products.name` om koppling finns, annars på kvittotexten. Används av
   körningen för 3.5 steg 3.
 - `has_feature_access(p_feature text)` – för appen, gäller inloggad användare.
+- `meal_prompt_context(p_user_id uuid default null) returns jsonb` – samma
+  underlag som startprompten (samma nycklar som `src/lib/meals/prompt.ts`), för
+  schemalagd körning. Inställningar: egna, annars partnerns.
 - `my_household_user_ids()` – inloggad användare + aktiv partner, används i RLS.
 - `private.user_has_feature`, `private.household_user_ids` – tar valfritt
   user_id och används av admin-vägen. Från en klientsession svarar de bara för
@@ -257,7 +268,8 @@ Payloaden kan ha `"store": {"store_id": "<uuid>"}` i stället för kedja +
   "iso_week": 45,
   "year": 2026,
   "name": "v45",
-  "store": { "chain": "Willys", "external_id": "2187" },
+  "source": "chat",
+  "store": { "store_id": "<uuid>" },
   "summary": { "total_cost_est": 615, "cost_per_portion_est": 34, "portions_total": 18,
                "kcal_min": 480, "kcal_max": 640,
                "notes": "Coop ej läsbar denna vecka. Ordinarie priser delvis uppskattade." },
@@ -280,9 +292,12 @@ Payloaden kan ha `"store": {"store_id": "<uuid>"}` i stället för kedja +
       "qty_text": "2 förp", "price_est": 69.8, "price_source": "offer", "is_offer": true,
       "offer_label": "34,90 kr/st", "dish_keys": ["wok"] }
   ],
-  "pantry": ["Olja", "Salt", "Peppar", "Grönsaksbuljong"]
+  "pantry": ["Olja", "Salt", "Peppar", "Grönsaksbuljong"],
+  "leftovers": ["Potatis ca 1 kg", "Halv vitkål"]
 }
 ```
+
+- `store`: `{"store_id": ...}` eller `{"chain": ..., "external_id": ...}`.
 
 - `recipe_id` satt = återanvänd recept ur biblioteket. `null` = nytt recept
   skapas. Ingen matchning på namn. Körningen läser biblioteket först och
@@ -339,7 +354,8 @@ inte fungerar för dem.
    avbockning i realtid, "x av y", "Har ni hemma?". Pris visar källa
    (erbjudande / ordinarie / kvitto / uppskattat).
 4. **Arkiverad lista:** går att läsa, bocka av och återställa.
-5. **Inställningar (fas 2):** medlemskap, hushåll, butiker, kalorimål, onlineavgift.
+5. **Inställningar:** hushåll, kalorimål, önskemål, undvik, basvaror,
+   medlemskap, butiker och onlineavgift.
 6. **Startprompt (fas 2):** en liten textruta med kopieringsknapp på
    veckomatsidan. Texten genereras från användarens inställningar och klistras
    in i Claude-chatten (Homebase-projektet) för att starta en körning. Den
@@ -347,8 +363,11 @@ inte fungerar för dem.
    från databasen: user_id, år och vecka, hushåll och portioner, middagar och
    matlådor, kostnoteringar, kalorimål, medlemskap, butiker (namn, kedja,
    `external_id`, källa, URL, onlineavgift) och de senaste veckornas rätter
-   (namn + `recipe_id`) för att undvika upprepning och kunna återanvända recept.
-   Rutan behöver inte vara läsbar, bara kopierbar.
+   (namn + `recipe_id`) för att undvika upprepning och kunna återanvända recept,
+   basvaror, "har hemma" och förra planens rester. Rutan behöver inte vara
+   läsbar, bara kopierbar.
+7. **Har hemma just nu:** fält under startprompten. Visar när det ändrades,
+   varnar efter en vecka och föreslår förra planens `leftovers` som knappar.
 
 Senare: byt ut en rätt (Claude API), skala portioner, betyg/favoriter, plan
 mot kvitto, koppling till matbudget.
@@ -361,7 +380,7 @@ mot kvitto, koppling till matbudget.
 |---|---|---|
 | 1 | Migration: tabeller, RLS, `stores`-ändringar, `feature_access` + `has_feature_access`, `import_meal_plan`, `latest_receipt_price`. Data: `meal_settings` och `feature_access` för Tim och Amanda | v45-data importerad via RPC och läsbar som både Tim och Amanda (testat i BEGIN/ROLLBACK först) |
 | 2 | Modul `meals` i appen: listor, arkivering, rätter, recept, inköpslista med realtime, inställningar | Samma innehåll som artefakten syns i appen |
-| 3 | Körinstruktion (skill) för chatt + schemalagd körning via RPC | "Kör veckomat" i chatten ger en ny lista i appen |
+| 3 ✓ | Körinstruktion (`09-veckomat-korning.md`), `meal_prompt_context` för schemalagd körning, basvaror och har hemma | "Kör veckomat" i chatten ger en ny lista i appen |
 | 4 | Spike: ICA/Coop utan webbläsare. Undersök även tredjepartskällor (Matpriskollen, Tjek/eTilbudsavis) och om Willys-API:t svarar från Vercel | Beslut om källa per kedja |
 | 5 | Körning i appen via Claude API | Knapp i appen skapar en lista |
 | 6 | Kvittopriser via produktregister, byt rätt, betyg, budgetkoppling | – |

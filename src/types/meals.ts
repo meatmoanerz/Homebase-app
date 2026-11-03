@@ -33,6 +33,11 @@ export interface MealSettings {
   online_fees: Record<string, number>
   run_day: number | null
   run_time: string | null
+  /** Always at home, never bought (oil, spices, rice ...). */
+  pantry_staples: string[]
+  /** At home this week, to be used first. */
+  on_hand: string | null
+  on_hand_updated_at: string | null
 }
 
 export interface RecipeIngredient {
@@ -106,6 +111,8 @@ export interface MealPlanSummary {
   kcal_max: number | null
   created_at: string
   archived_at: string | null
+  /** What the plan expects to be left over; suggested as "on hand" next week. */
+  leftovers: string[]
   store: { id: string; name: string; chain: string | null } | null
   items: { checked: boolean }[]
 }

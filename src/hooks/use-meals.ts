@@ -34,7 +34,7 @@ export function useMealPlans() {
     queryFn: async (): Promise<MealPlanSummary[]> => {
       const { data, error } = await db()
         .from('meal_plans')
-        .select('id, user_id, name, year, iso_week, status, is_new, total_cost_est, cost_per_portion_est, portions_total, kcal_min, kcal_max, created_at, archived_at, store:stores(id, name, chain), items:shopping_list_items(checked)')
+        .select('id, user_id, name, year, iso_week, status, is_new, total_cost_est, cost_per_portion_est, portions_total, kcal_min, kcal_max, created_at, archived_at, leftovers, store:stores(id, name, chain), items:shopping_list_items(checked)')
         .order('year', { ascending: false })
         .order('iso_week', { ascending: false })
         .order('created_at', { ascending: false })
@@ -229,6 +229,9 @@ export const DEFAULT_MEAL_SETTINGS: Omit<MealSettings, 'user_id'> = {
   online_fees: {},
   run_day: null,
   run_time: null,
+  pantry_staples: [],
+  on_hand: null,
+  on_hand_updated_at: null,
 }
 
 /**
@@ -252,7 +255,7 @@ export function useMealSettings() {
   })
 }
 
-export function useSaveMealSettings() {
+export function useSaveMealSettings({ successMessage = 'Inställningarna är sparade' }: { successMessage?: string } = {}) {
   const queryClient = useQueryClient()
   const { data: user } = useUser()
 
@@ -266,7 +269,7 @@ export function useSaveMealSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-settings'] })
-      toast.success('Inställningarna är sparade')
+      toast.success(successMessage)
     },
     onError: () => {
       toast.error('Kunde inte spara inställningarna')

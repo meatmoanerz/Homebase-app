@@ -88,6 +88,13 @@ function MealPlanView({ id }: { id: string }) {
 
       <ShoppingList plan={plan} />
 
+      {plan.leftovers.length > 0 && (
+        <p className="text-[13px] text-muted-foreground px-1">
+          <span className="font-medium text-foreground">Blir över:</span> {plan.leftovers.join(', ')}. Föreslås under Har hemma
+          inför nästa vecka.
+        </p>
+      )}
+
       {plan.notes && <p className="text-[13px] text-muted-foreground px-1 leading-relaxed">{plan.notes}</p>}
 
       <RecipeSheet dish={openDish} onOpenChange={(open) => !open && setOpenDishId(null)} />

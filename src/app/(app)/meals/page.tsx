@@ -69,7 +69,7 @@ function MealsOverview() {
         <p className="text-sm text-muted-foreground mt-1">Veckans middagar, recept och inköpslista utifrån erbjudandena</p>
       </div>
 
-      <MealPromptCard week={planningWeek(today)} />
+      <MealPromptCard week={planningWeek(today)} lastPlan={plans[0] ? { name: plans[0].name, leftovers: plans[0].leftovers ?? [] } : null} />
 
       {showArchiveQuestion && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-hb-cognac/30 bg-hb-cognac/8 px-4 py-3">
