@@ -2,12 +2,13 @@
 
 Senast uppdaterad: 2026-11-03
 
-Status: **fas 1–3 klara** (databas, app, körinstruktion). Kvar: fas 4–6.
-Migrationer `20261102120000_meals_module.sql` och
-`20261103100000_meals_pantry_on_hand.sql` är körda i live-DB. Appen: `/meals`
-(listor, arkiv, startprompt, har hemma), `/meals/[id]` (rätter, recept,
-inköpslista), `/meals/settings`. Kod: `src/hooks/use-meals.ts`,
-`src/components/meals/`, `src/lib/meals/`. **Körningen beskrivs i
+Status: **fas 1–5 klara** (databas, app, körinstruktion, källor, körning från
+appen). Kvar: fas 6. Appen startar en körning med knappen "Skapa matsedel"
+(`POST /api/meals/run`, Claude API); chatten fungerar som förut. Migrationer:
+`20261102120000_meals_module.sql`, `20261103100000_meals_pantry_on_hand.sql`,
+`20261103180000_meal_runs.sql`. Kod: `src/hooks/use-meals.ts`,
+`src/components/meals/`, `src/lib/meals/` (`offers.ts`, `run-plan.ts`),
+`src/app/api/meals/run/route.ts`. **Körningen i chatten beskrivs i
 `09-veckomat-korning.md`.**
 
 Läs `01-databas.md` innan du rör schemat.
@@ -417,6 +418,27 @@ mot kvitto, koppling till matbudget.
 
 ---
 
+### 5.9 Körning från appen (fas 5)
+
+- `POST /api/meals/run` (inloggad, `has_feature_access('meals')`): skapar en
+  rad i `meal_runs` och svarar direkt; jobbet körs vidare med `after()`
+  (`maxDuration` 300 s). Högst en pågående körning och 6 per vecka per
+  användare. En körning som står kvar som `running` efter 6 min räknas som
+  avbruten.
+- Jobbet (`src/lib/meals/run-plan.ts`, service role): `meal_prompt_context` →
+  erbjudanden per butik (`src/lib/meals/offers.ts`: `willys_api` och `tjek`,
+  filtrerat på veckan) → senaste kvittopris per vara (hushållets kvitton) →
+  ett anrop till Claude (`claude-opus-5-5`, effort medium, strukturerat svar
+  mot ett Zod-schema, `fallbacks: "default"`) → `import_meal_plan` med
+  `source: "app"`. Claude pekar ut erbjudanden med korta ref:ar ("A12"); servern
+  sparar de som används plus relevanta, högst 50, med `raw`.
+- `meal_runs` (status `running`/`done`/`failed`, `meal_plan_id`, `error`,
+  `sources` per butik, tokens): skrivs bara av servern, hushållet läser.
+  Appen pollar var 4:e sekund medan en körning pågår.
+- Kräver `ANTHROPIC_API_KEY` i Vercel (samma som kvittoinläsningen) och
+  `GRANT USAGE ON SCHEMA private TO service_role`.
+- Spärren (5.7) är kvar: varje körning kostar API-anrop på Tims nyckel.
+
 ## 6. Byggordning
 
 | Fas | Innehåll | Klar när |
@@ -425,7 +447,7 @@ mot kvitto, koppling till matbudget.
 | 2 | Modul `meals` i appen: listor, arkivering, rätter, recept, inköpslista med realtime, inställningar | Samma innehåll som artefakten syns i appen |
 | 3 ✓ | Körinstruktion (`09-veckomat-korning.md`), `meal_prompt_context` för schemalagd körning, basvaror och har hemma | "Kör veckomat" i chatten ger en ny lista i appen |
 | 4 ✓ | Spike: ICA/Coop utan webbläsare, tredjepartskällor, Willys från Vercel (3.2.1) | Willys-API för Willys/Hemköp, Tjek för ICA/Coop och övriga |
-| 5 | Körning i appen via Claude API | Knapp i appen skapar en lista |
+| 5 ✓ | Körning i appen via Claude API (5.9) | Knapp i appen skapar en lista |
 | 6 | Kvittopriser via produktregister, byt rätt, betyg, budgetkoppling | – |
 
 ---

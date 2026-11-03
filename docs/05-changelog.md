@@ -7,6 +7,15 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-03 — Veckomat fas 5: körning från appen
+
+- Knappen "Skapa matsedel" på Veckomat startar en körning via Claude API
+  (`/api/meals/run`): erbjudanden från Willys och Tjek, kvittopriser, ett
+  Claude-anrop med strukturerat svar och `import_meal_plan`. Status i ny tabell
+  `meal_runs`. Startprompten till chatten finns kvar under "Kör i
+  Claude-chatten istället". Detaljer i `08-veckomat.md` 5.9.
+- Spärren för modulen är kvar tills Tim bestämt om den ska öppnas.
+
 ## 2026-11-03 — Veckomat fas 4: källor för erbjudanden
 
 - Testat från Vercel: Willys-API fungerar, ica.se blockerar (403), Coops

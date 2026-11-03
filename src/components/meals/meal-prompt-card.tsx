@@ -1,12 +1,21 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Check, Copy, Plus, Settings2, Sparkles } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { Check, ChevronRight, Copy, Loader2, Plus, Settings2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { useUser } from '@/hooks/use-user'
-import { useMealSettings, useMealStores, useRecentDishes, useSaveMealSettings } from '@/hooks/use-meals'
+import {
+  isRunActive,
+  useLatestMealRun,
+  useMealSettings,
+  useMealStores,
+  useRecentDishes,
+  useSaveMealSettings,
+  useStartMealRun,
+} from '@/hooks/use-meals'
 import { buildMealPrompt } from '@/lib/meals/prompt'
 import type { IsoWeek } from '@/lib/meals/week'
 import { formatRelativeDate } from '@/lib/utils/formatters'
@@ -86,7 +95,7 @@ export function MealPromptCard({
         <div className="min-w-0">
           <h2 className="font-serif text-[17px] font-medium tracking-tight">Ny matsedel för v{week.week}</h2>
           <p className="text-[12px] text-muted-foreground mt-0.5">
-            Kopiera och klistra in i Claude-chatten i Homebase-projektet
+            Claude hämtar veckans erbjudanden och planerar utifrån dina inställningar
             {settingsResult?.inherited && ' · utgår från din partners inställningar'}
           </p>
         </div>
@@ -96,23 +105,80 @@ export function MealPromptCard({
           </Link>
         </Button>
       </div>
-      <div className="flex items-center gap-2 mt-3">
-        <textarea
-          ref={textRef}
-          readOnly
-          value={prompt}
-          rows={1}
-          aria-label="Startprompt för veckomat"
-          onFocus={(e) => e.currentTarget.select()}
-          className="flex-1 min-w-0 h-9 resize-none overflow-hidden rounded-full bg-secondary/60 px-3 py-2 text-[11px] leading-[1.4] text-muted-foreground font-mono whitespace-nowrap"
-        />
-        <Button onClick={copy} size="sm" variant="cognac" disabled={!prompt}>
-          {copied ? <Check /> : <Copy />}
-          {copied ? 'Kopierad' : 'Kopiera'}
-        </Button>
-      </div>
       <OnHandField key={settings.on_hand_updated_at ?? 'none'} settings={settings} lastPlan={lastPlan} />
+      <RunControls week={week} />
+      <details className="mt-3 group">
+        <summary className="cursor-pointer list-none text-[12px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+          <ChevronRight className="w-3.5 h-3.5 transition-transform group-open:rotate-90" />
+          Kör i Claude-chatten istället
+        </summary>
+        <div className="flex items-center gap-2 mt-2">
+          <textarea
+            ref={textRef}
+            readOnly
+            value={prompt}
+            rows={1}
+            aria-label="Startprompt för veckomat"
+            onFocus={(e) => e.currentTarget.select()}
+            className="flex-1 min-w-0 h-9 resize-none overflow-hidden rounded-full bg-secondary/60 px-3 py-2 text-[11px] leading-[1.4] text-muted-foreground font-mono whitespace-nowrap"
+          />
+          <Button onClick={copy} size="sm" variant="outline" disabled={!prompt}>
+            {copied ? <Check /> : <Copy />}
+            {copied ? 'Kopierad' : 'Kopiera'}
+          </Button>
+        </div>
+      </details>
     </section>
+  )
+}
+
+/** Start a run in the app and follow it until the new list is ready. */
+function RunControls({ week }: { week: IsoWeek }) {
+  const queryClient = useQueryClient()
+  const { data: run } = useLatestMealRun()
+  const start = useStartMealRun()
+  const active = isRunActive(run) || start.isPending
+  // Captured once per mount so render stays pure.
+  const [mountedAt] = useState(() => Date.now())
+  const recent = !!run?.finished_at && new Date(run.finished_at).getTime() > mountedAt - 60 * 60 * 1000
+  const finishedId = run?.status === 'done' ? run.id : null
+
+  // A finished run means a new list: refresh the overview.
+  useEffect(() => {
+    if (finishedId) {
+      queryClient.invalidateQueries({ queryKey: ['meal-plans'] })
+      queryClient.invalidateQueries({ queryKey: ['meal-recent-dishes'] })
+    }
+  }, [finishedId, queryClient])
+
+  return (
+    <div className="mt-4 space-y-2">
+      <Button className="w-full" variant="cognac" onClick={() => start.mutate()} disabled={active}>
+        {active ? <Loader2 className="animate-spin" /> : <Sparkles />}
+        {active ? 'Planerar veckan …' : `Skapa matsedel för v${week.week}`}
+      </Button>
+      {active && (
+        <p className="text-[12px] text-muted-foreground text-center">
+          Hämtar erbjudanden och låter Claude planera. Brukar ta 1–3 minuter, du kan lämna sidan.
+        </p>
+      )}
+      {!active && recent && run?.status === 'done' && run.meal_plan_id && (
+        <p className="text-[13px] text-center">
+          Klar!{' '}
+          <Link href={`/meals/${run.meal_plan_id}`} className="font-medium text-hb-cognac-deep underline-offset-4 hover:underline">
+            Öppna den nya listan
+          </Link>
+          {run.sources.some((s) => s.error) && (
+            <span className="block text-[11px] text-muted-foreground mt-0.5">
+              Kunde inte läsa: {run.sources.filter((s) => s.error).map((s) => s.store).join(', ')}
+            </span>
+          )}
+        </p>
+      )}
+      {!active && recent && run?.status === 'failed' && (
+        <p className="text-[13px] text-destructive text-center">{run.error || 'Körningen misslyckades'}</p>
+      )}
+    </div>
   )
 }
 
@@ -140,7 +206,7 @@ function OnHandField({ settings, lastPlan }: { settings: MealSettings; lastPlan:
   }
 
   return (
-    <div className="mt-4 pt-3 border-t border-border space-y-2">
+    <div className="mt-3 space-y-2">
       <div className="flex items-baseline justify-between gap-3">
         <label htmlFor="on-hand" className="text-[13px] font-medium">Har hemma just nu</label>
         <span className="text-[11px] text-muted-foreground">

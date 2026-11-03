@@ -124,3 +124,16 @@ export interface MealPlan extends Omit<MealPlanSummary, 'items'> {
   dishes: MealPlanDish[]
   items: ShoppingListItem[]
 }
+
+export interface MealRun {
+  id: string
+  user_id: string
+  status: 'running' | 'done' | 'failed'
+  year: number
+  iso_week: number
+  meal_plan_id: string | null
+  error: string | null
+  sources: { store: string; source: string | null; offers: number; error: string | null }[]
+  created_at: string
+  finished_at: string | null
+}

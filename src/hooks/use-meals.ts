@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/use-user'
 import type {
   MealPlan,
+  MealRun,
   MealPlanSummary,
   MealSettings,
   MealStore,
@@ -307,6 +308,51 @@ export function useRecentDishes(planCount = 4) {
         }
       }
       return out
+    },
+  })
+}
+
+// A run still "running" after this was cut off; matches /api/meals/run.
+const RUN_STALE_AFTER_MS = 6 * 60 * 1000
+
+export function isRunActive(run: MealRun | null | undefined): boolean {
+  return !!run && run.status === 'running' && Date.now() - new Date(run.created_at).getTime() < RUN_STALE_AFTER_MS
+}
+
+/** The household's latest app run; polls while it is running. */
+export function useLatestMealRun() {
+  return useQuery({
+    queryKey: ['meal-run-latest'],
+    queryFn: async (): Promise<MealRun | null> => {
+      const { data, error } = await db()
+        .from('meal_runs')
+        .select('id, user_id, status, year, iso_week, meal_plan_id, error, sources, created_at, finished_at')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (error) throw error
+      return (data as MealRun | null) ?? null
+    },
+    refetchInterval: (query) => (isRunActive(query.state.data) ? 4000 : false),
+  })
+}
+
+/** Starts a run in the app (Claude API via /api/meals/run). */
+export function useStartMealRun() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/meals/run', { method: 'POST' })
+      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; runId?: string }
+      if (!res.ok || !body.ok) throw new Error(body.error || 'Kunde inte starta körningen')
+      return body.runId
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-run-latest'] })
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Kunde inte starta körningen')
     },
   })
 }
