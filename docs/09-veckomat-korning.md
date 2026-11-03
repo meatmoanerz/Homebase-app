@@ -1,6 +1,6 @@
 # 09 — Veckomat: körning
 
-Senast uppdaterad: 2026-11-03
+Senast uppdaterad: 2026-11-03 (fas 4: Tjek för ICA/Coop)
 
 Hur en veckomatskörning görs i Claude-chatten. Modulen, tabellerna och
 JSON-kontraktet beskrivs i `08-veckomat.md`. Läs båda innan du kör.
@@ -49,9 +49,9 @@ i `08-veckomat.md` 3.2.
 | `offers_source` | Så här |
 |---|---|
 | `willys_api` | Hämta `offers_url` (JSON). Ordinarie pris i `priceNoUnit`, erbjudande i `potentialPromotions[0]`. `campaignType = LOYALTY` = Willys Plus. Datum `dd/mm-yyyy`. Hemköp har samma API |
-| `ica_web` | Hämta `offers_url`. Utan JavaScript syns bara en bråkdel. Använd webbläsare om den finns. Ingen giltighetsperiod anges — anta veckan och skriv det i `notes` |
-| `coop_web` | Kräver webbläsare. Utan webbläsare: hoppa över butiken och skriv det i `notes` |
-| `manual` / `null` | Inga erbjudanden att hämta. Butiken kan ändå väljas med ordinarie priser |
+| `tjek` | Hämta `offers_url` (veckans blad för butiken) → ta bladet vars `run_from`–`run_till` täcker veckan → hämta `/v2/offers?catalog_ids=<id>&limit=100&offset=0` sidvis. Pris i `pricing.price`; är `quantity.pieces.from` > 1 gäller priset för så många ("2 för 29 kr"). Medlemspris står i `description` ("Stammis Pris", "Medlemspris"). Ordinarie pris saknas oftast — ta det från kvitto eller uppskatta. Spara med `source: "third_party"` |
+| `ica_web` / `coop_web` | Äldre butiker utan Tjek-koppling. Leta upp butiken i Tjek (dealer-id och uppslag i `08-veckomat.md` 3.2.1) och använd den. Hittas den inte: webbläsare om den finns, annars hoppa över och skriv det i `notes` |
+| `manual` / `null` | Inga erbjudanden att hämta, men prova Tjek på kedja + ort innan du ger upp. Butiken kan ändå väljas med ordinarie priser |
 
 - Filtrera bort erbjudanden som slutar före veckans måndag eller börjar efter
   söndag. Erbjudanden som bara gäller helgen är ok om de märks så.

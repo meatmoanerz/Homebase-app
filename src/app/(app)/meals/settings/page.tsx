@@ -24,11 +24,16 @@ type SettingsForm = Omit<MealSettings, 'user_id'>
 
 const CHAINS = ['ICA', 'Willys', 'Coop', 'Hemköp', 'Lidl', 'City Gross', 'Annan']
 
+// Willys and Hemköp have their own offers API; other chains are read from
+// Tjek's per-store flyers (docs/08-veckomat.md 3.2.1). The run looks up the
+// Tjek store from chain and town when offers_url is empty.
 const OFFERS_SOURCE_BY_CHAIN: Record<string, string> = {
   Willys: 'willys_api',
   Hemköp: 'willys_api',
-  ICA: 'ica_web',
-  Coop: 'coop_web',
+  ICA: 'tjek',
+  Coop: 'tjek',
+  Lidl: 'tjek',
+  'City Gross': 'tjek',
 }
 
 export default function MealSettingsPage() {

@@ -7,6 +7,14 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-03 — Veckomat fas 4: källor för erbjudanden
+
+- Testat från Vercel: Willys-API fungerar, ica.se blockerar (403), Coops
+  erbjudande-API ger tomt. Tjeks öppna API har reklamblad per butik för alla
+  stora kedjor. Resultat och dealer-id i `08-veckomat.md` 3.2.1.
+- Maxi ICA Stormarknad Solna och Stora Coop Sundby Park läses nu via Tjek
+  (`offers_source = 'tjek'`). Körinstruktionen och nya butiker i appen följer det.
+
 ## 2026-11-03 — Veckomat fas 3: körinstruktion, basvaror och har hemma
 
 - Ny fil `09-veckomat-korning.md`: hur en körning görs steg för steg, och hur en

@@ -100,8 +100,51 @@ i körningen. Fram till fas 2 sätts de med SQL.
 Erbjudanden har olika perioder (helg, vecka, fem veckor). Filtrera på
 `endDate` >= planerad inköpsdag.
 
-**Tills spiken i fas 4 är klar:** Willys fullt, ICA delvis, Coop manuellt eller
-via Claude-appens webbläsare. Data från fler butiker används när den går att få.
+### 3.2.1 Resultat av fas 4 (2026-11-03)
+
+Testat från en Vercel Sandbox i `iad1` (samma infrastruktur som appens
+serverfunktioner) och en molnmiljö utan webbläsare.
+
+| Källa | Från Vercel | Beslut |
+|---|---|---|
+| Willys-API | **200**, alla erbjudanden med ordinarie pris | Används för Willys. Hemköp har samma API (`hemkop.se/axfood/rest/...`) |
+| ica.se | **403** — datacenter-IP blockeras | Används inte direkt. ICA via Tjek |
+| coop.se / `external.api.coop.se/dke/offers` | Sidan svarar, men erbjudande-API:t ger tom lista för alla id som provats (`ledgerAccountNumber` 15810, `storeID` 3147) | Används inte. Coop via Tjek |
+| **Tjek** (`squid-api.tjek.com/v2`, öppet API utan nyckel) | **200**. Reklamblad per butik för Willys, Hemköp, ICA (Maxi, Kvantum, Supermarket, Nära), Coop (Stora, X:-TRA), Lidl, City Gross m.fl. | **Används för ICA och Coop**, och som reserv för övriga |
+| Matpriskollen | Sidan svarar; inget öppet API hittat | Används inte — Tjek täcker behovet |
+
+**Tjek i korthet** (dealer-id för svenska kedjor):
+
+| Kedja | dealer_id |
+|---|---|
+| Willys | `c371GA` |
+| Hemköp | `d9b6XA` |
+| ICA Maxi Stormarknad | `ca802A` |
+| ICA Kvantum | `9cb4wA` |
+| ICA Supermarket | `1d1dvA` |
+| ICA Nära | `20d4lA` |
+| Stora Coop | `6c28SD` |
+| Coop | `63eeoD` |
+| Coop X:-TRA | `IHDhNs` |
+| Lidl | `03a7b3` |
+| City Gross | `bfe5hA` |
+
+- Hitta butiken: `GET /v2/stores?dealer_ids=<id>&r_lat=<lat>&r_lng=<lng>&r_radius=5000`
+  → matcha på `street`/`city`.
+- Veckans blad: `GET /v2/catalogs?store_id=<tjek store id>` → `id`, `run_from`, `run_till`, `offer_count`.
+- Erbjudanden: `GET /v2/offers?catalog_ids=<id>&limit=100&offset=0` (sidvis).
+- Fält: `heading`, `description` (innehåller "Max 2 st/hushåll", jämförpris,
+  "Stammis Pris"/"Medlemspris"), `pricing.price`, `pricing.pre_price` (oftast
+  tomt), `quantity.size` + `unit`, `quantity.pieces.from` (> 1 = "X för Y",
+  `price` gäller då alla X), `quantity.pieces.max`, `run_from`/`run_till`, `images`.
+- Begränsningar: bara reklambladet (Maxi ICA Solna 115, Stora Coop Sundby Park
+  79 erbjudanden v45 — mot Willys-API:ts ~250), sällan ordinarie pris, och
+  medlemspris syns bara i texten. Öppet men inofficiellt API: kan ändras utan
+  förvarning. Spara `raw` så att fel syns.
+
+Butikerna har `offers_source = 'tjek'` och `offers_url` =
+`https://squid-api.tjek.com/v2/catalogs?store_id=<tjek store id>`. Maxi ICA
+Stormarknad Solna = `wEKl4XIPqvsvQ5YE6Cbg3`, Stora Coop Sundby Park = `3327Rrs`.
 
 ### 3.3 Leveranser hittills (privata artefakter)
 
@@ -381,7 +424,7 @@ mot kvitto, koppling till matbudget.
 | 1 | Migration: tabeller, RLS, `stores`-ändringar, `feature_access` + `has_feature_access`, `import_meal_plan`, `latest_receipt_price`. Data: `meal_settings` och `feature_access` för Tim och Amanda | v45-data importerad via RPC och läsbar som både Tim och Amanda (testat i BEGIN/ROLLBACK först) |
 | 2 | Modul `meals` i appen: listor, arkivering, rätter, recept, inköpslista med realtime, inställningar | Samma innehåll som artefakten syns i appen |
 | 3 ✓ | Körinstruktion (`09-veckomat-korning.md`), `meal_prompt_context` för schemalagd körning, basvaror och har hemma | "Kör veckomat" i chatten ger en ny lista i appen |
-| 4 | Spike: ICA/Coop utan webbläsare. Undersök även tredjepartskällor (Matpriskollen, Tjek/eTilbudsavis) och om Willys-API:t svarar från Vercel | Beslut om källa per kedja |
+| 4 ✓ | Spike: ICA/Coop utan webbläsare, tredjepartskällor, Willys från Vercel (3.2.1) | Willys-API för Willys/Hemköp, Tjek för ICA/Coop och övriga |
 | 5 | Körning i appen via Claude API | Knapp i appen skapar en lista |
 | 6 | Kvittopriser via produktregister, byt rätt, betyg, budgetkoppling | – |
 
@@ -396,7 +439,7 @@ mot kvitto, koppling till matbudget.
 | 3 | Ingredienser | Tal + enhet där det går, `amount_text` för visning |
 | 4 | Schema | Måndag ca 07:00. Ger en ny synlig lista med "Ny"-etikett |
 | 5 | Butiksläge | Jämför de butiker som går att läsa, föreslå en, visa skillnaden. Willys + ICA delvis tills fas 4 |
-| 6 | ICA/Coop | Spike i fas 4, inklusive tredjepartskällor |
+| 6 | ICA/Coop | Via Tjek (3.2.1). Willys och Hemköp via eget API |
 | 7 | Priser | Prisordning 3.5, källa per rad |
 | 8 | Medlemspriser | Styrs av `meal_settings.memberships` per användare |
 | 9 | Onlinehandel | Avgift i `meal_settings` |
