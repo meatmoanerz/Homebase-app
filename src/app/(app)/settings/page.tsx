@@ -285,6 +285,16 @@ export default function SettingsPage() {
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </Link>
             <Link
+              href="/sandbox"
+              className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Palette className="w-5 h-5 text-muted-foreground" />
+                <span className="text-sm">Designlabb</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </Link>
+            <Link
               href="/privacy"
               className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
             >

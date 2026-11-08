@@ -35,6 +35,7 @@ const TITLES: Record<string, string> = {
   '/analys': 'Analys',
   '/help': 'Hjälp',
   '/privacy': 'Integritet',
+  '/sandbox': 'Designlabb',
 }
 
 /**
@@ -60,6 +61,7 @@ const BACK_TO: Record<string, string> = {
   '/meals': '/settings',
   '/meals/settings': '/meals',
   '/help': '/settings',
+  '/sandbox': '/settings',
   '/privacy': '/settings',
   '/budget/income': '/budget',
 }

@@ -7,6 +7,12 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-08 — Designlabb i `/sandbox`
+
+- Gamla sandlådan (jämförelse av utgiftsformulär) ersatt med ett designlabb:
+  riktlinjegranskning, fyra layoutriktningar för översikten (`?riktning=`),
+  rörelsemönster, 3D-lutande kreditkort, rangordnad kritik och en
+  token-lekplats. Bara mockdata, inget sparas. Länk under Mer.
 ## 2026-11-08 — Genomgång av hela appen med testkonton
 
 - Testkonton `claude-test-1@test.se` och `claude-test-2@test.se` (kopplade som
