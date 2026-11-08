@@ -303,7 +303,7 @@ export default function ReceiptsPage() {
           <motion.section
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="dark slab px-5 py-5 md:px-6"
+            className="slab px-5 py-5 md:px-6"
           >
             <div className="label-caps text-muted-foreground">Handlat med kvitto</div>
             <div className="font-serif-hero text-[40px] md:text-[46px] leading-[1.05] mt-1"><Amount value={stats.total} /></div>

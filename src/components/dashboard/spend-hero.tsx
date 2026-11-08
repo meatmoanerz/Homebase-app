@@ -31,14 +31,14 @@ interface SpendHeroProps {
   scopeLabel?: string | null
 }
 
-// Light text on the slab is hard-coded: var-based opacity renders unreliably in Capacitor
-const SLAB_TEXT = 'text-[#f4ede3]'
-const SLAB_MUTED = 'text-[#f4ede3]/60'
-const SLAB_ACCENT = '#d4a574'
-const SLAB_OVER = '#e8957a'
+// Solid theme tokens, no opacity on variables: that renders unreliably in Capacitor
+const SLAB_TEXT = 'text-foreground'
+const SLAB_MUTED = 'text-muted-foreground'
+const SLAB_ACCENT = 'var(--chart-spend)'
+const SLAB_OVER = 'var(--destructive)'
 
 /**
- * Main hero on the dashboard: one dark slab, flat tiles below.
+ * Main hero on the dashboard: one slab (flat in light, dark in dark theme), flat tiles below.
  *
  * SLAB: remaining to spend (or spent when there is no budget), what that
  * means per day until salary, and a pace bar where the fill is the money
@@ -95,14 +95,14 @@ export function SpendHero({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-            className="fixed inset-x-0 top-[calc(env(safe-area-inset-top,0px)+70px)] z-30 mx-auto flex w-fit items-baseline gap-2 rounded-full bg-hero-slab px-4 py-2 text-[13px] text-[#f4ede3] shadow-lg md:left-60 md:top-4"
+            className="fixed inset-x-0 top-[calc(env(safe-area-inset-top,0px)+70px)] z-30 mx-auto flex w-fit items-baseline gap-2 rounded-full bg-popover px-4 py-2 text-[13px] text-popover-foreground shadow-lg md:left-60 md:top-4"
             aria-hidden="true"
           >
-            <span className="text-[#f4ede3]/60">{hasBudget ? 'Kvar' : 'Spenderat'}</span>
-            <Amount value={primaryValue} className={cn('text-[15px] font-medium', overBudget && 'text-[#e8957a]')} />
+            <span className="text-muted-foreground">{hasBudget ? 'Kvar' : 'Spenderat'}</span>
+            <Amount value={primaryValue} className={cn('text-[15px] font-medium', overBudget && 'text-destructive')} />
             {perDay != null && (
-              <span className="text-[#f4ede3]/60">
-                · <Amount value={perDay} className="text-[#d4a574]" />/dag
+              <span className="text-muted-foreground">
+                · <Amount value={perDay} className="text-hb-cognac-deep" />/dag
               </span>
             )}
           </motion.div>
@@ -114,7 +114,7 @@ export function SpendHero({
           <span className={SLAB_MUTED}>{primaryLabel}</span>
           <span className="flex items-center gap-2">
             {scopeLabel && (
-              <span className="rounded-full bg-[#f4ede3]/10 px-2 py-0.5 text-[11px] text-[#f4ede3]/80">{scopeLabel}</span>
+              <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">{scopeLabel}</span>
             )}
             {daysLeft != null && (
               <span className={cn('tabular-nums', SLAB_MUTED)}>
@@ -125,16 +125,16 @@ export function SpendHero({
         </div>
 
         <p className="mt-2 text-[44px] font-medium leading-none md:text-[52px]">
-          <AnimatedAmount value={primaryValue} revealKey="dashboard-hero" className={overBudget ? 'text-[#e8957a]' : undefined} />
+          <AnimatedAmount value={primaryValue} revealKey="dashboard-hero" className={overBudget ? 'text-destructive' : undefined} />
         </p>
 
         {perDay != null && (
-          <p className="mt-2 text-[13px] text-[#f4ede3]/75">
-            ≈ <Amount value={perDay} className="text-[#d4a574]" /> om dagen
+          <p className="mt-2 text-[13px] text-muted-foreground">
+            ≈ <Amount value={perDay} className="text-hb-cognac-deep" /> om dagen
           </p>
         )}
         {overBudget && (
-          <p className="mt-2 text-[13px] text-[#f4ede3]/75">över budget den här perioden</p>
+          <p className="mt-2 text-[13px] text-muted-foreground">över budget den här perioden</p>
         )}
 
         {hasBudget && (
@@ -148,14 +148,14 @@ export function SpendHero({
                   : `${Math.round(spentRatio * 100)} % av budgeten spenderad`
               }
             >
-              <div className="absolute inset-0 rounded-full bg-[#f4ede3]/15" />
+              <div className="absolute inset-0 rounded-full bg-secondary" />
               <div
                 className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-500"
                 style={{ width: `${spentRatio * 100}%`, background: overBudget ? SLAB_OVER : SLAB_ACCENT }}
               />
               {periodProgress != null && (
                 <div
-                  className="absolute -inset-y-1 w-0.5 rounded-full bg-[#f4ede3]"
+                  className="absolute -inset-y-1 w-0.5 rounded-full bg-foreground"
                   style={{ left: `${Math.min(Math.max(periodProgress, 0), 1) * 100}%` }}
                 />
               )}
@@ -172,12 +172,12 @@ export function SpendHero({
         {forecast && (
           <Link
             href="/analys?view=forecast"
-            className="-mx-1 mt-3 flex items-center gap-2 rounded-[16px] bg-[#f4ede3]/[0.07] px-3 py-2.5 transition-colors hover:bg-[#f4ede3]/[0.12]"
+            className="-mx-1 mt-3 flex items-center gap-2 rounded-[16px] bg-secondary px-3 py-2.5 transition-colors hover:bg-surface-line"
           >
-            <span className="flex-1 text-[13px] text-[#f4ede3]/85">
+            <span className="flex-1 text-[13px] text-muted-foreground">
               Landar på <Amount value={forecast.spend} prefix="~" className={SLAB_TEXT} />
               {hasBudget && (
-                <span className={cn('ml-1', forecast.spend > budget * 1.05 ? 'text-[#e8957a]' : SLAB_MUTED)}>
+                <span className={cn('ml-1', forecast.spend > budget * 1.05 ? 'text-destructive' : SLAB_MUTED)}>
                   ·{' '}
                   {forecast.spend <= budget ? (
                     <><Amount value={budget - forecast.spend} prefix="~" /> kvar</>
@@ -187,7 +187,7 @@ export function SpendHero({
                 </span>
               )}
             </span>
-            <ChevronRight className="h-4 w-4 shrink-0 text-[#f4ede3]/50" aria-hidden="true" />
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           </Link>
         )}
       </div>

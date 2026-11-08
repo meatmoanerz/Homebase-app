@@ -544,7 +544,7 @@ export default function AnalysPage() {
       <>
       {/* Hero */}
       {/* Stays mounted when the range changes: the number moves instead of the block blinking */}
-      <section className="dark slab relative overflow-hidden px-5 py-5 md:px-6">
+      <section className="slab relative overflow-hidden px-5 py-5 md:px-6">
         <div className="flex items-center justify-between gap-2">
           {timeframe === 'month' ? (
             <div className="flex items-center gap-1 -ml-2">

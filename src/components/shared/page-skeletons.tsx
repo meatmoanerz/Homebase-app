@@ -10,16 +10,16 @@ function Pulse({ className }: { className?: string }) {
 }
 
 /**
- * Hero skeleton: matches SpendHero (dark slab + three flat tiles).
+ * Hero skeleton: matches SpendHero (slab + three flat tiles).
  */
 export function HeroSkeleton() {
   return (
     <div className="space-y-1.5">
       <div className="rounded-[24px] bg-hero-slab px-5 pb-5 pt-4 space-y-3">
-        <div className="h-3 w-32 animate-pulse rounded-full bg-[#f4ede3]/10" />
-        <div className="h-11 w-52 animate-pulse rounded-xl bg-[#f4ede3]/10" />
-        <div className="h-3 w-28 animate-pulse rounded-full bg-[#f4ede3]/10" />
-        <div className="h-2 w-full rounded-full bg-[#f4ede3]/10" />
+        <div className="h-3 w-32 animate-pulse rounded-full bg-secondary" />
+        <div className="h-11 w-52 animate-pulse rounded-xl bg-secondary" />
+        <div className="h-3 w-28 animate-pulse rounded-full bg-secondary" />
+        <div className="h-2 w-full rounded-full bg-secondary" />
       </div>
       <div className="grid grid-cols-3 gap-1.5">
         {Array.from({ length: 3 }).map((_, i) => (

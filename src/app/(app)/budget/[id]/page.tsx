@@ -448,31 +448,31 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
       >
-        <Card className="dark slab">
+        <Card className="slab">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-white/70 text-sm">Kvar att spendera</p>
+                <p className="text-muted-foreground text-sm">Kvar att spendera</p>
                 <p className={cn(
                   "font-serif-kpi text-[36px] leading-tight",
-                  remaining < 0 && "text-hb-terracotta"
+                  remaining < 0 && "text-destructive"
                 )}>
                   {formatCurrency(remaining)}
                 </p>
               </div>
-              <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
+              <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center">
                 <Wallet className="w-7 h-7" />
               </div>
             </div>
             
             <div className="space-y-2">
-              <div className="flex justify-between text-sm text-white/80">
+              <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Spenderat</span>
                 <span>{formatCurrency(totals.totalActual)} / {formatCurrency(totals.totalBudgeted)}</span>
               </div>
               <Progress
                 value={totals.totalBudgeted > 0 ? Math.min(100, (totals.totalActual / totals.totalBudgeted) * 100) : 0}
-                className="h-2 bg-white/20"
+                className="h-2 bg-secondary"
                 indicatorClassName={budgetStatusBarClass(getBudgetStatus(totals.totalActual, totals.totalBudgeted), 'bg-hb-cognac')}
               />
             </div>
