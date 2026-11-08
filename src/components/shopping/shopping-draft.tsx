@@ -192,7 +192,7 @@ export function ShoppingDraft({ userId }: { userId: string }) {
           ref={inputRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Lägg till vara, t.ex. Mjölk 2 l"
+          placeholder="Lägg till vara"
           aria-label="Vara"
           list={listId}
           autoComplete="off"
@@ -210,10 +210,26 @@ export function ShoppingDraft({ userId }: { userId: string }) {
         </datalist>
       </form>
 
+      {/* Right under the input, so it stays in reach however long the list gets. */}
+      {draft.items.length > 0 && (
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={clearAll} className="text-muted-foreground">
+            Töm
+          </Button>
+          <span className="text-[11px] text-muted-foreground flex-1" aria-live="polite">
+            {syncState === 'saving' ? 'Sparar…' : syncState === 'error' ? 'Kunde inte spara på kontot, finns kvar här' : ''}
+          </span>
+          <Button onClick={() => setSaveOpen(true)}>
+            <ListPlus />
+            Spara till lista ({draft.items.length})
+          </Button>
+        </div>
+      )}
+
       {shown.length === 0 ? (
         <p className="text-[13px] text-muted-foreground px-1 py-2">
-          Skriv en vara och tryck Enter. Avdelningen fylls i automatiskt och går att ändra. Listan sparas på kontot tills du
-          lägger den i en lista.
+          Skriv en vara och tryck Enter, t.ex. Mjölk 2 l. Avdelningen fylls i automatiskt och går att ändra. Listan sparas
+          på kontot tills du lägger den i en lista.
         </p>
       ) : (
         <ul className="divide-y divide-border">
@@ -242,21 +258,6 @@ export function ShoppingDraft({ userId }: { userId: string }) {
             </li>
           ))}
         </ul>
-      )}
-
-      {draft.items.length > 0 && (
-        <div className="flex items-center gap-2 pt-1">
-          <Button variant="ghost" size="sm" onClick={clearAll}>
-            Töm
-          </Button>
-          <span className="text-[11px] text-muted-foreground flex-1" aria-live="polite">
-            {syncState === 'saving' ? 'Sparar…' : syncState === 'error' ? 'Kunde inte spara på kontot, finns kvar här' : ''}
-          </span>
-          <Button onClick={() => setSaveOpen(true)}>
-            <ListPlus />
-            Spara till lista ({draft.items.length})
-          </Button>
-        </div>
       )}
 
       <SaveToListDialog

@@ -96,7 +96,7 @@ export default function ShoppingListPage({ params }: { params: Promise<{ id: str
       <div className="flex items-end justify-between gap-3 px-1">
         <h1 className="font-serif-hero text-[30px] md:text-[36px] leading-[1.1]">{list.name}</h1>
         <Button asChild variant="outline" size="sm">
-          <Link href="/shopping">
+          <Link href={`/shopping?list=${list.id}`}>
             <Plus />
             Lägg till
           </Link>

@@ -22,7 +22,7 @@ export function SectionSelect({
 
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger aria-label={label} className={cn('h-11 w-[8rem] shrink-0 px-2.5 text-[13px] [&>span]:truncate', className)}>
+      <SelectTrigger aria-label={label} className={cn('h-11 w-[8.75rem] shrink-0 gap-1 px-2 text-[13px] [&>span]:truncate', className)}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

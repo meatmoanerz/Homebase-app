@@ -8,7 +8,7 @@ export function ShoppingPageSkeleton() {
       <div className="bg-card border border-border rounded-3xl p-3 md:p-5 space-y-3">
         <div className="flex gap-2">
           <Pulse className="h-11 flex-1" />
-          <Pulse className="h-11 w-[8rem]" />
+          <Pulse className="h-11 w-[8.75rem]" />
           <Pulse className="h-11 w-11" />
         </div>
         <Pulse className="h-4 w-56" />

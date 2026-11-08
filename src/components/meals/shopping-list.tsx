@@ -52,7 +52,7 @@ export function ShoppingList({ plan }: { plan: MealPlan }) {
         <h2 className="font-serif text-[19px] font-medium tracking-tight">Inköpslista</h2>
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="ghost" size="sm">
-            <Link href="/shopping">
+            <Link href={`/shopping?plan=${plan.id}`}>
               <Plus />
               Lägg till
             </Link>

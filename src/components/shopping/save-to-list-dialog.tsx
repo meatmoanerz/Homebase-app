@@ -14,6 +14,20 @@ import type { DraftItem, SaveTarget } from '@/types/shopping'
 
 type Choice = `plan:${string}` | `list:${string}` | 'new'
 
+/** The list the user came from: "Lägg till" links to /shopping?list=… or ?plan=… */
+function choiceFromUrl(): Choice | null {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    const list = params.get('list')
+    const plan = params.get('plan')
+    if (list) return `list:${list}`
+    if (plan) return `plan:${plan}`
+  } catch {
+    // No window: nothing to preselect.
+  }
+  return null
+}
+
 function defaultListName(): string {
   const date = new Intl.DateTimeFormat('sv-SE', { day: 'numeric', month: 'short' }).format(new Date())
   return `Inköpslista ${date.replace('.', '')}`
@@ -63,11 +77,17 @@ function SaveToListForm({
   const openLists = useMemo(() => lists.filter((l) => !l.archived_at), [lists])
 
   const [picked, setPicked] = useState<Choice | null>(null)
+  const [fromUrl] = useState(choiceFromUrl)
   const [newName, setNewName] = useState(defaultListName)
   const [skipDuplicates, setSkipDuplicates] = useState(true)
 
-  // Until something is picked: this week's Veckomat list, else the newest own list.
-  const fallback: Choice = visiblePlans[0] ? `plan:${visiblePlans[0].id}` : openLists[0] ? `list:${openLists[0].id}` : 'new'
+  // Until something is picked: the list the user came from, else this week's
+  // Veckomat list, else the newest own list.
+  const options = new Set<Choice>([...visiblePlans.map((p) => `plan:${p.id}` as const), ...openLists.map((l) => `list:${l.id}` as const)])
+  const fallback: Choice =
+    fromUrl && options.has(fromUrl)
+      ? fromUrl
+      : visiblePlans[0] ? `plan:${visiblePlans[0].id}` : openLists[0] ? `list:${openLists[0].id}` : 'new'
   const choice = picked ?? fallback
 
   const target: SaveTarget =
@@ -102,7 +122,7 @@ function SaveToListForm({
       <DialogHeader>
         <DialogTitle>Spara till lista</DialogTitle>
         <DialogDescription>
-          {items.length === 1 ? '1 vara' : `${items.length} varor`} läggs till i listan du väljer.
+          Välj listan som {items.length === 1 ? 'varan' : `de ${items.length} varorna`} ska läggas i.
         </DialogDescription>
       </DialogHeader>
 

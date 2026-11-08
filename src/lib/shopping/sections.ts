@@ -66,9 +66,19 @@ export function sectionForProductGroup(group: string | null | undefined): Shoppi
 const BREAD = /bröd|baguette|levain|bulle|bullar|croissant|knäck|tortilla|limpa|fralla|frallor|tunnbröd|pitabröd|naan|kaka/i
 const FROZEN = /fryst|frys|glass|pommes/i
 
+// Shopping-list words the receipt rules miss. `\b` does not work next to å/ä/ö
+// in JavaScript, so word edges are written as (^|[\s-]) and ($|[\s-]).
+const EXTRA_RULES: Array<{ section: ShoppingSection; re: RegExp }> = [
+  { section: 'Skafferi & fryst', re: /^(?:djup)?frysta?(?:$|[\s-])/i },
+  { section: 'Dryck', re: /(?:^|[\s-])(?:lätt|folk|stark|alkoholfri\s)?öl(?:$|[\s-])|alkoholfri|\bipa\b|\blager\b|mineralvatten|bubbelvatten/i },
+  { section: 'Frukt & grönt', re: /majs|sockerärt|rädis|purjo|fänkål|squash|rödbet|selleri|clementin|mandarin|nektarin|persika|plommon|vindruv|salladslök|örtkryddor|groddar/i },
+  { section: 'Hem & hygien', re: /servett|sopsäck|soppåse|bakplåtspapper|plastfolie|hushållspapper|toapapper|toalettpapper|tvättmedel|sköljmedel|deodorant|deo\b|rakhyvel|tops|bomullspad|plåster|glödlampa/i },
+]
+
 /** A guess from the name alone, with the receipt module's rules. */
 export function guessSectionFromName(name: string): ShoppingSection {
-  if (/^(?:djup)?frysta?\b/i.test(name)) return 'Skafferi & fryst'
+  const extra = EXTRA_RULES.find((r) => r.re.test(name))
+  if (extra) return extra.section
   const group = productGroup(name).key
   if (group === 'brod' && !BREAD.test(name)) return 'Skafferi & fryst'
   if (group === 'ovrigt' && FROZEN.test(name)) return 'Skafferi & fryst'
