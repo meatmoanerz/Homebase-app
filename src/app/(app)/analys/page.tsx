@@ -707,7 +707,7 @@ export default function AnalysPage() {
             <Sparkles className="w-4 h-4 text-hb-cognac" />
             Insikter
           </h2>
-          <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {insights.slice(0, 4).map((insight) => (
               <InsightCard
                 key={insight.id}
@@ -731,7 +731,7 @@ export default function AnalysPage() {
         onSelect={(id) => setDrill({ kind: 'category', id })}
       />
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
           <h2 className="text-[13px] font-medium flex items-center gap-2">
             <Store className="w-4 h-4 text-muted-foreground" />

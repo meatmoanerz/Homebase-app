@@ -330,7 +330,7 @@ export default function ReceiptsPage() {
                 <Sparkles className="w-4 h-4 text-hb-cognac" />
                 Insikter
               </h2>
-              <div className="grid gap-2 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                 {insights.slice(0, 6).map((i) => (
                   <InsightCard key={i.id} insight={i} />
                 ))}
@@ -370,7 +370,7 @@ export default function ReceiptsPage() {
             </ul>
           </section>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
               <h2 className="text-[13px] font-medium">Prisrörelser</h2>
               <p className="text-[11px] text-muted-foreground mt-0.5">Jämförpris (kr/kg, kr/l) eller samma artikel, mot tidigare snitt</p>

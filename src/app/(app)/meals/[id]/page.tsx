@@ -79,7 +79,7 @@ function MealPlanView({ id }: { id: string }) {
 
       <section className="space-y-2">
         <h2 className="text-[13px] font-medium px-1">Middagar</h2>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {plan.dishes.map((dish) => (
             <DishCard key={dish.id} dish={dish} onOpen={() => setOpenDishId(dish.id)} />
           ))}
