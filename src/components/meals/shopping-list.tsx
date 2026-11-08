@@ -1,9 +1,12 @@
 'use client'
 
 import { useMemo } from 'react'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { useToggleShoppingItems } from '@/hooks/use-meals'
+import { groupBySection } from '@/lib/shopping/sections'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { cn } from '@/lib/utils/cn'
 import type { MealPlan, PriceSource, ShoppingListItem } from '@/types/meals'
@@ -36,11 +39,8 @@ export function ShoppingList({ plan }: { plan: MealPlan }) {
     return map
   }, [plan.dishes])
 
-  const sections = useMemo(() => {
-    const map = new Map<string, ShoppingListItem[]>()
-    for (const item of plan.items) map.set(item.section, [...(map.get(item.section) || []), item])
-    return [...map.entries()]
-  }, [plan.items])
+  // In store order; rows added on the shopping page join their section.
+  const sections = useMemo(() => groupBySection<ShoppingListItem>(plan.items), [plan.items])
 
   const total = plan.items.reduce((s, i) => s + Number(i.price_est || 0), 0)
   const done = plan.items.filter((i) => i.checked).length
@@ -48,9 +48,15 @@ export function ShoppingList({ plan }: { plan: MealPlan }) {
 
   return (
     <section className="space-y-2">
-      <div className="flex items-center justify-between gap-3 px-1">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1">
         <h2 className="font-serif text-[19px] font-medium tracking-tight">Inköpslista</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/shopping">
+              <Plus />
+              Lägg till
+            </Link>
+          </Button>
           <span className="rounded-full bg-hb-sage/20 px-2.5 py-1 text-[12px] font-medium tabular-nums">
             {done} av {plan.items.length} i korgen
           </span>
@@ -75,6 +81,8 @@ export function ShoppingList({ plan }: { plan: MealPlan }) {
               {items.map((item) => {
                 const id = `item-${item.id}`
                 const uses = item.dish_ids.map((d) => dishNames.get(d)).filter(Boolean)
+                // Added by hand on the shopping page: no price or dish to show.
+                const added = item.price_est == null && item.dish_ids.length === 0
                 return (
                   <li key={item.id}>
                     <label htmlFor={id} className="flex items-start gap-3 px-4 py-2 cursor-pointer hover:bg-secondary/40">
@@ -94,6 +102,7 @@ export function ShoppingList({ plan }: { plan: MealPlan }) {
                             .join(' · ')}
                         </span>
                       </span>
+                      {!added && (
                       <span className="text-right shrink-0">
                         <span className="block text-[14px] tabular-nums">{item.price_est != null ? formatKr(Number(item.price_est)) : '–'}</span>
                         <span
@@ -105,6 +114,7 @@ export function ShoppingList({ plan }: { plan: MealPlan }) {
                           {item.is_offer && item.offer_label ? item.offer_label : PRICE_SOURCE_LABEL[item.price_source]}
                         </span>
                       </span>
+                      )}
                     </label>
                   </li>
                 )

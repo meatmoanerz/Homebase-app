@@ -26,6 +26,10 @@ Veckomat (modul `meals`): `meal_settings`, `store_offers`, `recipes`,
 `recipe_ingredients`, `meal_plans`, `meal_plan_dishes`, `shopping_list_items`.
 Delas inom hushållet; skrivs via `import_meal_plan`. Se `08-veckomat.md`.
 
+Inköpslista: `shopping_lists`, `shopping_list_drafts`, `shopping_item_sections`.
+En rad i `shopping_list_items` hör till antingen en matsedel (`meal_plan_id`)
+eller en egen lista (`shopping_list_id`), aldrig båda. Se `10-inkopslista.md`.
+
 `profiles.feature_access` (text[]) styr betafunktioner. Sätts bara av admin —
 en trigger hindrar klienten från att ändra den.
 

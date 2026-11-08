@@ -79,7 +79,9 @@ export interface MealPlanDish {
 
 export interface ShoppingListItem {
   id: string
-  meal_plan_id: string
+  /** Set for a Veckomat list; null for an own list (shopping_list_id). */
+  meal_plan_id: string | null
+  shopping_list_id: string | null
   section: string
   sort: number
   name: string

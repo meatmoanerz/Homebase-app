@@ -7,6 +7,16 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-08 — Inköpslista
+
+- Ny sida `/shopping`: skriv in varor en i taget, avdelningen gissas och går
+  att ändra, spara till en Veckomat-lista, en egen lista eller en ny lista.
+  Utkastet sparas på kontot. Nya tabeller `shopping_lists`,
+  `shopping_list_drafts`, `shopping_item_sections`; `shopping_list_items` kan
+  nu höra till en egen lista. Detaljer i `10-inkopslista.md`.
+- Nya avdelningar: Dryck, Hem & hygien, Barn. Veckomats lista visar
+  avdelningarna i butiksordning.
+
 ## 2026-11-03 — Veckomat fas 5: körning från appen
 
 - Knappen "Skapa matsedel" på Veckomat startar en körning via Claude API

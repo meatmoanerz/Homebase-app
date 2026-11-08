@@ -32,7 +32,8 @@ import {
   Receipt,
   Bell,
   Smartphone,
-  UtensilsCrossed
+  UtensilsCrossed,
+  ShoppingCart
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
@@ -50,6 +51,7 @@ const economyItems: {
   { href: '/savings', label: 'Sparmål', icon: Target, description: 'Mål och framsteg', module: 'savings' },
   { href: '/settings/loans', label: 'Lån', icon: Landmark, description: 'Saldo och amortering', module: 'loans' },
   { href: '/receipts', label: 'Kvitton', icon: Receipt, description: 'Inköp och priser', module: 'receipts' },
+  { href: '/shopping', label: 'Inköpslista', icon: ShoppingCart, description: 'Det ni ska handla' },
   { href: '/meals', label: 'Veckomat', icon: UtensilsCrossed, description: 'Matsedel och inköpslista', module: 'meals' },
   { href: '/settings/shared-account', label: 'Gemensam ekonomi', icon: Wallet, description: 'Månadens överföringar', module: 'shared' },
   { href: '/settings/ccm', label: 'Kreditkort', icon: CreditCard, description: 'Fakturor och kort', module: 'ccm' },

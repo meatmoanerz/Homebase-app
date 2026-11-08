@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
-import { Home, Wallet, MoreHorizontal, Plus, BarChart3, Inbox, Target, Landmark, UtensilsCrossed } from 'lucide-react'
+import { Home, Wallet, MoreHorizontal, Plus, BarChart3, Inbox, Target, Landmark, UtensilsCrossed, ShoppingCart } from 'lucide-react'
 import { useUser, usePartner } from '@/hooks/use-user'
 import { usePerspective } from '@/hooks/use-perspective'
 import { NotificationBell } from '@/components/layout/notification-bell'
@@ -18,6 +18,7 @@ const navItems: { href: string; icon: typeof Home; label: string; module?: Optio
   { href: '/import',          icon: Inbox,      label: 'Importera'     },
   { href: '/savings',         icon: Target,     label: 'Sparmål', module: 'savings' },
   { href: '/settings/loans',  icon: Landmark,   label: 'Lån',     module: 'loans'   },
+  { href: '/shopping',        icon: ShoppingCart, label: 'Inköpslista' },
   { href: '/meals',           icon: UtensilsCrossed, label: 'Veckomat', module: 'meals' },
   { href: '/settings',        icon: MoreHorizontal, label: 'Mer'     },
 ]

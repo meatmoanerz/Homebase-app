@@ -44,6 +44,8 @@ pnpm lint             # Run ESLint
 - `src/stores/` - Zustand stores (filter-store, ui-store)
 - `src/hooks/use-perspective.ts` - All/Me/Partner perspective store
 - `src/hooks/use-receipts.ts` - Grocery receipts, items, price history hooks
+- `src/hooks/use-shopping.ts` - Shopping page: own lists, draft, section hints
+- `src/lib/shopping/sections.ts` - Store sections + auto-section guessing
 - `src/hooks/use-category-mappings.ts` - Auto-categorization rules + matching
 - `src/lib/import/bank-parsers.ts` - SEB/Swedbank/Amex CSV parsers
 - `src/lib/import/csv-parser.ts` - Homebase standard CSV parser
@@ -91,6 +93,10 @@ const { data } = await supabase
 ['monthly-incomes', period]     // Period incomes
 ['recurring-expenses']          // Recurring expenses
 ['ccm-invoices']                // CCM invoices
+['shopping-lists']              // Own shopping lists
+['shopping-list', id]           // One own list with items
+['shopping-draft', userId]      // Draft on the shopping page
+['shopping-section-hints', userId] // Learned sections + autocomplete names
 ```
 
 ### Mutation Invalidation Pattern

@@ -18,6 +18,7 @@ människa.
 | [`07-lansering.md`](07-lansering.md) | Kvar att göra inför lansering | Innan nya användare släpps in |
 | [`08-veckomat.md`](08-veckomat.md) | Veckomat: modulen, tabeller, JSON-kontrakt | Innan du ändrar modulen |
 | [`09-veckomat-korning.md`](09-veckomat-korning.md) | Veckomat: så görs en körning | När Tim skriver "kör veckomat" eller klistrar in startprompten |
+| [`10-inkopslista.md`](10-inkopslista.md) | Inköpslista: egna listor, utkast, avdelningar | Innan du ändrar sidan Inköpslista |
 
 `00-projektinstruktion.md` är den enda filen som **inte** läses från repot i
 normalfallet — dess innehåll klistras in manuellt i projektinstruktionen hos den
