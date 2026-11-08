@@ -42,7 +42,7 @@ export default function ShoppingPage() {
 
       {(openLists.length > 0 || mealPlans.length > 0) && (
         <section className="space-y-2">
-          <h2 className="font-serif text-[19px] font-medium tracking-tight px-1">Listor</h2>
+          <h2 className="text-[13px] font-medium px-1">Listor</h2>
           <div className="space-y-2">
             {openLists.map((list) => (
               <ShoppingListCard

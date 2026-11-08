@@ -39,7 +39,7 @@ export function ShoppingItemsList({ listId, items }: { listId: string; items: Sh
         )}
       </div>
 
-      <div className="bg-card border border-border rounded-3xl shadow-sm overflow-hidden">
+      <div className="bg-card rounded-3xl shadow-sm overflow-hidden">
         {sections.map(([section, rows], idx) => (
           <div key={section} className={cn('py-1', idx > 0 && 'border-t border-border')}>
             <h3 className="label-caps text-muted-foreground px-4 pt-3 pb-1">{section}</h3>

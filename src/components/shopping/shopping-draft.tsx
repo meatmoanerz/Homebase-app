@@ -180,7 +180,7 @@ export function ShoppingDraft({ userId }: { userId: string }) {
   const shown = [...draft.items].reverse()
 
   return (
-    <section className="bg-card border border-border rounded-3xl shadow-sm p-3 md:p-5 space-y-3">
+    <section className="bg-card rounded-3xl shadow-sm p-3 md:p-5 space-y-3">
       <form
         className="flex items-center gap-2"
         onSubmit={(e) => {

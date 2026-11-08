@@ -102,7 +102,7 @@ export function CCMExpensesList() {
           <CreditCard className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
           <p className="text-muted-foreground">Inga kreditkortsutgifter</p>
           <p className="text-sm text-muted-foreground/70 mt-1">
-            Markera utgifter med "Betald med kreditkort" när du registrerar dem
+            Markera utgifter med “Betald med kreditkort” när du registrerar dem
           </p>
         </CardContent>
       </Card>

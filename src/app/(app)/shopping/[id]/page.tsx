@@ -104,7 +104,7 @@ export default function ShoppingListPage({ params }: { params: Promise<{ id: str
       </div>
 
       {list.items.length === 0 ? (
-        <div className="bg-card border border-border rounded-3xl p-8 text-center shadow-sm">
+        <div className="bg-card rounded-3xl p-8 text-center shadow-sm">
           <p className="text-sm text-muted-foreground">Listan är tom. Lägg till varor på sidan Inköpslista.</p>
         </div>
       ) : (

@@ -25,7 +25,7 @@ export function ShoppingListCard({
     <Link
       href={href}
       className={cn(
-        'block bg-card border border-border rounded-3xl p-4 shadow-sm hover:border-hb-cognac/50 transition-colors',
+        'block bg-card rounded-3xl p-4 shadow-sm hover:border-hb-cognac/50 transition-colors',
         muted && 'bg-card/60 shadow-none'
       )}
     >
