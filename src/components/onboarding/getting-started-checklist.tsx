@@ -92,8 +92,8 @@ export function GettingStartedChecklist() {
 
   return (
     <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} aria-labelledby="getting-started-title">
-      <div className="flex items-baseline justify-between pb-2.5">
-        <h2 id="getting-started-title" className="font-serif text-[20px] font-medium tracking-tight">
+      <div className="flex items-baseline justify-between pb-2 pr-1">
+        <h2 id="getting-started-title" className="px-1 text-[13px] font-medium">
           Kom igång
         </h2>
         <div className="flex items-center gap-2">
@@ -110,7 +110,7 @@ export function GettingStartedChecklist() {
           </button>
         </div>
       </div>
-      <div className="bg-card border border-border rounded-2xl shadow-sm divide-y divide-border overflow-hidden">
+      <div className="rounded-[24px] bg-surface divide-y divide-surface-line overflow-hidden">
         {items.map((item) => {
           const content = (
             <>
@@ -133,7 +133,7 @@ export function GettingStartedChecklist() {
               <span className="sr-only">{item.done ? '(klart)' : '(inte klart)'}</span>
             </>
           )
-          const rowClass = 'w-full flex items-center gap-3 px-4 py-3 hover:bg-secondary/40 transition-colors'
+          const rowClass = 'w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-hover transition-colors'
 
           if (item.id === 'install') {
             return (

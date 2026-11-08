@@ -6,6 +6,7 @@ import { Target, Landmark, ChevronRight } from 'lucide-react'
 import { useSavingsGoals, getSavedAmount } from '@/hooks/use-savings-goals'
 import { useAllLoans } from '@/hooks/use-loans'
 import { formatCurrency } from '@/lib/utils/formatters'
+import { Amount } from '@/components/shared/amount'
 
 /** Two small cards linking to Sparmål and Lån with their headline numbers. */
 export function MoneyShortcuts() {
@@ -28,17 +29,17 @@ export function MoneyShortcuts() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.25 }}
-      className="grid grid-cols-2 gap-2.5"
+      className="grid grid-cols-2 gap-1.5"
     >
-      <Link href="/savings" className="bg-card border border-border rounded-2xl px-4 py-3.5 shadow-sm hover:bg-secondary/40 transition-colors">
+      <Link href="/savings" className="rounded-[24px] bg-surface px-4 py-3.5 hover:bg-surface-hover transition-colors">
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-2 text-[13px] font-medium">
-            <Target className="w-4 h-4 text-hb-cognac" />
+            <Target className="w-4 h-4 text-hb-cognac" aria-hidden="true" />
             Sparmål
           </span>
-          <ChevronRight className="w-4 h-4 text-muted-foreground/60" />
+          <ChevronRight className="w-4 h-4 text-muted-foreground/60" aria-hidden="true" />
         </div>
-        <div className="font-serif-kpi text-[18px] mt-2">{formatCurrency(saved)}</div>
+        <Amount value={saved} className="block text-[18px] mt-2" />
         <div className="text-[11px] text-muted-foreground mt-0.5">
           {active.length === 0
             ? 'Inga aktiva mål'
@@ -47,20 +48,20 @@ export function MoneyShortcuts() {
               : `${active.length} aktiva mål`}
         </div>
         {target > 0 && (
-          <div className="mt-2 h-1 bg-secondary rounded-full overflow-hidden">
+          <div className="mt-2 h-1 bg-surface-line rounded-full overflow-hidden">
             <div className="h-full rounded-full bg-hb-green" style={{ width: `${Math.min(100, (saved / target) * 100)}%` }} />
           </div>
         )}
       </Link>
-      <Link href="/settings/loans" className="bg-card border border-border rounded-2xl px-4 py-3.5 shadow-sm hover:bg-secondary/40 transition-colors">
+      <Link href="/settings/loans" className="rounded-[24px] bg-surface px-4 py-3.5 hover:bg-surface-hover transition-colors">
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-2 text-[13px] font-medium">
-            <Landmark className="w-4 h-4 text-hb-cognac" />
+            <Landmark className="w-4 h-4 text-hb-cognac" aria-hidden="true" />
             Lån
           </span>
-          <ChevronRight className="w-4 h-4 text-muted-foreground/60" />
+          <ChevronRight className="w-4 h-4 text-muted-foreground/60" aria-hidden="true" />
         </div>
-        <div className="font-serif-kpi text-[18px] mt-2">{formatCurrency(debt)}</div>
+        <Amount value={debt} className="block text-[18px] mt-2" />
         <div className="text-[11px] text-muted-foreground mt-0.5">
           {loans.length === 0 ? 'Inga lån' : `~${formatCurrency(monthlyLoanCost)}/mån ränta + amortering`}
         </div>

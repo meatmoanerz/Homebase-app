@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { formatCurrency, formatRelativeDate } from '@/lib/utils/formatters'
+import { formatRelativeDate } from '@/lib/utils/formatters'
+import { Amount } from '@/components/shared/amount'
 import { Receipt } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { AssignmentPill, CreditCardPill } from '@/components/shared/assignment-pill'
@@ -11,31 +12,17 @@ interface RecentExpensesProps {
   expenses: ExpenseWithCategory[]
 }
 
-const categoryIcons: Record<string, string> = {
-  Mat: '🛒',
-  Hem: '🏠',
-  Kläder: '👕',
-  Nöje: '🎬',
-  Restaurang: '🍽️',
-  Transport: '🚗',
-  Kollektivtrafik: '🚌',
-  Resor: '✈️',
-  El: '⚡',
-  Prenumerationer: '📱',
-  Hälsa: '💊',
-  Streaming: '🎬',
-}
 
 export function RecentExpenses({ expenses }: RecentExpensesProps) {
   if (expenses.length === 0) {
     return (
       <section>
-        <div className="flex items-baseline justify-between pb-3">
-          <h2 className="font-serif text-[20px] font-medium tracking-tight">Senaste</h2>
+        <div className="flex items-baseline justify-between pb-2 pr-1">
+          <h2 className="px-1 text-[13px] font-medium">Senaste</h2>
         </div>
-        <div className="bg-card border border-border rounded-2xl p-8 text-center shadow-sm">
+        <div className="rounded-[24px] bg-surface p-8 text-center">
           <div className="w-12 h-12 mx-auto rounded-xl bg-hb-cognac/10 grid place-items-center mb-3">
-            <Receipt className="w-6 h-6 text-hb-cognac" />
+            <Receipt className="w-6 h-6 text-hb-cognac" aria-hidden="true" />
           </div>
           <p className="text-sm text-muted-foreground mb-4">
             Inga utgifter ännu denna period
@@ -53,8 +40,8 @@ export function RecentExpenses({ expenses }: RecentExpensesProps) {
 
   return (
     <section>
-      <div className="flex items-baseline justify-between pb-3">
-        <h2 className="font-serif text-[20px] font-medium tracking-tight">Senaste</h2>
+      <div className="flex items-baseline justify-between pb-2 pr-1">
+        <h2 className="px-1 text-[13px] font-medium">Senaste</h2>
         <Link
           href="/analys"
           className="text-xs text-hb-cognac-deep font-medium tracking-wide hover:underline"
@@ -63,20 +50,16 @@ export function RecentExpenses({ expenses }: RecentExpensesProps) {
         </Link>
       </div>
 
-      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+      <div className="rounded-[24px] bg-surface overflow-hidden">
         {expenses.map((expense, index) => (
           <motion.div
             key={expense.id}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.04 }}
-            className="flex items-center justify-between px-4 py-3.5 border-b border-border last:border-b-0 hover:bg-secondary/40 transition-colors"
+            className="flex items-center justify-between px-4 py-3 border-b border-surface-line last:border-b-0"
           >
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="w-8 h-8 rounded-lg bg-secondary grid place-items-center text-base flex-shrink-0">
-                {categoryIcons[expense.category?.name ?? ''] || '💰'}
-              </div>
-              <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1">
                 <div className="font-medium text-sm tracking-tight truncate">
                   {expense.description}
                 </div>
@@ -87,11 +70,8 @@ export function RecentExpenses({ expenses }: RecentExpensesProps) {
                   {expense.is_ccm && <CreditCardPill cardId={expense.credit_card_id} />}
                   <AssignmentPill assignment={expense.cost_assignment} />
                 </div>
-              </div>
             </div>
-            <div className="font-serif-kpi text-[16px] ml-2 flex-shrink-0">
-              {formatCurrency(expense.amount)}
-            </div>
+            <Amount value={expense.amount} className="text-[14px] ml-3 flex-shrink-0" />
           </motion.div>
         ))}
       </div>

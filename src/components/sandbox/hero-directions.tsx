@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { SpendHero } from '@/components/dashboard/spend-hero'
+import { Amount } from '@/components/shared/amount'
 import { FlatMonoDirection } from './flat-mono-direction'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { cn } from '@/lib/utils/cn'
@@ -17,7 +18,7 @@ export const directions = [
   {
     id: 'nuvarande',
     name: 'Nuvarande',
-    note: 'Appen som den ser ut idag: hero i kort, lista i kort.',
+    note: 'Den riktiga översikten efter omgörningen: mörk platta, platta block, siffror i monospace. Heron är samma komponent som i appen.',
   },
   {
     id: 'redaktionell',
@@ -73,27 +74,23 @@ function CurrentDirection() {
         savingsRoom={mockSpend.savingsRoom}
         nextInvoice={mockSpend.nextInvoice}
         daysLeft={mockPeriod.daysLeft}
+        periodProgress={mockPeriod.daysElapsed / mockPeriod.daysTotal}
       />
       <div>
-        <h3 className="pb-3 font-serif text-[20px] font-medium tracking-tight">Senaste</h3>
-        <ul className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <h3 className="px-1 pb-2 text-[13px] font-medium">Senaste</h3>
+        <ul className="overflow-hidden rounded-[24px] bg-surface">
           {mockExpenses.slice(0, 4).map((e) => (
             <li
               key={e.id}
-              className="flex items-center justify-between border-b border-border px-4 py-3.5 last:border-b-0"
+              className="flex items-center justify-between border-b border-surface-line px-4 py-3 last:border-b-0"
             >
-              <div className="flex min-w-0 flex-1 items-center gap-3">
-                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-secondary text-sm" aria-hidden="true">
-                  {e.category.charAt(0)}
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium tracking-tight">{e.description}</div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">
-                    {e.category} · {e.date}
-                  </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium tracking-tight">{e.description}</div>
+                <div className="mt-1 text-[11px] text-muted-foreground">
+                  {e.category} · {e.date}
                 </div>
               </div>
-              <div className="ml-2 shrink-0 font-serif-kpi text-[16px]">{formatCurrency(e.amount)}</div>
+              <Amount value={e.amount} className="ml-3 shrink-0 text-[14px]" />
             </li>
           ))}
         </ul>

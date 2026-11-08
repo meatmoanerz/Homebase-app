@@ -1,11 +1,9 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { formatCurrency } from '@/lib/utils/formatters'
-import { cn } from '@/lib/utils/cn'
 import Link from 'next/link'
-import { Telescope, ChevronRight, CreditCard } from 'lucide-react'
-import { getBudgetStatus, budgetStatusBarClass } from '@/lib/utils/budget-status'
+import { ChevronRight } from 'lucide-react'
+import { Amount } from '@/components/shared/amount'
+import { cn } from '@/lib/utils/cn'
 
 interface SpendHeroProps {
   /** Consumption this period: every purchase once, credit-card invoice line excluded */
@@ -25,73 +23,109 @@ interface SpendHeroProps {
   nextInvoice?: { value: number; registered: number } | null
   /** Days left until next salary (running period only). */
   daysLeft?: number | null
+  /** Share of the running period that has passed, 0–1 (running period only). */
+  periodProgress?: number | null
   /** e.g. "Tims andel" when the perspective is a single person. */
   scopeLabel?: string | null
 }
 
+// Light text on the slab is hard-coded: var-based opacity renders unreliably in Capacitor
+const SLAB_TEXT = 'text-[#f4ede3]'
+const SLAB_MUTED = 'text-[#f4ede3]/60'
+const SLAB_ACCENT = '#d4a574'
+const SLAB_OVER = '#e8957a'
+
 /**
- * Main hero on the dashboard.
+ * Main hero on the dashboard: one dark slab, flat tiles below.
  *
- * PRIMARY (big number): consumption vs budget — "kvar att spendera".
- * Every purchase counts once when it is made, card purchases included,
- * so the number moves the moment you buy something.
+ * SLAB: remaining to spend (or spent when there is no budget), what that
+ * means per day until salary, and a pace bar where the fill is the money
+ * spent and the tick is today. Every purchase counts once when it is made,
+ * card purchases included, so the number moves the moment you buy something.
  *
- * SECONDARY (small row): cash flow so far — income minus what leaves the
- * account — plus the room to save this period (income minus projected costs
- * and amortisation, against the plan) and the card invoice that follows
- * next period (the purchases pushed forward).
+ * TILES: cash flow so far (income minus what leaves the account), the room
+ * to save against the plan, and the card invoice that follows next period.
  */
-export function SpendHero({ spent, budget, income, cashOut, hasBudget, forecast, savingsRoom, nextInvoice, daysLeft, scopeLabel }: SpendHeroProps) {
+export function SpendHero({
+  spent,
+  budget,
+  income,
+  cashOut,
+  hasBudget,
+  forecast,
+  savingsRoom,
+  nextInvoice,
+  daysLeft,
+  periodProgress,
+  scopeLabel,
+}: SpendHeroProps) {
   const remaining = budget - spent
   const overBudget = hasBudget && remaining < 0
-  const spentRatio = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0
+  const spentRatio = budget > 0 ? Math.min(spent / budget, 1) : 0
   const cashFlow = income - cashOut
+  const perDay = hasBudget && remaining > 0 && daysLeft != null && daysLeft > 0 ? remaining / daysLeft : null
 
-  // Primary number: remaining to spend (if budget) else just spent
   const primaryValue = hasBudget ? remaining : spent
   const primaryLabel = hasBudget ? 'Kvar att spendera' : 'Spenderat denna period'
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden bg-card border border-border rounded-3xl px-6 py-7 md:px-8 md:py-8 shadow-sm"
-    >
-      <div
-        className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-50"
-        style={{ background: 'radial-gradient(circle, rgba(192,136,80,0.10), transparent 70%)' }}
-      />
+    <div className="space-y-1.5">
+      <div className={cn('rounded-[24px] bg-hero-slab px-5 pb-5 pt-4', SLAB_TEXT)}>
+        <div className="flex items-center justify-between gap-2 text-[12px]">
+          <span className={SLAB_MUTED}>{primaryLabel}</span>
+          <span className="flex items-center gap-2">
+            {scopeLabel && (
+              <span className="rounded-full bg-[#f4ede3]/10 px-2 py-0.5 text-[11px] text-[#f4ede3]/80">{scopeLabel}</span>
+            )}
+            {daysLeft != null && (
+              <span className={cn('tabular-nums', SLAB_MUTED)}>
+                {daysLeft} {daysLeft === 1 ? 'dag' : 'dagar'} till lön
+              </span>
+            )}
+          </span>
+        </div>
 
-      <div className="relative">
-        <div className="flex items-center justify-between gap-2 mt-0.5">
-          <div className="label-caps text-muted-foreground">{primaryLabel}</div>
-          {scopeLabel && (
-            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">{scopeLabel}</span>
-          )}
-        </div>
-        <div
-          className={cn(
-            'font-serif-hero text-[40px] md:text-[48px] leading-[1.05] mt-2',
-            overBudget ? 'text-destructive' : 'text-foreground'
-          )}
-        >
-          {formatCurrency(primaryValue)}
-        </div>
+        <p className="mt-2 text-[44px] font-medium leading-none md:text-[52px]">
+          <Amount value={primaryValue} className={overBudget ? 'text-[#e8957a]' : undefined} />
+        </p>
+
+        {perDay != null && (
+          <p className="mt-2 text-[13px] text-[#f4ede3]/75">
+            ≈ <Amount value={perDay} className="text-[#d4a574]" /> om dagen
+          </p>
+        )}
+        {overBudget && (
+          <p className="mt-2 text-[13px] text-[#f4ede3]/75">över budget den här perioden</p>
+        )}
 
         {hasBudget && (
           <>
-            <div className="mt-4 h-1.5 bg-secondary rounded-full overflow-hidden">
+            <div
+              className="relative mt-4 h-2"
+              role="img"
+              aria-label={
+                periodProgress != null
+                  ? `${Math.round(spentRatio * 100)} % av budgeten spenderad, ${Math.round(periodProgress * 100)} % av perioden har gått`
+                  : `${Math.round(spentRatio * 100)} % av budgeten spenderad`
+              }
+            >
+              <div className="absolute inset-0 rounded-full bg-[#f4ede3]/15" />
               <div
-                className={cn(
-                  'h-full rounded-full transition-all duration-500',
-                  budgetStatusBarClass(getBudgetStatus(spent, budget))
-                )}
-                style={{ width: `${spentRatio}%` }}
+                className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-500"
+                style={{ width: `${spentRatio * 100}%`, background: overBudget ? SLAB_OVER : SLAB_ACCENT }}
               />
+              {periodProgress != null && (
+                <div
+                  className="absolute -inset-y-1 w-0.5 rounded-full bg-[#f4ede3]"
+                  style={{ left: `${Math.min(Math.max(periodProgress, 0), 1) * 100}%` }}
+                />
+              )}
             </div>
-            <div className="mt-1.5 text-[12px] text-muted-foreground">
-              {formatCurrency(spent)} av {formatCurrency(budget)} spenderat
-              {daysLeft != null && ` · ${daysLeft} ${daysLeft === 1 ? 'dag' : 'dagar'} till lön`}
+            <div className={cn('mt-1.5 flex justify-between gap-3 text-[11px]', SLAB_MUTED)}>
+              <span>
+                <Amount value={spent} /> av <Amount value={budget} />
+              </span>
+              {periodProgress != null && <span>streck = idag</span>}
             </div>
           </>
         )}
@@ -99,79 +133,69 @@ export function SpendHero({ spent, budget, income, cashOut, hasBudget, forecast,
         {forecast && (
           <Link
             href="/analys?view=forecast"
-            className="mt-3 flex items-center gap-2.5 rounded-2xl bg-secondary/50 hover:bg-secondary px-3 py-2.5 transition-colors"
+            className="-mx-1 mt-3 flex items-center gap-2 rounded-[16px] bg-[#f4ede3]/[0.07] px-3 py-2.5 transition-colors hover:bg-[#f4ede3]/[0.12]"
           >
-            <Telescope className="w-4 h-4 text-hb-cognac-deep shrink-0" />
-            <span className="flex-1 text-[13px]">
-              Landar på <span className="font-semibold">~{formatCurrency(forecast.spend)}</span>
+            <span className="flex-1 text-[13px] text-[#f4ede3]/85">
+              Landar på <Amount value={forecast.spend} prefix="~" className={SLAB_TEXT} />
               {hasBudget && (
-                <span className={cn('ml-1', forecast.spend > budget * 1.05 ? 'text-destructive' : 'text-muted-foreground')}>
-                  {forecast.spend <= budget
-                    ? `· ~${formatCurrency(budget - forecast.spend)} kvar`
-                    : `· ~${formatCurrency(forecast.spend - budget)} över`}
+                <span className={cn('ml-1', forecast.spend > budget * 1.05 ? 'text-[#e8957a]' : SLAB_MUTED)}>
+                  ·{' '}
+                  {forecast.spend <= budget ? (
+                    <><Amount value={budget - forecast.spend} prefix="~" /> kvar</>
+                  ) : (
+                    <><Amount value={forecast.spend - budget} prefix="~" /> över</>
+                  )}
                 </span>
               )}
             </span>
-            <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+            <ChevronRight className="h-4 w-4 shrink-0 text-[#f4ede3]/50" aria-hidden="true" />
           </Link>
         )}
-
-        {/* Secondary: cash flow */}
-        <div className="mt-4 pt-3.5 border-t border-dashed border-border flex justify-between items-end">
-          <div>
-            <div className="label-caps text-muted-foreground">
-              Kassaflöde hittills
-            </div>
-            <div className={cn(
-              'font-serif-kpi text-[18px] md:text-[22px] mt-1',
-              cashFlow < 0 ? 'text-destructive' : 'text-foreground'
-            )}>
-              {cashFlow >= 0 && '+'}
-              {formatCurrency(cashFlow)}
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="label-caps text-muted-foreground">
-              Dras från konto
-            </div>
-            <div className="font-serif-kpi text-[18px] md:text-[22px] mt-1">
-              {formatCurrency(cashOut)}
-            </div>
-          </div>
-        </div>
-
-        {savingsRoom || nextInvoice ? (
-          <div className="mt-2.5 space-y-1 text-[12px] text-muted-foreground">
-            {savingsRoom && (
-              <div className="flex justify-between items-start gap-3">
-                <span>Utrymme att spara</span>
-                <span className="text-right">
-                  <span className={cn('font-medium', savingsRoom.room < savingsRoom.planned ? 'text-destructive' : 'text-foreground')}>
-                    ~{formatCurrency(savingsRoom.room)}
-                  </span>
-                  {savingsRoom.planned >= 1 && (
-                    <span className="block text-[11px]">planerat {formatCurrency(savingsRoom.planned)}</span>
-                  )}
-                </span>
-              </div>
-            )}
-            {nextInvoice && (
-              <div className="flex justify-between items-start gap-3">
-                <span className="flex items-center gap-1.5">
-                  <CreditCard className="w-3.5 h-3.5 shrink-0" />
-                  Kortfaktura nästa period
-                </span>
-                <span className="text-right">
-                  <span className="font-medium text-foreground">~{formatCurrency(nextInvoice.value)}</span>
-                  {nextInvoice.value - nextInvoice.registered >= 1 && (
-                    <span className="block text-[11px]">{formatCurrency(nextInvoice.registered)} redan på kortet</span>
-                  )}
-                </span>
-              </div>
-            )}
-          </div>
-        ) : null}
       </div>
-    </motion.div>
+
+      <div className={cn('grid gap-1.5', savingsRoom && nextInvoice ? 'grid-cols-3' : savingsRoom || nextInvoice ? 'grid-cols-2' : 'grid-cols-1')}>
+        <Tile
+          label="Kassaflöde"
+          value={<Amount value={cashFlow} prefix={cashFlow >= 0 ? '+' : ''} className={cashFlow < 0 ? 'text-destructive' : undefined} />}
+          note={<>ut <Amount value={cashOut} /></>}
+        />
+        {savingsRoom && (
+          <Tile
+            label="Spara"
+            value={
+              <Amount
+                value={savingsRoom.room}
+                prefix="~"
+                className={savingsRoom.room < savingsRoom.planned ? 'text-destructive' : undefined}
+              />
+            }
+            note={savingsRoom.planned >= 1 ? <>plan <Amount value={savingsRoom.planned} /></> : null}
+          />
+        )}
+        {nextInvoice && (
+          <Tile
+            label="Kortfaktura"
+            value={<Amount value={nextInvoice.value} prefix="~" />}
+            note={nextInvoice.value - nextInvoice.registered >= 1 ? <>hittills <Amount value={nextInvoice.registered} /></> : null}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
+interface TileProps {
+  label: string
+  value: React.ReactNode
+  note?: React.ReactNode
+}
+
+function Tile({ label, value, note }: TileProps) {
+  return (
+    <div className="min-w-0 rounded-[20px] bg-surface px-3 py-2.5">
+      <div className="truncate text-[11px] text-muted-foreground">{label}</div>
+      <div className="mt-0.5 truncate text-[14px]">{value}</div>
+      {note && <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{note}</div>}
+    </div>
   )
 }

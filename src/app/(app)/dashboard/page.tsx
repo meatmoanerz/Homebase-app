@@ -11,7 +11,7 @@ import { getCurrentBudgetPeriod, formatPeriodDisplay, shiftPeriod, getPeriodDate
 import { SpendHero } from '@/components/dashboard/spend-hero'
 import { RecentExpenses } from '@/components/dashboard/recent-expenses'
 import { PersonBudgetBreakdown } from '@/components/dashboard/person-budget-breakdown'
-import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
+import { DashboardPageSkeleton } from '@/components/shared/page-skeletons'
 import { TodoList } from '@/components/dashboard/todo-list'
 import { BudgetDeviations, type CategoryDeviation } from '@/components/dashboard/budget-deviations'
 import { MoneyShortcuts } from '@/components/dashboard/money-shortcuts'
@@ -196,7 +196,7 @@ export default function DashboardPage() {
   }, [scoped, budgetItems, forecast, person, user?.id, partner?.id, splitRule])
 
   if (userLoading || expensesLoading) {
-    return <DashboardSkeleton />
+    return <DashboardPageSkeleton />
   }
 
   // Income: monthly income for the period, else the static household income.
@@ -278,6 +278,7 @@ export default function DashboardPage() {
         savingsRoom={savingsRoom}
         nextInvoice={nextInvoice ? { value: nextInvoice.value, registered: nextInvoice.registered } : null}
         daysLeft={isCurrentPeriod ? getDaysUntilSalary(salaryDay) : null}
+        periodProgress={isCurrentPeriod ? getPeriodProgress(salaryDay) / 100 : null}
         scopeLabel={scopeLabel}
       />
       </div>

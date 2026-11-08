@@ -15,17 +15,17 @@ export interface Finding {
  */
 export const guidelineFindings: Finding[] = [
   {
-    status: 'fail',
-    title: 'Inga tabellsiffror',
+    status: 'warn',
+    title: 'Tabellsiffror bara på översikten',
     detail:
-      'tabular-nums används ingenstans. Belopp i listor hamnar inte under varandra och siffror hoppar i sidled när de ändras.',
-    where: '0 träffar i src/',
+      'Översikten använder nu <Amount> med monospace och tabular-nums. Övriga vyer har kvar proportionella siffror som inte hamnar under varandra.',
+    where: 'components/shared/amount.tsx',
   },
   {
-    status: 'fail',
-    title: 'transition: all på staplar och knappar',
-    detail: 'Animerar fler egenskaper än det som rör sig. Lista width/transform istället.',
-    where: 'spend-hero.tsx:86 · person-budget-breakdown.tsx:66 · ui/button.tsx:20',
+    status: 'warn',
+    title: 'transition: all på knappar',
+    detail: 'Staplarna på översikten animerar nu bara width. Knappkomponenten animerar fortfarande allt.',
+    where: 'ui/button.tsx:20',
   },
   {
     status: 'warn',
@@ -66,22 +66,21 @@ export const guidelineFindings: Finding[] = [
  */
 export const critiqueFindings: Finding[] = [
   {
-    status: 'fail',
+    status: 'warn',
     title: 'Allt ligger i ett kort',
     detail:
-      '265 skuggor och 125 rounded-2xl/3xl. När varje block är en låda bär lådorna hierarkin istället för typografin, och allt väger lika. Spara kortet till en sak per vy, låt resten vara text, luft och hårlinjer.',
+      'Översikten är omgjord: en mörk platta, resten platta block utan kant och skugga. Budget, Analys och inställningarna har fortfarande kort med skugga överallt.',
   },
   {
-    status: 'fail',
-    title: 'Siffran säger inte vad den betyder',
+    status: 'pass',
+    title: 'Siffran säger vad den betyder',
     detail:
-      '"Kvar att spendera 7 580 kr" kräver huvudräkning. "≈ 689 kr om dagen i 11 dagar" går att agera på direkt.',
+      'Heron visar nu “≈ 689 kr om dagen” under det som är kvar, och ett streck för idag på stapeln så takten syns direkt.',
   },
   {
-    status: 'warn',
+    status: 'pass',
     title: 'Dekorativ glöd i hörnet',
-    detail:
-      'Den radiella gradienten bakom heron (spend-hero.tsx:62) är ett av de tydligaste AI-mönstren. Den tillför ingen information.',
+    detail: 'Borttagen. Den radiella gradienten bakom heron var ett av de tydligaste AI-mönstren.',
   },
   {
     status: 'warn',

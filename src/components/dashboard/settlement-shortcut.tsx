@@ -25,10 +25,10 @@ export function SettlementShortcut() {
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}>
       <Link
         href="/settings/shared-account"
-        className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3.5 shadow-sm hover:bg-secondary/40 transition-colors"
+        className="flex items-center gap-3 rounded-[24px] bg-surface px-4 py-3.5 hover:bg-surface-hover transition-colors"
       >
-        <span className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
-          <ArrowLeftRight className="w-4 h-4 text-hb-cognac" />
+        <span className="w-9 h-9 rounded-full bg-background flex items-center justify-center shrink-0">
+          <ArrowLeftRight className="w-4 h-4 text-hb-cognac" aria-hidden="true" />
         </span>
         <span className="flex-1 min-w-0">
           <span className="block text-[13px] font-medium">Avräkning {month}</span>
@@ -36,7 +36,7 @@ export function SettlementShortcut() {
             {doneCount} av {steps.length} klart · {next.title} {formatCurrency(next.amount)}
           </span>
         </span>
-        <ChevronRight className="w-4 h-4 text-muted-foreground/60" />
+        <ChevronRight className="w-4 h-4 text-muted-foreground/60" aria-hidden="true" />
       </Link>
     </motion.div>
   )

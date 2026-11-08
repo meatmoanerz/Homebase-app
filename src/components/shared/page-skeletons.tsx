@@ -10,23 +10,24 @@ function Pulse({ className }: { className?: string }) {
 }
 
 /**
- * Hero card skeleton — matches SpendHero height/shape.
+ * Hero skeleton: matches SpendHero (dark slab + three flat tiles).
  */
 export function HeroSkeleton() {
   return (
-    <div className="bg-card border border-border rounded-3xl px-6 py-7 space-y-4">
-      <Pulse className="h-3 w-36" />
-      <Pulse className="h-12 w-56" />
-      <Pulse className="h-1.5 w-full rounded-full" />
-      <div className="pt-3 border-t border-dashed border-border flex justify-between">
-        <div className="space-y-2">
-          <Pulse className="h-3 w-20" />
-          <Pulse className="h-6 w-28" />
-        </div>
-        <div className="space-y-2 items-end">
-          <Pulse className="h-3 w-20" />
-          <Pulse className="h-6 w-28" />
-        </div>
+    <div className="space-y-1.5">
+      <div className="rounded-[24px] bg-hero-slab px-5 pb-5 pt-4 space-y-3">
+        <div className="h-3 w-32 animate-pulse rounded-full bg-[#f4ede3]/10" />
+        <div className="h-11 w-52 animate-pulse rounded-xl bg-[#f4ede3]/10" />
+        <div className="h-3 w-28 animate-pulse rounded-full bg-[#f4ede3]/10" />
+        <div className="h-2 w-full rounded-full bg-[#f4ede3]/10" />
+      </div>
+      <div className="grid grid-cols-3 gap-1.5">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-[20px] bg-surface px-3 py-2.5 space-y-2">
+            <Pulse className="h-2.5 w-14" />
+            <Pulse className="h-4 w-20" />
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -96,12 +97,19 @@ export function SectionHeaderSkeleton() {
  */
 export function DashboardPageSkeleton() {
   return (
-    <div className="px-4 md:px-8 pt-2 pb-4 space-y-5">
+    <div className="px-4 md:px-8 pt-2 md:pt-4 pb-4 space-y-5 max-w-3xl md:mx-auto">
+      {/* Period strip */}
+      <div className="flex h-11 items-center justify-center pt-1">
+        <Pulse className="h-4 w-32" />
+      </div>
       <HeroSkeleton />
-      <KpiGridSkeleton />
       <div>
-        <SectionHeaderSkeleton />
-        <ListCardSkeleton rows={4} />
+        <Pulse className="mb-2 ml-1 h-3 w-20" />
+        <div className="rounded-[24px] bg-surface">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <ListRowSkeleton key={i} withIcon={false} />
+          ))}
+        </div>
       </div>
     </div>
   )

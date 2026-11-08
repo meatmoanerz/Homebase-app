@@ -7,6 +7,17 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-08 — Översikten i ny stil (Platt mono)
+
+- Vald i designlabbet: 24 px hörn, cognac, siffror i monospace, platta ytor,
+  kompakt. Heron är en mörk platta med "≈ X kr om dagen" och en takstapel där
+  ett streck visar idag; kassaflöde, spara och kortfaktura som platta rutor
+  under. Övriga block på översikten är platta (`bg-surface`, inga skuggor).
+- Nya tokens i `globals.css`: `--surface`, `--surface-hover`, `--surface-line`,
+  `--hero-slab` (hex, inte opacitet på variabler, för Capacitor). Belopp via
+  `components/shared/amount.tsx`. Gamla `dashboard-skeleton.tsx` borttagen;
+  översikten laddar med `DashboardPageSkeleton` som har samma form.
+
 ## 2026-11-08 — Designlabb i `/sandbox`
 
 - Gamla sandlådan (jämförelse av utgiftsformulär) ersatt med ett designlabb:

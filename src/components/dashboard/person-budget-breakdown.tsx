@@ -2,6 +2,7 @@
 
 import { ComponentErrorBoundary } from '@/components/error/component-error-boundary'
 import { formatCurrency } from '@/lib/utils/formatters'
+import { Amount } from '@/components/shared/amount'
 import { cn } from '@/lib/utils/cn'
 
 interface PersonBudgetBreakdownProps {
@@ -30,7 +31,7 @@ function PersonRow({ name, spent, budget, variant }: PersonRowProps) {
   const initial = (name?.[0] || '?').toUpperCase()
 
   return (
-    <div className="px-4 py-3.5 border-b border-border last:border-b-0">
+    <div className="px-4 py-3 border-b border-surface-line last:border-b-0">
       <div className="flex items-center gap-3">
         <div
           className={cn(
@@ -43,14 +44,10 @@ function PersonRow({ name, spent, budget, variant }: PersonRowProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-3">
             <span className="font-medium text-sm tracking-tight">{name}</span>
-            <span
-              className={cn(
-                'font-serif-kpi text-[15px]',
-                budget > 0 && isOver ? 'text-destructive' : 'text-foreground'
-              )}
-            >
-              {budget > 0 ? formatCurrency(remaining) : formatCurrency(spent)}
-            </span>
+            <Amount
+              value={budget > 0 ? remaining : spent}
+              className={cn('text-[14px]', budget > 0 && isOver ? 'text-destructive' : 'text-foreground')}
+            />
           </div>
           <div className="flex items-baseline justify-between gap-3 mt-0.5">
             <span className="text-[11px] text-muted-foreground">
@@ -61,9 +58,9 @@ function PersonRow({ name, spent, budget, variant }: PersonRowProps) {
             </span>
           </div>
           {budget > 0 && (
-            <div className="mt-2 h-1 bg-secondary rounded-full overflow-hidden">
+            <div className="mt-2 h-1 bg-surface-line rounded-full overflow-hidden">
               <div
-                className={cn('h-full rounded-full transition-all duration-500', isOver ? 'bg-destructive' : barBgClass)}
+                className={cn('h-full rounded-full transition-[width] duration-500', isOver ? 'bg-destructive' : barBgClass)}
                 style={{ width: `${percent}%` }}
               />
             </div>
@@ -84,10 +81,10 @@ function PersonBudgetBreakdownContent({
 }: PersonBudgetBreakdownProps) {
   return (
     <section>
-      <div className="flex items-baseline justify-between pb-3">
-        <h2 className="font-serif text-[20px] font-medium tracking-tight">Per person</h2>
+      <div className="flex items-baseline justify-between pb-2">
+        <h2 className="px-1 text-[13px] font-medium">Per person</h2>
       </div>
-      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+      <div className="rounded-[24px] bg-surface overflow-hidden">
         <PersonRow name={userName} spent={userSpent} budget={userBudget} variant="user" />
         <PersonRow name={partnerName} spent={partnerSpent} budget={partnerBudget} variant="partner" />
       </div>

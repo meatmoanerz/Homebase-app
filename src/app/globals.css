@@ -28,6 +28,14 @@
   --hb-amanda: #c8826d;
   --hb-amanda-soft: #ebd3c8;
 
+  /* Flat surfaces (overview blocks): solid hex, not opacity on a variable,
+     since Capacitor renders var-based opacity unreliably */
+  --surface: #ebe4da;
+  --surface-hover: #e4dbcf;
+  --surface-line: #dfd5c7;
+  /* Hero slab: the one dark block on the overview */
+  --hero-slab: #2a2420;
+
   /* Nav: warm dark, not pure black */
   --hb-nav: #3d3128;
   --hb-nav-foreground: #f4ede3;
@@ -89,6 +97,11 @@
   --hb-tim-soft: #1e2f3d;
   --hb-amanda: #d59986;
   --hb-amanda-soft: #3d2820;
+
+  --surface: #27221c;
+  --surface-hover: #2e2822;
+  --surface-line: #352e27;
+  --hero-slab: #322a23;
 
   /* Nav in dark mode - slightly lighter than bg */
   --hb-nav: #2a2420;
@@ -166,6 +179,11 @@
   --color-hb-tim-soft: var(--hb-tim-soft);
   --color-hb-amanda: var(--hb-amanda);
   --color-hb-amanda-soft: var(--hb-amanda-soft);
+
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-line: var(--surface-line);
+  --color-hero-slab: var(--hero-slab);
 
   --color-hb-nav: var(--hb-nav);
   --color-hb-nav-foreground: var(--hb-nav-foreground);
