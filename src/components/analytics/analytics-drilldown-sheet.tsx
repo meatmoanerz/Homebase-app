@@ -13,6 +13,7 @@ import { relativeChange, type AnalyticsRow } from '@/lib/analytics/analytics'
 import { getBudgetStatus, budgetStatusBarClass } from '@/lib/utils/budget-status'
 import { cn } from '@/lib/utils/cn'
 import type { ExpenseWithCategory } from '@/types'
+import { Amount } from '@/components/shared/amount'
 
 export interface DrilldownData {
   title: string
@@ -185,7 +186,7 @@ export function AnalyticsDrilldownSheet({ data, onOpenChange, onSelectPeriod }: 
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <div className="font-serif text-[14px] font-medium">{formatCurrency(r.value)}</div>
+                            <div className="font-serif-kpi text-[14px] font-medium"><Amount value={r.value} /></div>
                             {r.value !== r.expense.amount && (
                               <div className="text-[10px] text-muted-foreground">av {formatCurrency(r.expense.amount)}</div>
                             )}

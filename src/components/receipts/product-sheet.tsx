@@ -10,6 +10,7 @@ import { formatChange } from '@/lib/analytics/format'
 import { PRODUCT_GROUPS, basisLabel, perLabel, purchaseLabel, type ProductStat } from '@/lib/receipts/receipt-analytics'
 import { productLines, useSetProductGroup } from '@/hooks/use-receipts'
 import { cn } from '@/lib/utils/cn'
+import { Amount } from '@/components/shared/amount'
 
 const shortDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
 
@@ -216,7 +217,7 @@ export function ProductSheet({
                       </span>
                     </span>
                     <span className="text-right shrink-0">
-                      <span className="font-serif font-medium">{formatCurrency(p.total)}</span>
+                      <span className="font-serif-kpi font-medium"><Amount value={p.total} /></span>
                       {p.price != null && (p.quantity !== 1 || product.basis !== 'pack') && (
                         <span className="block text-[10px] text-muted-foreground">{formatPrice(p.price)}{per}</span>
                       )}

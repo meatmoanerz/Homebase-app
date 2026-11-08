@@ -78,7 +78,7 @@ function MealPlanView({ id }: { id: string }) {
       <Summary plan={plan} />
 
       <section className="space-y-2">
-        <h2 className="font-serif text-[19px] font-medium tracking-tight px-1">Middagar</h2>
+        <h2 className="text-[13px] font-medium px-1">Middagar</h2>
         <div className="grid gap-2 sm:grid-cols-2">
           {plan.dishes.map((dish) => (
             <DishCard key={dish.id} dish={dish} onOpen={() => setOpenDishId(dish.id)} />
@@ -106,11 +106,11 @@ function Summary({ plan }: { plan: MealPlan }) {
   const dinners = plan.dishes.length
   const boxes = plan.dishes.reduce((s, d) => s + Number(d.lunchbox_portions), 0)
   return (
-    <section className="bg-card border border-border rounded-3xl px-5 py-5 md:px-6 shadow-sm">
+    <section className="bg-card rounded-3xl px-5 py-5 md:px-6 shadow-sm">
       <div className="label-caps text-muted-foreground">
         {[plan.store?.name, `vecka ${plan.iso_week}`].filter(Boolean).join(' · ')}
       </div>
-      <h1 className="font-serif-hero text-[32px] md:text-[38px] leading-[1.1] mt-1">
+      <h1 className="text-[30px] md:text-[36px] font-semibold leading-[1.1] tracking-tight mt-1 text-balance">
         {dinners} middagar{boxes > 0 ? `, ${boxes} matlådor` : ''}
       </h1>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">

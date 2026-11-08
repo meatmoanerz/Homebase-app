@@ -61,6 +61,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import type { BudgetWithItems, Category, BudgetItem, BudgetItemWithCategory } from '@/types'
 import { createClient } from '@/lib/supabase/client'
+import { Amount } from '@/components/shared/amount'
 
 interface BudgetFormProps {
   existingBudget?: BudgetWithItems
@@ -1547,12 +1548,12 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="p-3 rounded-lg bg-muted/50">
                   <p className="text-muted-foreground text-xs">Förbrukning</p>
-                  <p className="font-semibold">{formatCurrency(totalConsumption)}</p>
+                  <p className="font-serif-kpi font-semibold"><Amount value={totalConsumption} /></p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">Allt ni köper i perioden</p>
                 </div>
                 <div className="p-3 rounded-lg bg-success/10">
                   <p className="text-muted-foreground text-xs">Sparande</p>
-                  <p className="font-semibold text-success">{formatCurrency(totalSavings)}</p>
+                  <p className="font-serif-kpi font-semibold text-success"><Amount value={totalSavings} /></p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">Inkl. amortering</p>
                 </div>
               </div>
@@ -1561,7 +1562,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
               <div className={cn('grid gap-3 text-sm', user?.ccm_enabled && totalCCM > 0 ? 'grid-cols-2' : 'grid-cols-1')}>
                 <div className="p-3 rounded-lg bg-muted/50">
                   <p className="text-muted-foreground text-xs">Dras från kontot</p>
-                  <p className="font-semibold">{formatCurrency(totalCashflow)}</p>
+                  <p className="font-serif-kpi font-semibold"><Amount value={totalCashflow} /></p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     {totalInvoice > 0 ? `Varav kortfaktura ${formatCurrency(totalInvoice)}` : 'Räkningar och köp'}
                   </p>
@@ -1573,7 +1574,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
                       <CreditCard className="w-3.5 h-3.5 text-hb-terracotta shrink-0" />
                       <p className="text-muted-foreground text-xs">Nästa kortfaktura</p>
                     </div>
-                    <p className="font-semibold text-hb-terracotta">{formatCurrency(totalCCM)}</p>
+                    <p className="font-serif-kpi font-semibold text-hb-terracotta"><Amount value={totalCCM} /></p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Dras nästa månad</p>
                   </div>
                 )}
@@ -1659,8 +1660,8 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           {/* What each of you has left, always in view while entering costs */}
           {hasPartner && (
             <div className="mb-2 flex justify-between gap-3 rounded-xl bg-hb-nav text-hb-nav-foreground px-4 py-2 text-xs shadow-lg">
-              <span>{userName} kvar <span className={cn('font-bold text-sm tabular-nums', userRemaining < 0 && 'text-red-300')}>{formatCurrency(userRemaining)}</span></span>
-              <span>{partnerName} kvar <span className={cn('font-bold text-sm tabular-nums', partnerRemaining < 0 && 'text-red-300')}>{formatCurrency(partnerRemaining)}</span></span>
+              <span>{userName} kvar <span className={cn('font-serif-kpi font-bold text-sm tabular-nums', userRemaining < 0 && 'text-red-300')}><Amount value={userRemaining} /></span></span>
+              <span>{partnerName} kvar <span className={cn('font-serif-kpi font-bold text-sm tabular-nums', partnerRemaining < 0 && 'text-red-300')}><Amount value={partnerRemaining} /></span></span>
             </div>
           )}
           <div className={cn(

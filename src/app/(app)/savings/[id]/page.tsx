@@ -35,6 +35,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { GoalCategory } from '@/types'
+import { Amount } from '@/components/shared/amount'
 
 const goalCategoryIcons: Record<GoalCategory, string> = {
   emergency: '🛡️',
@@ -171,7 +172,7 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
           <div className="bg-secondary p-6">
             <div className="text-center mb-4">
               <p className="text-sm text-muted-foreground mb-1">Sparat</p>
-              <p className="text-4xl font-bold text-hb-cognac">{formatCurrency(totalSaved)}</p>
+              <p className="font-serif-kpi text-4xl font-bold text-hb-cognac"><Amount value={totalSaved} /></p>
               {targetAmount > 0 && (
                 <p className="text-sm text-muted-foreground mt-1">
                   av {formatCurrency(targetAmount)}
@@ -207,7 +208,7 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Kvar att spara</p>
-                  <p className="font-semibold">{formatCurrency(remaining)}</p>
+                  <p className="font-serif-kpi font-semibold"><Amount value={remaining} /></p>
                 </div>
               </div>
 
@@ -238,7 +239,7 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Behövs/mån</p>
-                    <p className="font-semibold">{formatCurrency(monthlySavingsNeeded)}</p>
+                    <p className="font-serif-kpi font-semibold"><Amount value={monthlySavingsNeeded} /></p>
                   </div>
                 </div>
               )}
@@ -287,7 +288,7 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
                   </div>
                   <span className="font-medium">{user1Name}</span>
                 </div>
-                <span className="font-semibold">{formatCurrency(goal.starting_balance_user1)}</span>
+                <span className="font-serif-kpi font-semibold"><Amount value={goal.starting_balance_user1} /></span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-hb-sand-deep/10">
                 <div className="flex items-center gap-2">
@@ -296,7 +297,7 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
                   </div>
                   <span className="font-medium">{user2Name}</span>
                 </div>
-                <span className="font-semibold">{formatCurrency(goal.starting_balance_user2)}</span>
+                <span className="font-serif-kpi font-semibold"><Amount value={goal.starting_balance_user2} /></span>
               </div>
               {unallocated > 0 && (
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
@@ -306,7 +307,7 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
                     </div>
                     <span className="font-medium">Redan sparat (ej fördelat)</span>
                   </div>
-                  <span className="font-semibold">{formatCurrency(unallocated)}</span>
+                  <span className="font-serif-kpi font-semibold"><Amount value={unallocated} /></span>
                 </div>
               )}
             </CardContent>

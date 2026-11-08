@@ -23,6 +23,7 @@ import { calculatePaymentSplit, getAssignmentLabel } from '@/lib/utils/ccm-split
 import { useCreditCards, type CreditCard as CreditCardType } from '@/hooks/use-credit-cards'
 import { groupExpensesByCardAndPeriod, getInvoicePaymentDate, getCardInvoicePeriod, sumCardExpenses } from '@/lib/utils/credit-cards'
 import { CreditCardDialog } from '@/components/ccm/credit-card-dialog'
+import { Amount } from '@/components/shared/amount'
 
 
 
@@ -178,7 +179,7 @@ function InvoicePeriodCard({ card, period, expenses, invoice, user, partner, onD
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-lg font-bold text-hb-terracotta">{formatCurrency(actualAmount)}</p>
+                  <p className="font-serif-kpi text-lg font-bold text-hb-terracotta"><Amount value={actualAmount} /></p>
                 )}
 
                 {/* Warning if registered > actual */}
@@ -200,11 +201,11 @@ function InvoicePeriodCard({ card, period, expenses, invoice, user, partner, onD
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-3 rounded-lg bg-white dark:bg-card shadow-sm">
                       <p className="text-xs text-muted-foreground">{user.first_name || 'Du'}</p>
-                      <p className="text-lg font-bold text-hb-cognac">{formatCurrency(paymentSplit.userAmount)}</p>
+                      <p className="font-serif-kpi text-lg font-bold text-hb-cognac"><Amount value={paymentSplit.userAmount} /></p>
                     </div>
                     <div className="p-3 rounded-lg bg-white dark:bg-card shadow-sm">
                       <p className="text-xs text-muted-foreground">{partner.first_name || 'Partner'}</p>
-                      <p className="text-lg font-bold text-hb-cognac">{formatCurrency(paymentSplit.partnerAmount)}</p>
+                      <p className="font-serif-kpi text-lg font-bold text-hb-cognac"><Amount value={paymentSplit.partnerAmount} /></p>
                     </div>
                   </div>
                   {Math.round(paymentSplit.unregisteredDifference) >= 1 && (
@@ -381,7 +382,7 @@ function CreditCardSection({
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-2">
           <div className="text-right">
-            <p className="font-bold text-hb-terracotta">{formatCurrency(unpaidTotal)}</p>
+            <p className="font-serif-kpi font-bold text-hb-terracotta"><Amount value={unpaidTotal} /></p>
             <p className="text-[10px] text-muted-foreground">obetalt</p>
           </div>
           <ChevronDown className={cn('w-5 h-5 text-muted-foreground transition-transform', expanded && 'rotate-180')} />
@@ -631,12 +632,12 @@ export default function CCMDashboardPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
       >
-        <Card className="border-0 shadow-sm bg-secondary/60">
+        <Card className="dark slab">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Obetalt på kreditkort</p>
-                <p className="text-2xl font-bold text-hb-terracotta">{formatCurrency(totalUnpaid)}</p>
+                <p className="font-serif-kpi text-[32px] leading-tight text-hb-terracotta"><Amount value={totalUnpaid} /></p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {ccmExpenses.length} {ccmExpenses.length === 1 ? 'utgift' : 'utgifter'} totalt · {formatCurrency(totalCCM)}
                 </p>

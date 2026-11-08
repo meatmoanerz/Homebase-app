@@ -17,13 +17,13 @@ import { cn } from "@/lib/utils/cn"
  *  link      → text link style
  */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.97]",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium transition-[opacity,transform,background-color,color,border-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.97]",
   {
     variants: {
       variant: {
-        // Dark warm — main CTA
+        // Cognac — main CTA (Platt mono: --primary is cognac)
         default:
-          "bg-hb-nav text-hb-nav-foreground hover:opacity-90 shadow-sm",
+          "bg-hb-cognac text-hb-nav hover:opacity-90",
         // Cognac — accent CTA
         cognac:
           "bg-hb-cognac text-hb-nav hover:opacity-90 shadow-sm",

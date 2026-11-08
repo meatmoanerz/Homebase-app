@@ -17,6 +17,7 @@ import {
   type Trend,
 } from '@/lib/analytics/forecast'
 import { cn } from '@/lib/utils/cn'
+import { Amount } from '@/components/shared/amount'
 
 export type ForecastHorizon = 3 | 12
 
@@ -79,7 +80,7 @@ export function AnalyticsForecastView({
 
   if (forecast.historyPeriods.length < 2) {
     return (
-      <div className="bg-card border border-border rounded-3xl p-6 text-center shadow-sm">
+      <div className="bg-card rounded-3xl p-6 text-center shadow-sm">
         <Activity className="w-8 h-8 mx-auto text-muted-foreground/50 mb-3" />
         <p className="font-medium">För lite historik för en prognos</p>
         <p className="text-sm text-muted-foreground mt-1">Prognosen behöver minst två hela månader med utgifter.</p>
@@ -93,10 +94,10 @@ export function AnalyticsForecastView({
       <motion.section
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border border-border rounded-3xl px-5 py-5 md:px-6 shadow-sm"
+        className="dark slab px-5 py-5 md:px-6"
       >
         <div className="label-caps text-muted-foreground capitalize">{formatPeriodShort(current.period, true)} landar på</div>
-        <div className="font-serif-hero text-[40px] md:text-[46px] leading-[1.05] mt-1">~{formatCurrency(current.spend)}</div>
+        <div className="font-serif-hero text-[40px] md:text-[46px] leading-[1.05] mt-1"><Amount value={current.spend} prefix="~" /></div>
         <div className="text-[12px] text-muted-foreground mt-1">
           troligen {formatCurrency(current.low)} – {formatCurrency(current.high)} · {formatCurrency(current.actual)} spenderat hittills
         </div>
@@ -126,10 +127,10 @@ export function AnalyticsForecastView({
       </motion.section>
 
       {/* Chart */}
-      <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
+      <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>
-            <h2 className="font-serif text-[19px] font-medium tracking-tight">Framåt</h2>
+            <h2 className="text-[13px] font-medium">Framåt</h2>
             <p className="text-[11px] text-muted-foreground mt-0.5">6 månader bakåt, {horizon} framåt</p>
           </div>
           <div className="flex gap-0.5 bg-secondary rounded-full p-0.5 text-[12px] shrink-0">
@@ -160,8 +161,8 @@ export function AnalyticsForecastView({
       </section>
 
       {/* Trends */}
-      <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
-        <h2 className="font-serif text-[19px] font-medium tracking-tight">Trender</h2>
+      <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
+        <h2 className="text-[13px] font-medium">Trender</h2>
         <p className="text-[11px] text-muted-foreground mt-0.5">
           Kategorier som stadigt ökar eller minskar månad för månad
         </p>
@@ -198,9 +199,9 @@ export function AnalyticsForecastView({
 
       {/* Per-category forecast for next month */}
       {future[0] && (
-        <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
+        <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
           <div className="flex items-baseline justify-between gap-3">
-            <h2 className="font-serif text-[19px] font-medium tracking-tight capitalize">{formatPeriodShort(future[0].period, true)}</h2>
+            <h2 className="text-[13px] font-medium capitalize">{formatPeriodShort(future[0].period, true)}</h2>
             <span className="text-xs text-muted-foreground">~{formatCurrency(future[0].spend)}</span>
           </div>
           <p className="text-[11px] text-muted-foreground mt-0.5">Prognos per kategori</p>
@@ -231,7 +232,7 @@ export function AnalyticsForecastView({
 
 function Tile({ label, value, tone }: { label: string; value: string; tone?: 'good' | 'bad' }) {
   return (
-    <div className="bg-card border border-border rounded-2xl px-3 py-2.5 shadow-sm">
+    <div className="bg-card rounded-2xl px-3 py-2.5 shadow-sm">
       <div className="text-[11px] text-muted-foreground truncate">{label}</div>
       <div className={cn('font-serif-kpi text-[14px] md:text-[16px] leading-tight mt-0.5 break-words', tone === 'good' && 'text-hb-green', tone === 'bad' && 'text-destructive')}>
         {value}
@@ -280,7 +281,7 @@ function CategoryGroup({
                   {showRange && ` · ${formatCurrency(c.ahead[0].low)}–${formatCurrency(c.ahead[0].high)}`}
                 </span>
               </span>
-              <span className="font-serif text-[15px] font-medium shrink-0">{formatCurrency(c.ahead[0].value)}</span>
+              <span className="font-serif-kpi text-[15px] font-medium shrink-0"><Amount value={c.ahead[0].value} /></span>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
             </button>
           </li>
@@ -375,11 +376,11 @@ function CategoryForecastSheet({ category, onOpenChange }: { category: CategoryF
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-secondary/40 rounded-2xl px-3 py-2.5">
               <div className="text-[11px] text-muted-foreground">Nästa månad</div>
-              <div className="font-serif-kpi text-[20px] mt-0.5">~{formatCurrency(category.ahead[0]?.value ?? 0)}</div>
+              <div className="font-serif-kpi text-[20px] mt-0.5"><Amount value={category.ahead[0]?.value ?? 0} prefix="~" /></div>
             </div>
             <div className="bg-secondary/40 rounded-2xl px-3 py-2.5">
               <div className="text-[11px] text-muted-foreground">Snitt historik</div>
-              <div className="font-serif-kpi text-[20px] mt-0.5">{formatCurrency(category.average)}</div>
+              <div className="font-serif-kpi text-[20px] mt-0.5"><Amount value={category.average} /></div>
             </div>
           </div>
           {category.trend ? (

@@ -93,7 +93,7 @@ function MealsOverview() {
       )}
 
       {visible.length === 0 ? (
-        <div className="bg-card border border-border rounded-3xl p-8 md:p-12 text-center shadow-sm">
+        <div className="bg-card rounded-3xl p-8 md:p-12 text-center shadow-sm">
           <div className="w-14 h-14 mx-auto rounded-2xl bg-hb-cognac/10 grid place-items-center mb-5">
             <UtensilsCrossed className="w-7 h-7 text-hb-cognac" />
           </div>

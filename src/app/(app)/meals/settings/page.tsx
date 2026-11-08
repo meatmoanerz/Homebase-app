@@ -226,7 +226,7 @@ function MealSettingsForm({ initial, inherited }: { initial: SettingsForm; inher
 
 function Card({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm space-y-3">
+    <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm space-y-3">
       <div>
         <h2 className="font-serif text-[18px] font-medium tracking-tight">{title}</h2>
         {description && <p className="text-[12px] text-muted-foreground mt-0.5">{description}</p>}

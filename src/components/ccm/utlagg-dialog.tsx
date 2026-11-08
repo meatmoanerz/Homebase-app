@@ -18,6 +18,7 @@ import { format } from 'date-fns'
 import { HandCoins, Loader2, Minus, Plus, Trash2, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { ExpenseWithCategory } from '@/types'
+import { Amount } from '@/components/shared/amount'
 
 export interface UtlaggSplit {
   userShare: number
@@ -207,7 +208,7 @@ export function UtlaggSplitEditor({
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Utlägg (utanför budget)</span>
-            <span className="font-serif font-medium text-hb-cognac-deep">{formatCurrency(swishAmount)}</span>
+            <span className="font-serif-kpi font-medium text-hb-cognac-deep"><Amount value={swishAmount} /></span>
           </div>
         </div>
       )}

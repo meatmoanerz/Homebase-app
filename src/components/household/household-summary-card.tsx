@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils/cn'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { drawSummaryImage, shareImage, type SummaryImageInput } from '@/lib/household/share-image'
 import type { SharedAccountSummary } from '@/lib/household/shared-account'
+import { Amount } from '@/components/shared/amount'
 
 interface HouseholdSummaryCardProps {
   summary: SharedAccountSummary
@@ -97,7 +98,7 @@ export function HouseholdSummaryCard({
             {transfers.map((t) => (
               <div key={t.label} className="flex justify-between gap-3">
                 <span>{t.label}</span>
-                <span className="font-semibold tabular-nums">{formatCurrency(t.amount)}</span>
+                <span className="font-serif-kpi font-semibold tabular-nums"><Amount value={t.amount} /></span>
               </div>
             ))}
           </div>

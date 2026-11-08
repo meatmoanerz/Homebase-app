@@ -90,7 +90,7 @@ export function ReceiptUploadButton({ onSaved, className }: ReceiptUploadButtonP
       <button
         type="button"
         onClick={() => setHelpOpen(true)}
-        className="flex items-center gap-1.5 rounded-2xl border border-border bg-card px-3 text-[12px] text-muted-foreground"
+        className="flex items-center gap-1.5 rounded-2xl bg-card px-3 text-[12px] text-muted-foreground"
       >
         <Share className="w-4 h-4" />
         Från Kivra/ICA

@@ -69,6 +69,15 @@ igen och varje appstart väntar på en kall serverfunktion plus auth-anrop —
 - Hooks före tidiga `return` — en `if (isLoading) return …` ovanför en
   `useState`/`useMemo` kraschar sidan när datan kommer.
 
+### Tailwind v4: `var(--font-*)` i egen CSS fungerar inte
+
+Tokens i `@theme inline` skrivs **inte** ut som CSS-variabler. En egen regel med
+`font-family: var(--font-mono)` (eller `--font-serif`) pekar därför på
+ingenting och ärver bara föräldern, utan fel. Tailwind skriver dessutom om
+`var(--font-geist-mono), …` till `var(--font-mono)` när värdet matchar en
+token. Använd `@apply font-mono!;` i egna klasser. (Så hade `.font-serif`
+aldrig visat Fraunces.)
+
 ### Tailwind v4 dark mode
 
 `globals.css` måste innehålla:

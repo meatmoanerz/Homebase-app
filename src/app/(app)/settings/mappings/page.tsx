@@ -74,7 +74,7 @@ export default function MappingsSettingsPage() {
       </div>
 
       {/* Explainer */}
-      <div className="bg-card border border-border rounded-2xl p-4 text-xs text-muted-foreground leading-relaxed flex gap-2.5">
+      <div className="bg-card rounded-2xl p-4 text-xs text-muted-foreground leading-relaxed flex gap-2.5">
         <Sparkles className="w-4 h-4 text-hb-cognac flex-shrink-0 mt-0.5" />
         <p>
           När du importerar bankfiler matchas varje transaktion mot dessa regler.
@@ -87,7 +87,7 @@ export default function MappingsSettingsPage() {
 
       {/* Search + add */}
       <div className="flex gap-2">
-        <div className="flex items-center gap-2.5 bg-card border border-border rounded-xl px-3.5 py-2.5 flex-1">
+        <div className="flex items-center gap-2.5 bg-card rounded-xl px-3.5 py-2.5 flex-1">
           <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
           <input
             type="text"
@@ -148,11 +148,11 @@ export default function MappingsSettingsPage() {
       {isLoading ? (
         <div className="text-sm text-muted-foreground px-1">Laddar…</div>
       ) : filtered.length === 0 ? (
-        <div className="bg-card border border-border rounded-2xl px-4 py-8 text-center text-sm text-muted-foreground shadow-sm">
+        <div className="bg-card rounded-2xl px-4 py-8 text-center text-sm text-muted-foreground shadow-sm">
           {search ? `Inga regler matchar "${search}"` : 'Inga regler ännu'}
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-card rounded-2xl overflow-hidden shadow-sm">
           {filtered.map((m) => (
             <MappingRow
               key={m.id}
@@ -362,7 +362,7 @@ function AddMappingForm({
   const valid = pattern.trim().length > 0 && categoryId
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-4 space-y-2.5">
+    <div className="bg-card rounded-2xl p-4 space-y-2.5">
       <input
         type="text"
         value={pattern}

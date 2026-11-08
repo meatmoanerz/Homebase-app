@@ -5,6 +5,7 @@ import { BottomSheet } from '@/components/shared/bottom-sheet'
 import { formatCurrency, formatDate } from '@/lib/utils/formatters'
 import { displayName, isWeighed, productGroup, quantityLabel, type ExpenseLike, type ReceiptHead, type ReceiptLine } from '@/lib/receipts/receipt-analytics'
 import { cn } from '@/lib/utils/cn'
+import { Amount } from '@/components/shared/amount'
 
 interface ReceiptSheetProps {
   receipt: ReceiptHead | null
@@ -42,7 +43,7 @@ export function ReceiptSheet({ receipt, lines, matchedExpense, onOpenChange, onS
           <div className="flex items-end justify-between">
             <div>
               <div className="label-caps text-muted-foreground">Totalt</div>
-              <div className="font-serif-hero text-[34px] leading-none mt-1">{formatCurrency(Number(receipt.total_amount))}</div>
+              <div className="font-serif-hero text-[34px] leading-none mt-1"><Amount value={Number(receipt.total_amount)} /></div>
             </div>
             <div
               className={cn(

@@ -19,6 +19,7 @@ import { getBudgetStatus, budgetStatusBarClass } from '@/lib/utils/budget-status
 import type { TemporaryBudgetWithCategories } from '@/types'
 import { sumBudgetSplit } from '@/lib/utils/budget-split'
 import { useHouseholdEconomy } from '@/hooks/use-household-economy'
+import { Amount } from '@/components/shared/amount'
 
 export default function BudgetListPage() {
   const { data: user } = useUser()
@@ -79,7 +80,7 @@ export default function BudgetListPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="bg-card border border-border rounded-2xl py-10 text-center shadow-sm"
+          className="bg-card rounded-2xl py-10 text-center shadow-sm"
         >
           <div className="w-12 h-12 mx-auto rounded-xl bg-hb-cognac/10 grid place-items-center mb-3">
             <Calendar className="w-6 h-6 text-hb-cognac" />
@@ -97,7 +98,7 @@ export default function BudgetListPage() {
         </motion.div>
       ) : (
         <div className="space-y-2.5">
-          <h2 className="font-serif text-[20px] font-medium tracking-tight pb-1">
+          <h2 className="text-[13px] font-medium pb-1">
             Månadsbudgetar
           </h2>
           {activeBudgets.map((budget, index) => (
@@ -120,7 +121,7 @@ export default function BudgetListPage() {
       {/* Projektbudgetar */}
       <section className="space-y-2.5">
         <div className="flex items-baseline justify-between pt-2">
-          <h2 className="font-serif text-[20px] font-medium tracking-tight flex items-center gap-2">
+          <h2 className="text-[13px] font-medium flex items-center gap-2">
             <FolderOpen className="w-[18px] h-[18px] text-hb-cognac" />
             Projektbudgetar
           </h2>
@@ -133,7 +134,7 @@ export default function BudgetListPage() {
         </div>
 
         {!tempBudgets || tempBudgets.length === 0 ? (
-          <div className="bg-card border border-border rounded-2xl py-8 text-center shadow-sm">
+          <div className="bg-card rounded-2xl py-8 text-center shadow-sm">
             <div className="w-10 h-10 mx-auto rounded-xl bg-hb-cognac/10 grid place-items-center mb-3">
               <Target className="w-5 h-5 text-hb-cognac" />
             </div>
@@ -215,7 +216,7 @@ function BudgetCard({ budget, index, isCurrent, salaryDay, hasPartner, userName,
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.05 + index * 0.04 }}
       className={cn(
-        'bg-card border border-border rounded-2xl shadow-sm overflow-hidden',
+        'bg-card rounded-2xl shadow-sm overflow-hidden',
         isCurrent && 'ring-1 ring-hb-cognac/40'
       )}
     >
@@ -237,9 +238,7 @@ function BudgetCard({ budget, index, isCurrent, salaryDay, hasPartner, userName,
             </div>
           </div>
           <div className="text-right">
-            <div className="font-serif text-[16px] font-medium tracking-tight">
-              {formatCurrency(totalSpent)}
-            </div>
+            <div className="font-serif-kpi text-[16px] font-medium tracking-tight"><Amount value={totalSpent} /></div>
             <div className="text-[11px] text-muted-foreground">
               av {formatCurrency(budgetedExpenses)}
             </div>
@@ -292,9 +291,7 @@ function BudgetCard({ budget, index, isCurrent, salaryDay, hasPartner, userName,
               ) : (
                 <div className="flex justify-between text-[12px] text-muted-foreground">
                   <span>Kvar att spendera</span>
-                  <span className={cn('font-serif text-[15px] font-medium', isOver && 'text-destructive')}>
-                    {formatCurrency(remaining)}
-                  </span>
+                  <span className={cn('font-serif-kpi text-[15px] font-medium', isOver && 'text-destructive')}><Amount value={remaining} /></span>
                 </div>
               )}
             </div>
@@ -331,7 +328,7 @@ function PersonRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline justify-between gap-2">
           <span className="text-[13px] font-medium">{name}</span>
-          <span className={cn('font-serif text-[13px] font-medium', isOver && 'text-destructive')}>
+          <span className={cn('font-serif-kpi text-[13px] font-medium', isOver && 'text-destructive')}>
             {formatCurrency(spent)} / {formatCurrency(budget)}
           </span>
         </div>
@@ -364,7 +361,7 @@ function TemporaryBudgetCard({ budget, index }: { budget: TemporaryBudgetWithCat
       <Link
         href={`/budget/project/${budget.id}`}
         className={cn(
-          'block bg-card border border-border rounded-2xl px-4 py-3.5 shadow-sm hover:bg-secondary/30 transition-colors',
+          'block bg-card rounded-2xl px-4 py-3.5 shadow-sm hover:bg-secondary/30 transition-colors',
           isCompleted && 'opacity-70'
         )}
       >
@@ -385,7 +382,7 @@ function TemporaryBudgetCard({ budget, index }: { budget: TemporaryBudgetWithCat
 
         <div className="mt-3 flex items-baseline justify-between">
           <span className="text-[11px] text-muted-foreground">Förbrukat</span>
-          <span className={cn('font-serif text-[14px] font-medium', isOverBudget && 'text-destructive')}>
+          <span className={cn('font-serif-kpi text-[14px] font-medium', isOverBudget && 'text-destructive')}>
             {isNonSEK
               ? `${formatCurrencyAmount(convertFromSEK(budget.total_spent, budget.exchange_rate), budget.currency)} / ${formatCurrencyAmount(convertFromSEK(budget.total_budget, budget.exchange_rate), budget.currency)}`
               : `${formatCurrency(budget.total_spent)} / ${formatCurrency(budget.total_budget)}`}

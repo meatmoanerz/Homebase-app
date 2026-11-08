@@ -5,6 +5,7 @@ import { Clock } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatCurrency } from '@/lib/utils/formatters'
 import type { HouseholdModel, IncomeSplit } from '@/lib/household/economy'
+import { Amount } from '@/components/shared/amount'
 
 interface HouseholdIncomeCardProps {
   model: HouseholdModel
@@ -76,11 +77,11 @@ export function HouseholdIncomeCard({ model, split, userName, partnerName, month
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-xl bg-hb-tim-soft px-3 py-2.5">
             <div className="text-xs text-muted-foreground">{userName} fick in</div>
-            <div className="font-bold text-[17px] tabular-nums">{formatCurrency(split.userCounted)}</div>
+            <div className="font-serif-kpi font-bold text-[17px] tabular-nums"><Amount value={split.userCounted} /></div>
           </div>
           <div className="rounded-xl bg-hb-amanda-soft px-3 py-2.5">
             <div className="text-xs text-muted-foreground">{partnerName} fick in</div>
-            <div className="font-bold text-[17px] tabular-nums">{formatCurrency(split.partnerCounted)}</div>
+            <div className="font-serif-kpi font-bold text-[17px] tabular-nums"><Amount value={split.partnerCounted} /></div>
           </div>
         </div>
 

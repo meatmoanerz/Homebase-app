@@ -42,6 +42,7 @@ import { ReceiptSheet } from '@/components/receipts/receipt-sheet'
 import { ReceiptUploadButton } from '@/components/receipts/receipt-upload-button'
 import { ReceiptsPageSkeleton } from '@/components/shared/page-skeletons'
 import { cn } from '@/lib/utils/cn'
+import { Amount } from '@/components/shared/amount'
 
 type Tab = 'overview' | 'receipts' | 'products'
 type ProductSort = 'count' | 'total' | 'change'
@@ -253,7 +254,7 @@ export default function ReceiptsPage() {
   if (receipts.length === 0) {
     return (
       <div className="px-4 md:px-8 pt-2 md:pt-4 pb-4 max-w-3xl mx-auto">
-        <div className="bg-card border border-border rounded-3xl p-8 md:p-12 text-center shadow-sm mt-4">
+        <div className="bg-card rounded-3xl p-8 md:p-12 text-center shadow-sm mt-4">
           <div className="w-14 h-14 mx-auto rounded-2xl bg-hb-cognac/10 grid place-items-center mb-5">
             <Receipt className="w-7 h-7 text-hb-cognac" />
           </div>
@@ -302,10 +303,10 @@ export default function ReceiptsPage() {
           <motion.section
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-card border border-border rounded-3xl px-5 py-5 md:px-6 shadow-sm"
+            className="dark slab px-5 py-5 md:px-6"
           >
             <div className="label-caps text-muted-foreground">Handlat med kvitto</div>
-            <div className="font-serif-hero text-[40px] md:text-[46px] leading-[1.05] mt-1">{formatCurrency(stats.total)}</div>
+            <div className="font-serif-hero text-[40px] md:text-[46px] leading-[1.05] mt-1"><Amount value={stats.total} /></div>
             <div className="text-[12px] text-muted-foreground mt-1">
               {stats.count} kvitton · {formatDay(receipts[receipts.length - 1]?.purchase_date)} – {formatDay(receipts[0]?.purchase_date)}
             </div>
@@ -317,15 +318,15 @@ export default function ReceiptsPage() {
           </motion.section>
 
           {monthly.length > 1 && (
-            <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
-              <h2 className="font-serif text-[19px] font-medium tracking-tight mb-3">Per månad</h2>
+            <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
+              <h2 className="text-[13px] font-medium mb-3">Per månad</h2>
               <AnalyticsTrendChart data={monthly} height={170} seriesLabel="Kvitton" />
             </section>
           )}
 
           {insights.length > 0 && (
             <section className="space-y-2">
-              <h2 className="font-serif text-[19px] font-medium tracking-tight px-1 flex items-center gap-2">
+              <h2 className="text-[13px] font-medium px-1 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-hb-cognac" />
                 Insikter
               </h2>
@@ -337,9 +338,9 @@ export default function ReceiptsPage() {
             </section>
           )}
 
-          <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
+          <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
             <div className="flex items-baseline justify-between">
-              <h2 className="font-serif text-[19px] font-medium tracking-tight">Varugrupper</h2>
+              <h2 className="text-[13px] font-medium">Varugrupper</h2>
               <span className="text-[11px] text-muted-foreground">automatiskt utifrån varunamn</span>
             </div>
             <ul className="mt-2 -mx-1">
@@ -353,7 +354,7 @@ export default function ReceiptsPage() {
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="text-[14px] font-medium">{g.group.label}</span>
                       <span className="flex items-center gap-1">
-                        <span className="font-serif text-[15px] font-medium">{formatCurrency(g.total)}</span>
+                        <span className="font-serif-kpi text-[15px] font-medium"><Amount value={g.total} /></span>
                         <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
                       </span>
                     </div>
@@ -370,8 +371,8 @@ export default function ReceiptsPage() {
           </section>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
-              <h2 className="font-serif text-[19px] font-medium tracking-tight">Prisrörelser</h2>
+            <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
+              <h2 className="text-[13px] font-medium">Prisrörelser</h2>
               <p className="text-[11px] text-muted-foreground mt-0.5">Jämförpris (kr/kg, kr/l) eller samma artikel, mot tidigare snitt</p>
               {priceMovers.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-6 text-center">Inga tydliga prisändringar än — kräver flera köp av samma vara.</p>
@@ -383,8 +384,8 @@ export default function ReceiptsPage() {
                 </ul>
               )}
             </section>
-            <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
-              <h2 className="font-serif text-[19px] font-medium tracking-tight">Basvaror</h2>
+            <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
+              <h2 className="text-[13px] font-medium">Basvaror</h2>
               <p className="text-[11px] text-muted-foreground mt-0.5">Det du köper om och om igen</p>
               {staples.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-6 text-center">Visas när en vara köpts minst tre gånger.</p>
@@ -404,7 +405,7 @@ export default function ReceiptsPage() {
                           </span>
                         </span>
                         <span className="text-right shrink-0">
-                          <span className="block font-serif text-[15px] font-medium">{formatPrice(p.avgPrice)}</span>
+                          <span className="block font-serif-kpi text-[15px] font-medium">{formatPrice(p.avgPrice)}</span>
                           <span className="block text-[10px] text-muted-foreground">snitt{perLabel(p.basis)}</span>
                         </span>
                       </button>
@@ -416,8 +417,8 @@ export default function ReceiptsPage() {
           </div>
 
           {switches.length > 0 && (
-            <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
-              <h2 className="font-serif text-[19px] font-medium tracking-tight">Artikelbyten</h2>
+            <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
+              <h2 className="text-[13px] font-medium">Artikelbyten</h2>
               <p className="text-[11px] text-muted-foreground mt-0.5">När butiken ersatt en vara med en annan artikel av samma produkt</p>
               <ul className="mt-2 -mx-1">
                 {switches.map(({ product: p, s }) => (
@@ -458,7 +459,7 @@ export default function ReceiptsPage() {
                 <h2 className="font-serif text-[17px] font-medium tracking-tight capitalize">{formatPeriodShort(month, true)}</h2>
                 <span className="text-[12px] text-muted-foreground">{formatCurrency(list.reduce((s, r) => s + Number(r.total_amount), 0))}</span>
               </div>
-              <ul className="bg-card border border-border rounded-2xl shadow-sm divide-y divide-border overflow-hidden">
+              <ul className="bg-card rounded-2xl shadow-sm divide-y divide-border overflow-hidden">
                 {list.map((r) => {
                   const store = r.store?.chain || r.store?.name || '?'
                   return (
@@ -479,7 +480,7 @@ export default function ReceiptsPage() {
                             {matches.has(r.id) && <Link2 className="w-3 h-3 text-hb-green" aria-label="Matchad mot utgift" />}
                           </span>
                         </span>
-                        <span className="font-serif text-[15px] font-medium shrink-0">{formatCurrency(Number(r.total_amount))}</span>
+                        <span className="font-serif-kpi text-[15px] font-medium shrink-0"><Amount value={Number(r.total_amount)} /></span>
                         <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
                       </button>
                     </li>
@@ -493,7 +494,7 @@ export default function ReceiptsPage() {
 
       {tab === 'products' && (
         <div className="space-y-3">
-          <div className="flex items-center gap-2.5 bg-card border border-border rounded-xl px-3.5 py-2.5">
+          <div className="flex items-center gap-2.5 bg-card rounded-xl px-3.5 py-2.5">
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <input
               value={query}
@@ -530,7 +531,7 @@ export default function ReceiptsPage() {
               ))}
             </div>
           </div>
-          <ul className="bg-card border border-border rounded-2xl shadow-sm divide-y divide-border overflow-hidden px-3">
+          <ul className="bg-card rounded-2xl shadow-sm divide-y divide-border overflow-hidden px-3">
             {visibleProducts.slice(0, 150).map((p) => (
               <ProductRow key={p.key} product={p} onClick={() => setOpenProductKey(p.key)} showChange={sort === 'change'} spark />
             ))}
@@ -603,7 +604,7 @@ function ProductRow({ product, onClick, showChange, spark }: { product: ProductS
           <Sparkline values={prices} up={(change ?? 0) > 0} width={56} height={22} zeroBased={false} />
         )}
         <span className="text-right shrink-0 min-w-[64px]">
-          <span className="block font-serif text-[14px] font-medium">{formatPrice(product.avgPrice)}</span>
+          <span className="block font-serif-kpi text-[14px] font-medium">{formatPrice(product.avgPrice)}</span>
           {showChange && change != null ? (
             <span className={cn('block text-[11px] font-medium', change > 0.02 ? 'text-destructive' : change < -0.02 ? 'text-hb-green' : 'text-muted-foreground')}>
               {formatChange(change)}
@@ -643,7 +644,7 @@ function InsightCard({ insight }: { insight: ReceiptInsight }) {
       {insight.onClick && <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0 self-center" />}
     </>
   )
-  const cls = 'flex gap-3 bg-card border border-border rounded-2xl px-3.5 py-3 shadow-sm text-left w-full'
+  const cls = 'flex gap-3 bg-card rounded-2xl px-3.5 py-3 shadow-sm text-left w-full'
   return insight.onClick ? (
     <button type="button" onClick={insight.onClick} className={cn(cls, 'hover:bg-secondary/40 transition-colors')}>{body}</button>
   ) : (

@@ -87,7 +87,7 @@ export function ProductVariants({
       </ul>
 
       {adding ? (
-        <div className="mt-2 rounded-2xl border border-border bg-card p-3">
+        <div className="mt-2 rounded-2xl bg-card p-3">
           <div className="flex items-center gap-2 bg-secondary/50 rounded-xl px-3 py-2">
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <input
@@ -176,7 +176,7 @@ function ArticleRow({
           </span>
         </span>
         <span className="text-right shrink-0">
-          <span className="block font-serif text-[14px] font-medium">{formatPrice(a.avgPrice)}</span>
+          <span className="block font-serif-kpi text-[14px] font-medium">{formatPrice(a.avgPrice)}</span>
           <span className="block text-[10px] text-muted-foreground">snitt{per}</span>
         </span>
         <ChevronDown className={cn('w-4 h-4 text-muted-foreground/60 shrink-0 transition-transform', open && 'rotate-180')} />
@@ -286,7 +286,7 @@ function SizeEditor({ article }: { article: ArticleStat }) {
         value={unit}
         onChange={(e) => setUnit(e.target.value)}
         aria-label="Enhet"
-        className="rounded-lg border border-border bg-card px-2 py-1.5 text-[13px]"
+        className="rounded-lg bg-card px-2 py-1.5 text-[13px]"
       >
         {SIZE_UNITS.map((u) => (
           <option key={u.value} value={u.value}>{u.label}</option>

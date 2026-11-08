@@ -15,16 +15,16 @@ export interface Finding {
  */
 export const guidelineFindings: Finding[] = [
   {
-    status: 'warn',
-    title: 'Tabellsiffror bara på översikten',
+    status: 'pass',
+    title: 'Tabellsiffror i hela appen',
     detail:
-      'Översikten använder nu <Amount> med monospace och tabular-nums. Övriga vyer har kvar proportionella siffror som inte hamnar under varandra.',
-    where: 'components/shared/amount.tsx',
+      'Belopp går via <Amount> eller font-serif-kpi/hero, som nu är monospace med tabular-nums. Siffror hamnar under varandra och hoppar inte när de ändras.',
+    where: 'components/shared/amount.tsx · globals.css',
   },
   {
-    status: 'warn',
-    title: 'transition: all på knappar',
-    detail: 'Staplarna på översikten animerar nu bara width. Knappkomponenten animerar fortfarande allt.',
+    status: 'pass',
+    title: 'Inga transition: all i staplar och knappar',
+    detail: 'Staplarna animerar bara width och knappen listar opacity, transform och färger.',
     where: 'ui/button.tsx:20',
   },
   {
@@ -66,10 +66,10 @@ export const guidelineFindings: Finding[] = [
  */
 export const critiqueFindings: Finding[] = [
   {
-    status: 'warn',
-    title: 'Allt ligger i ett kort',
+    status: 'pass',
+    title: 'Allt låg i ett kort',
     detail:
-      'Översikten är omgjord: en mörk platta, resten platta block utan kant och skugga. Budget, Analys och inställningarna har fortfarande kort med skugga överallt.',
+      'Hela appen är platt: kort är en ton av bakgrunden utan kant och skugga, och varje vy har en mörk platta för sin huvudsiffra.',
   },
   {
     status: 'pass',
@@ -83,10 +83,9 @@ export const critiqueFindings: Finding[] = [
     detail: 'Borttagen. Den radiella gradienten bakom heron var ett av de tydligaste AI-mönstren.',
   },
   {
-    status: 'warn',
+    status: 'pass',
     title: 'VERSALA ETIKETTER överallt',
-    detail:
-      'label-caps på 19 ställen. När varje etikett skriker blir ingen hörd. Välj en nivå med versaler, resten i vanlig skiftläge.',
+    detail: 'label-caps är nu vanlig skiftläge i 12 px. Klassen ligger kvar så alla 19 ställen följde med.',
   },
   {
     status: 'warn',

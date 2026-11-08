@@ -20,6 +20,7 @@ import { ArrowLeft, Banknote, Pencil, Trash2, Copy, ChevronDown, Check } from 'l
 import { cn } from '@/lib/utils/cn'
 import { toast } from 'sonner'
 import type { HouseholdMonthlyIncome } from '@/types'
+import { Amount } from '@/components/shared/amount'
 
 export default function MonthlyIncomePage() {
   const searchParams = useSearchParams()
@@ -295,7 +296,7 @@ function IncomeRow({ income, isLast, readonly, onEdit, onDelete, isDeleting }: I
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <span className="font-semibold">{formatCurrency(income.amount)}</span>
+        <span className="font-serif-kpi font-semibold"><Amount value={income.amount} /></span>
         {!readonly && (
           <>
             <Button

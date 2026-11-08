@@ -5,6 +5,7 @@ import { ComponentErrorBoundary } from '@/components/error/component-error-bound
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { formatCurrency } from '@/lib/utils/formatters'
 import type { ExpenseWithCategory } from '@/types'
+import { Amount } from '@/components/shared/amount'
 
 interface ExpenseChartProps {
   expenses: ExpenseWithCategory[]
@@ -85,7 +86,7 @@ function ExpenseChartContent({ expenses }: ExpenseChartProps) {
           ))}
           <div className="flex items-center justify-between text-sm pt-2 border-t">
             <span className="font-medium">Totalt</span>
-            <span className="font-bold">{formatCurrency(total)}</span>
+            <span className="font-serif-kpi font-bold"><Amount value={total} /></span>
           </div>
         </div>
       </CardContent>

@@ -71,7 +71,7 @@ export function MealPromptCard({
 
   if (!settings) {
     return (
-      <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
+      <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
         <div className="flex items-start gap-3">
           <Sparkles className="w-5 h-5 text-hb-cognac shrink-0 mt-0.5" />
           <div className="min-w-0">
@@ -90,7 +90,7 @@ export function MealPromptCard({
   }
 
   return (
-    <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
+    <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 className="font-serif text-[17px] font-medium tracking-tight">Ny matsedel för v{week.week}</h2>

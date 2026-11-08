@@ -37,7 +37,7 @@ export function HouseholdModelPicker({ value, onChange, examples, disabled }: Ho
               'w-full flex items-start gap-3 p-3.5 rounded-xl text-left transition-colors disabled:opacity-60',
               selected
                 ? 'border-2 border-hb-cognac-deep bg-hb-sand'
-                : 'border border-border bg-card hover:bg-muted/40 m-px'
+                : 'bg-card hover:bg-muted/40 m-px'
             )}
           >
             <span

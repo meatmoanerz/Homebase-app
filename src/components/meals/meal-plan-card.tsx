@@ -19,14 +19,14 @@ export function MealPlanCard({ plan, muted = false }: { plan: MealPlanSummary; m
     <Link
       href={`/meals/${plan.id}`}
       className={cn(
-        'block bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm hover:border-hb-cognac/50 transition-colors',
+        'block bg-card rounded-3xl p-4 md:p-5 shadow-sm hover:border-hb-cognac/50 transition-colors',
         muted && 'bg-card/60 shadow-none'
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-serif text-[20px] font-medium tracking-tight">{plan.name}</h3>
+            <h3 className="text-[13px] font-medium">{plan.name}</h3>
             {plan.is_new && !muted && (
               <span className="rounded-full bg-hb-cognac/15 text-hb-cognac-deep px-2 py-0.5 text-[11px] font-semibold">Ny</span>
             )}

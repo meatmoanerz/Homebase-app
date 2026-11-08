@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/utils/formatters'
 import { formatChange } from '@/lib/analytics/format'
 import { relativeChange, type CategoryGroup, type CategoryTotal } from '@/lib/analytics/analytics'
 import { cn } from '@/lib/utils/cn'
+import { Amount } from '@/components/shared/amount'
 
 const TABS: Array<{ value: CategoryGroup; label: string }> = [
   { value: 'Variable', label: 'Rörliga' },
@@ -37,9 +38,9 @@ export function AnalyticsCategoryList({ categories, comparisonLabel, onSelect }:
   const shown = expanded ? visible : visible.slice(0, COLLAPSED_COUNT)
 
   return (
-    <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
+    <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="font-serif text-[19px] font-medium tracking-tight">Kategorier</h2>
+        <h2 className="text-[13px] font-medium">Kategorier</h2>
         <span className="text-xs text-muted-foreground">{formatCurrency(groupTotal)}</span>
       </div>
 
@@ -79,7 +80,7 @@ export function AnalyticsCategoryList({ categories, comparisonLabel, onSelect }:
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="text-[14px] font-medium truncate">{c.name}</span>
                     <span className="flex items-center gap-1 shrink-0">
-                      <span className="font-serif text-[15px] font-medium">{formatCurrency(c.total)}</span>
+                      <span className="font-serif-kpi text-[15px] font-medium"><Amount value={c.total} /></span>
                       <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-muted-foreground" />
                     </span>
                   </div>

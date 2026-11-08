@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils/cn'
 import { toast } from 'sonner'
 import { format, formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { Amount } from '@/components/shared/amount'
 
 type ImportMode = 'homebase' | 'bank' | 'ai'
 type Step = 'choose' | 'upload' | 'preview' | 'importing' | 'done' | 'ai-batches' | 'ai-review'
@@ -699,7 +700,7 @@ export default function ImportPage() {
           )}
 
           {!batchesLoading && batches.length === 0 && (
-            <div className="bg-card border border-border rounded-2xl p-8 text-center">
+            <div className="bg-card rounded-2xl p-8 text-center">
               <Sparkles className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
               <p className="font-medium text-sm mb-1">Inga AI-importer just nu</p>
               <p className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto">
@@ -807,7 +808,7 @@ export default function ImportPage() {
               )}
 
               {/* Row list */}
-              <div className="bg-card border border-border rounded-2xl overflow-hidden">
+              <div className="bg-card rounded-2xl overflow-hidden">
                 <div className="max-h-[60vh] overflow-y-auto">
                   {stagingRows.map((row) => {
                     const merged = getMergedRow(row)
@@ -845,7 +846,7 @@ export default function ImportPage() {
       {step === 'upload' && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           {mode === 'bank' && (
-            <div className="bg-card border border-border rounded-2xl p-4">
+            <div className="bg-card rounded-2xl p-4">
               <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                 Vilken bank?
               </div>
@@ -895,7 +896,7 @@ export default function ImportPage() {
             </button>
           )}
 
-          <div className="bg-card border border-border rounded-2xl p-4 text-xs text-muted-foreground leading-relaxed">
+          <div className="bg-card rounded-2xl p-4 text-xs text-muted-foreground leading-relaxed">
             {mode === 'bank' ? (
               <>
                 <p className="font-medium text-foreground mb-2">Rå bankfil — så funkar det</p>
@@ -947,7 +948,7 @@ export default function ImportPage() {
 
       {step === 'preview' && previewRows.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-          <div className="flex items-center justify-between bg-card border border-border rounded-2xl px-4 py-3">
+          <div className="flex items-center justify-between bg-card rounded-2xl px-4 py-3">
             <div className="flex items-center gap-2.5 min-w-0">
               <FileText className="w-5 h-5 text-hb-cognac flex-shrink-0" />
               <div className="min-w-0">
@@ -995,7 +996,7 @@ export default function ImportPage() {
             </div>
           )}
 
-          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <div className="bg-card rounded-2xl overflow-hidden">
             <div className="max-h-[60vh] overflow-y-auto">
               {previewRows.map((row, idx) => (
                 <PreviewRowItem
@@ -1023,7 +1024,7 @@ export default function ImportPage() {
 
       {/* Step: Importing */}
       {step === 'importing' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border rounded-2xl p-8 text-center">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card rounded-2xl p-8 text-center">
           <div className="w-14 h-14 mx-auto rounded-2xl bg-hb-cognac/10 grid place-items-center mb-4 animate-pulse">
             <Upload className="w-7 h-7 text-hb-cognac" />
           </div>
@@ -1036,7 +1037,7 @@ export default function ImportPage() {
 
       {/* Step: Done */}
       {step === 'done' && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-card border border-border rounded-2xl p-8 text-center">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-2xl p-8 text-center">
           <div className="w-14 h-14 mx-auto rounded-2xl bg-success/10 grid place-items-center mb-4">
             <CheckCircle2 className="w-7 h-7 text-success" />
           </div>
@@ -1191,7 +1192,7 @@ function BatchCard({
   const isExpiringSoon = !batch.pinned && expiresAt.getTime() - renderedAt < 6 * 60 * 60 * 1000
 
   return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden">
+    <div className="bg-card rounded-2xl overflow-hidden">
       <button onClick={onOpen} className="w-full px-4 py-3.5 text-left hover:bg-secondary/50 transition-colors">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -1217,9 +1218,7 @@ function BatchCard({
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
-            <span className="font-serif text-[15px] font-medium text-right">
-              {formatCurrency(batch.total_amount)}
-            </span>
+            <span className="font-serif-kpi text-[15px] font-medium text-right"><Amount value={batch.total_amount} /></span>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </div>
         </div>
@@ -1300,9 +1299,7 @@ function AiPreviewRow({
             </div>
           </div>
         </div>
-        <span className={cn('font-serif text-[15px] font-medium flex-shrink-0', row.amount < 0 && 'text-success')}>
-          {formatCurrency(row.amount)}
-        </span>
+        <span className={cn('font-serif-kpi text-[15px] font-medium flex-shrink-0', row.amount < 0 && 'text-success')}><Amount value={row.amount} /></span>
       </div>
 
       <div className="mt-2 flex items-center gap-2 flex-wrap">
@@ -1362,11 +1359,11 @@ function StatCard({ label, value, accent, isCurrency }: { label: string; value: 
         : 'text-foreground'
 
   return (
-    <div className="bg-card border border-border rounded-xl p-3">
+    <div className="bg-card rounded-xl p-3">
       <div className="text-[10px] uppercase tracking-[0.06em] text-muted-foreground font-semibold">
         {label}
       </div>
-      <div className={cn('font-serif text-[22px] font-medium mt-1 truncate', color)}>
+      <div className={cn('font-serif-kpi text-[22px] font-medium mt-1 truncate', color)}>
         {isCurrency ? formatCurrency(value) : value}
       </div>
     </div>
@@ -1416,9 +1413,7 @@ function PreviewRowItem({
             {row.cardholder && ` · ${row.cardholder}`}
           </div>
         </div>
-        <span className="font-serif text-[15px] font-medium flex-shrink-0">
-          {formatCurrency(row.amount)}
-        </span>
+        <span className="font-serif-kpi text-[15px] font-medium flex-shrink-0"><Amount value={row.amount} /></span>
       </div>
 
       <div className="mt-2 flex items-center gap-2 flex-wrap">

@@ -42,7 +42,8 @@ export async function drawSummaryImage(input: SummaryImageInput): Promise<Blob> 
   if (typeof document !== 'undefined' && document.fonts?.ready) await document.fonts.ready
 
   const sans = fontStack('--font-inter', 'system-ui, sans-serif')
-  const serif = fontStack('--font-fraunces', 'Georgia, serif')
+  // Headings follow the app: sans since the serif was retired (Platt mono)
+  const serif = sans
 
   const heroHeight = 16 + 18 + input.transfers.length * 30 + 12
   const rowHeight = 30

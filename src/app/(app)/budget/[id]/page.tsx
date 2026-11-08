@@ -63,6 +63,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { ExpenseEditDialog } from '@/components/expenses/expense-edit-dialog'
+import { Amount } from '@/components/shared/amount'
 
 type BudgetViewMode = 'total' | 'mine' | 'partner'
 
@@ -447,13 +448,13 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
       >
-        <Card className="border-0 shadow-sm bg-hb-nav text-hb-nav-foreground">
+        <Card className="dark slab">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-white/70 text-sm">Kvar att spendera</p>
                 <p className={cn(
-                  "text-3xl font-bold",
+                  "font-serif-kpi text-[36px] leading-tight",
                   remaining < 0 && "text-hb-terracotta"
                 )}>
                   {formatCurrency(remaining)}
@@ -489,13 +490,13 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
         <Card className="border-0 shadow-sm">
           <CardContent className="p-3 text-center">
             <p className="text-xs text-muted-foreground">Kassaflöde</p>
-            <p className="font-semibold text-sm">{formatCurrency(cashflow)}</p>
+            <p className="font-serif-kpi font-semibold text-sm"><Amount value={cashflow} /></p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-3 text-center">
             <p className="text-xs text-muted-foreground">Budgeterat</p>
-            <p className="font-semibold text-sm">{formatCurrency(totals.totalBudgeted)}</p>
+            <p className="font-serif-kpi font-semibold text-sm"><Amount value={totals.totalBudgeted} /></p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm bg-success/10">
@@ -573,7 +574,7 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
                                 </div>
                                 <span className="text-sm font-medium">{name}</span>
                               </div>
-                              <span className="text-sm font-semibold">{formatCurrency(total)}</span>
+                              <span className="font-serif-kpi text-sm font-semibold"><Amount value={total} /></span>
                             </div>
                             {incomes.map((income) => (
                               <div key={income.id} className="flex items-center justify-between text-xs text-muted-foreground ml-8">

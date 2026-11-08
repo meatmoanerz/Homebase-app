@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils/cn'
 import { getCurrentBudgetPeriod, formatPeriodDisplay } from '@/lib/utils/budget-period'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
+import { Amount } from '@/components/shared/amount'
 
 export default function LoansSettingsPage() {
   const router = useRouter()
@@ -177,7 +178,7 @@ export default function LoansSettingsPage() {
                 <Wallet className="w-4 h-4 text-hb-cognac" />
                 <span className="text-xs text-muted-foreground">Total skuld</span>
               </div>
-              <p className="text-xl font-bold text-hb-cognac">{formatCurrency(totalDebt)}</p>
+              <p className="font-serif-kpi text-xl font-bold text-hb-cognac"><Amount value={totalDebt} /></p>
             </CardContent>
           </Card>
 
@@ -187,7 +188,7 @@ export default function LoansSettingsPage() {
                 <TrendingDown className="w-4 h-4 text-hb-terracotta" />
                 <span className="text-xs text-muted-foreground">Månadskostnad</span>
               </div>
-              <p className="text-xl font-bold">{formatCurrency(totalMonthlyCost)}</p>
+              <p className="font-serif-kpi text-xl font-bold"><Amount value={totalMonthlyCost} /></p>
               <p className="text-xs text-muted-foreground mt-1">
                 {formatCurrency(totalMonthlyAmortization)} amor. + {formatCurrency(Math.round(totalMonthlyInterest))} ränta
               </p>

@@ -7,6 +7,20 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-08 — Platt mono i hela appen
+
+- Kort är platta (`--card` = ytfärgen, ingen kant, små skuggor av via
+  `--shadow-sm` m.fl.), stora hörn 24 px. Overlays (dialog, meny) har kvar
+  sina skuggor.
+- Siffror i mono: `.font-serif-kpi/-hero` är nu JetBrains Mono med
+  tabular-nums, stora belopp via `<Amount>` (litet "kr"). Serif borttagen
+  (Fraunces laddas inte längre), `label-caps` i vanlig skiftläge,
+  sektionsrubriker 13 px.
+- Mörk platta (`className="dark slab"`) för huvudsiffran på Analys,
+  Prognos, Kvitton, budgetdetalj och Kreditkort.
+- Primärknappen är cognac. `--secondary`/`--muted` ett steg mörkare så
+  spår och chips syns på de nya korten.
+
 ## 2026-11-08 — Översikten i ny stil (Platt mono)
 
 - Vald i designlabbet: 24 px hörn, cognac, siffror i monospace, platta ytor,

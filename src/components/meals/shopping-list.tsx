@@ -49,7 +49,7 @@ export function ShoppingList({ plan }: { plan: MealPlan }) {
   return (
     <section className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1">
-        <h2 className="font-serif text-[19px] font-medium tracking-tight">Inköpslista</h2>
+        <h2 className="text-[13px] font-medium">Inköpslista</h2>
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="ghost" size="sm">
             <Link href={`/shopping?plan=${plan.id}`}>
@@ -73,7 +73,7 @@ export function ShoppingList({ plan }: { plan: MealPlan }) {
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-3xl shadow-sm overflow-hidden">
+      <div className="bg-card rounded-3xl shadow-sm overflow-hidden">
         {sections.map(([section, items], idx) => (
           <div key={section} className={cn('py-1', idx > 0 && 'border-t border-border')}>
             <h3 className="label-caps text-muted-foreground px-4 pt-3 pb-1">{section}</h3>

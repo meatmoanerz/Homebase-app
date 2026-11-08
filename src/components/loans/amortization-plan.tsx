@@ -15,6 +15,7 @@ import { format, addMonths } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { ChevronDown, ChevronUp, Calendar, Coins, Info } from 'lucide-react'
 import type { LoanWithGroup } from '@/types'
+import { Amount } from '@/components/shared/amount'
 
 interface AmortizationPlanDialogProps {
   loan: LoanWithGroup
@@ -120,7 +121,7 @@ export function AmortizationPlanDialog({ loan, open, onOpenChange }: Amortizatio
           <Card className="border-0 shadow-sm bg-hb-sand-deep/10">
             <CardContent className="p-3 text-center">
               <Coins className="w-5 h-5 mx-auto mb-1 text-hb-terracotta" />
-              <p className="text-lg font-bold">{formatCurrency(summary.totalInterest)}</p>
+              <p className="font-serif-kpi text-lg font-bold"><Amount value={summary.totalInterest} /></p>
               <p className="text-xs text-muted-foreground">Total räntekostnad</p>
             </CardContent>
           </Card>

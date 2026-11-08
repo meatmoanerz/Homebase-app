@@ -11,6 +11,7 @@ import { formatCurrency } from '@/lib/utils/formatters'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Target, CheckCircle2, PiggyBank } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { Amount } from '@/components/shared/amount'
 
 type TabType = 'new' | 'active' | 'completed'
 
@@ -72,7 +73,7 @@ export default function SavingsPage() {
                 <PiggyBank className="w-4 h-4 text-hb-cognac" />
                 <span className="text-xs text-muted-foreground">Totalt sparat</span>
               </div>
-              <p className="text-xl font-bold text-hb-cognac">{formatCurrency(totalSaved)}</p>
+              <p className="font-serif-kpi text-xl font-bold text-hb-cognac"><Amount value={totalSaved} /></p>
             </CardContent>
           </Card>
           <Card className="border-0 shadow-sm bg-hb-sand-deep/20">
@@ -81,7 +82,7 @@ export default function SavingsPage() {
                 <Target className="w-4 h-4 text-hb-terracotta" />
                 <span className="text-xs text-muted-foreground">Kvar till målen</span>
               </div>
-              <p className="text-xl font-bold text-hb-terracotta">{formatCurrency(totalRemaining)}</p>
+              <p className="font-serif-kpi text-xl font-bold text-hb-terracotta"><Amount value={totalRemaining} /></p>
             </CardContent>
           </Card>
         </motion.div>

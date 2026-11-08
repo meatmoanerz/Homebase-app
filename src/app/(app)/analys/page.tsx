@@ -61,6 +61,7 @@ import { CategoryFilterSheet, type CategoryOption } from '@/components/analytics
 import { AnalyticsDrilldownSheet, type DrilldownData } from '@/components/analytics/analytics-drilldown-sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils/cn'
+import { Amount } from '@/components/shared/amount'
 
 type DrillTarget =
   | { kind: 'category'; id: string }
@@ -468,7 +469,7 @@ export default function AnalysPage() {
           </button>
         </div>
         {searchOpen && (
-          <div className="flex items-center gap-2.5 bg-card border border-border rounded-xl px-3 py-2">
+          <div className="flex items-center gap-2.5 bg-card rounded-xl px-3 py-2">
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <input
               autoFocus
@@ -530,7 +531,7 @@ export default function AnalysPage() {
         key={`${timeframe}-${anchor}`}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden bg-card border border-border rounded-3xl px-5 py-5 md:px-6 shadow-sm"
+        className="dark slab relative overflow-hidden px-5 py-5 md:px-6"
       >
         <div className="flex items-center justify-between gap-2">
           {timeframe === 'month' ? (
@@ -594,7 +595,7 @@ export default function AnalysPage() {
           {searchTerm ? `Spenderat · "${query.trim()}"` : catFilter ? 'Spenderat i valda kategorier' : 'Spenderat'}
         </div>
         <div className="flex items-end gap-3 flex-wrap">
-          <div className="font-serif-hero text-[40px] md:text-[46px] leading-[1.05] mt-1">{formatCurrency(total)}</div>
+          <div className="font-serif-hero text-[40px] md:text-[46px] leading-[1.05] mt-1"><Amount value={total} /></div>
           {change != null && (
             <span
               className={cn(
@@ -651,13 +652,11 @@ export default function AnalysPage() {
           <div className="grid grid-cols-2 gap-2 mt-4">
             <div className="bg-secondary/50 rounded-2xl px-3 py-2.5">
               <div className="text-[11px] text-muted-foreground">Inkomst</div>
-              <div className="font-serif-kpi text-[16px] mt-0.5">{formatCurrency(rangeIncome)}</div>
+              <div className="font-serif-kpi text-[16px] mt-0.5"><Amount value={rangeIncome} /></div>
             </div>
             <div className="bg-secondary/50 rounded-2xl px-3 py-2.5">
               <div className="text-[11px] text-muted-foreground">Kvar efter utgifter</div>
-              <div className={cn('font-serif-kpi text-[16px] mt-0.5', rangeIncome - total < 0 && 'text-destructive')}>
-                {formatCurrency(rangeIncome - total)}
-              </div>
+              <div className={cn('font-serif-kpi text-[16px] mt-0.5', rangeIncome - total < 0 && 'text-destructive')}><Amount value={rangeIncome - total} /></div>
             </div>
           </div>
         )}
@@ -673,9 +672,9 @@ export default function AnalysPage() {
       </motion.section>
 
       {/* 12-month trend */}
-      <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
+      <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
         <div className="mb-3">
-          <h2 className="font-serif text-[19px] font-medium tracking-tight">
+          <h2 className="text-[13px] font-medium">
             {chartPeriods.length > 12 ? 'Hela historiken' : '12 månader'}
           </h2>
           <p className="text-[11px] text-muted-foreground mt-0.5">Tryck på en stapel för att öppna månaden</p>
@@ -692,7 +691,7 @@ export default function AnalysPage() {
       {/* Insights */}
       {insights.length > 0 && (
         <section className="space-y-2">
-          <h2 className="font-serif text-[19px] font-medium tracking-tight px-1 flex items-center gap-2">
+          <h2 className="text-[13px] font-medium px-1 flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-hb-cognac" />
             Insikter
           </h2>
@@ -721,8 +720,8 @@ export default function AnalysPage() {
       />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
-          <h2 className="font-serif text-[19px] font-medium tracking-tight flex items-center gap-2">
+        <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
+          <h2 className="text-[13px] font-medium flex items-center gap-2">
             <Store className="w-4 h-4 text-muted-foreground" />
             Var pengarna går
           </h2>
@@ -742,7 +741,7 @@ export default function AnalysPage() {
                       <span className="block text-[14px] font-medium truncate">{m.name}</span>
                       <span className="block text-[11px] text-muted-foreground">{m.count} köp</span>
                     </span>
-                    <span className="font-serif text-[15px] font-medium shrink-0">{formatCurrency(m.total)}</span>
+                    <span className="font-serif-kpi text-[15px] font-medium shrink-0"><Amount value={m.total} /></span>
                   </button>
                 </li>
               ))}
@@ -750,8 +749,8 @@ export default function AnalysPage() {
           )}
         </section>
 
-        <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
-          <h2 className="font-serif text-[19px] font-medium tracking-tight flex items-center gap-2">
+        <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
+          <h2 className="text-[13px] font-medium flex items-center gap-2">
             <Receipt className="w-4 h-4 text-muted-foreground" />
             Största köpen
           </h2>
@@ -775,7 +774,7 @@ export default function AnalysPage() {
                         {r.expense.category?.name || 'Utan kategori'} · {new Date(`${r.expense.date}T00:00:00`).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
                       </span>
                     </span>
-                    <span className="font-serif text-[15px] font-medium shrink-0">{formatCurrency(r.value)}</span>
+                    <span className="font-serif-kpi text-[15px] font-medium shrink-0"><Amount value={r.value} /></span>
                   </button>
                 </li>
               ))}
@@ -785,9 +784,9 @@ export default function AnalysPage() {
       </div>
 
       {/* Latest transactions (replaces the old Utgifter list) */}
-      <section className="bg-card border border-border rounded-3xl p-4 md:p-5 shadow-sm">
+      <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="font-serif text-[19px] font-medium tracking-tight">Transaktioner</h2>
+          <h2 className="text-[13px] font-medium">Transaktioner</h2>
           <span className="text-[11px] text-muted-foreground">Tryck för att redigera</span>
         </div>
         {recentRows.length === 0 ? (
@@ -812,7 +811,7 @@ export default function AnalysPage() {
                       <AssignmentPill assignment={r.expense.cost_assignment} />
                     </span>
                   </span>
-                  <span className="font-serif text-[15px] font-medium shrink-0">{formatCurrency(r.value)}</span>
+                  <span className="font-serif-kpi text-[15px] font-medium shrink-0"><Amount value={r.value} /></span>
                 </button>
               </li>
             ))}
@@ -873,7 +872,7 @@ function InsightCard({ insight, onClick }: { insight: Insight; onClick?: () => v
       {onClick && <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0 self-center" />}
     </>
   )
-  const className = 'flex gap-3 bg-card border border-border rounded-2xl px-3.5 py-3 shadow-sm text-left w-full'
+  const className = 'flex gap-3 bg-card rounded-2xl px-3.5 py-3 shadow-sm text-left w-full'
   return onClick ? (
     <button type="button" onClick={onClick} className={cn(className, 'hover:bg-secondary/40 transition-colors')}>
       {content}

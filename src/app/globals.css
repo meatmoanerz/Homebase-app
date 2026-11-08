@@ -43,15 +43,16 @@
   /* Semantic Colors - Light */
   --background: #f4ede3;
   --foreground: #2a2420;
-  --card: #faf6ee;
+  /* Platt mono: a card is a flat tint of the background, no border or shadow */
+  --card: #ebe4da;
   --card-foreground: #2a2420;
   --popover: #faf6ee;
   --popover-foreground: #2a2420;
   --primary: #c08850;
   --primary-foreground: #faf6ee;
-  --secondary: #ebe1d2;
+  --secondary: #e0d6c7;
   --secondary-foreground: #2a2420;
-  --muted: #ebe1d2;
+  --muted: #e0d6c7;
   --muted-foreground: #6b5f54;
   --accent: #b8624c;
   --accent-foreground: #faf6ee;
@@ -109,15 +110,15 @@
 
   --background: #1a1510;
   --foreground: #f0e8dc;
-  --card: #231e18;
+  --card: #27221c;
   --card-foreground: #f0e8dc;
   --popover: #231e18;
   --popover-foreground: #f0e8dc;
   --primary: #d4a574;
   --primary-foreground: #1a1510;
-  --secondary: #2a2420;
+  --secondary: #352e27;
   --secondary-foreground: #f0e8dc;
-  --muted: #2a2420;
+  --muted: #352e27;
   --muted-foreground: #9b8d7e;
   --accent: #c8826d;
   --accent-foreground: #1a1510;
@@ -196,7 +197,8 @@
 
   /* Fonts */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-fraunces), Georgia, serif;
+  /* Platt mono: no serif. Kept as a token so font-serif classes fall back to sans */
+  --font-serif: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   /* Radius */
@@ -204,7 +206,14 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-2xl: 24px;
+  --radius-3xl: 24px;
+
+  /* Platt mono: flat surfaces. Small shadows off; overlays (lg and up) keep theirs */
+  --shadow-2xs: 0 0 #0000;
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+  --shadow: 0 0 #0000;
 }
 
 /* Base styles */
@@ -233,35 +242,41 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Serif utility — matches mock's Fraunces setup */
+/* Platt mono: the one dark block per view. Use together with the `dark`
+   class (className="dark slab") so everything inside picks up the dark
+   palette and dark: variants without per-page colour work. */
+.slab {
+  background-color: #2a2420;
+  color: var(--foreground);
+  border-radius: 24px;
+}
+.dark .slab {
+  background-color: #322a23;
+}
+
+/* Former serif headings: now sans with a slightly tight setting */
 .font-serif {
-  font-family: var(--font-serif) !important;
-  letter-spacing: -0.02em;
-  font-optical-sizing: auto;
+  /* @apply, not var(--font-*): @theme inline tokens are not emitted as CSS
+     variables, so a var() reference to them resolves to nothing */
+  @apply font-sans!;
+  letter-spacing: -0.015em;
 }
 
-/* Hero numbers: display optical size, lighter weight (mock: weight 400, opsz 9) */
-.font-serif-hero {
-  font-family: var(--font-serif) !important;
-  font-weight: 400 !important;
-  letter-spacing: -0.025em;
-  font-variation-settings: "opsz" 9;
-}
-
-/* KPI values: slightly larger optical size (mock: weight 500, -0.02em) */
+/* Platt mono: amounts and key figures in mono with tabular figures.
+   The class names are kept so every existing number follows. */
+.font-serif-hero,
 .font-serif-kpi {
-  font-family: var(--font-serif) !important;
+  @apply font-mono!;
   font-weight: 500 !important;
-  letter-spacing: -0.02em;
-  font-variation-settings: "opsz" 12;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Small category labels: uppercase caps (mock: uppercase, tracking 0.1em, weight 600) */
+/* Small labels: sentence case. Upper-case tracked labels everywhere read as generic */
 .label-caps {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 /* Sans utility */

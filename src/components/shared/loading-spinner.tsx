@@ -37,7 +37,7 @@ export function LoadingPage() {
 
 export function LoadingCard() {
   return (
-    <div className="flex h-40 w-full items-center justify-center rounded-2xl bg-card border border-border">
+    <div className="flex h-40 w-full items-center justify-center rounded-2xl bg-card">
       <LoadingSpinner size="md" />
     </div>
   )

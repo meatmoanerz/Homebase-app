@@ -17,6 +17,7 @@ import { sv } from 'date-fns/locale'
 import Link from 'next/link'
 import type { ExpenseWithCategory } from '@/types'
 import { getAssignmentLabel } from '@/lib/utils/ccm-split'
+import { Amount } from '@/components/shared/amount'
 
 function formatInvoicePeriod(period: string): string {
   const [year, month] = period.split('-')
@@ -122,7 +123,7 @@ export function CCMExpensesList() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Totalt på kreditkort</p>
-                <p className="text-2xl font-bold text-hb-terracotta">{formatCurrency(totalCCM)}</p>
+                <p className="font-serif-kpi text-2xl font-bold text-hb-terracotta"><Amount value={totalCCM} /></p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {ccmExpenses.length} {ccmExpenses.length === 1 ? 'utgift' : 'utgifter'}
                 </p>
