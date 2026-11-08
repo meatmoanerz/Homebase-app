@@ -46,7 +46,7 @@ interface SegmentProps<T extends string> {
   onChange: (id: T) => void
 }
 
-function Segment<T extends string>({ label, value, options, onChange }: SegmentProps<T>) {
+export function Segment<T extends string>({ label, value, options, onChange }: SegmentProps<T>) {
   return (
     <fieldset className="min-w-0">
       <legend className="mb-1.5 text-[12px] text-muted-foreground">{label}</legend>
@@ -79,11 +79,11 @@ function Segment<T extends string>({ label, value, options, onChange }: SegmentP
 }
 
 export function TokenPlayground() {
-  const [radius, setRadius] = useState<(typeof radii)[number]['id']>('14')
+  const [radius, setRadius] = useState<(typeof radii)[number]['id']>('24')
   const [accent, setAccent] = useState<(typeof accents)[number]['id']>('cognac')
-  const [numeral, setNumeral] = useState<(typeof numerals)[number]['id']>('serif')
-  const [surface, setSurface] = useState<(typeof surfaces)[number]['id']>('hairline')
-  const [density, setDensity] = useState<(typeof densities)[number]['id']>('airy')
+  const [numeral, setNumeral] = useState<(typeof numerals)[number]['id']>('mono')
+  const [surface, setSurface] = useState<(typeof surfaces)[number]['id']>('flat')
+  const [density, setDensity] = useState<(typeof densities)[number]['id']>('compact')
   const [notify, setNotify] = useState(true)
   const [copied, setCopied] = useState(false)
 

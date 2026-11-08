@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { SpendHero } from '@/components/dashboard/spend-hero'
+import { FlatMonoDirection } from './flat-mono-direction'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { cn } from '@/lib/utils/cn'
 import {
@@ -32,6 +33,11 @@ export const directions = [
     id: 'kontrast',
     name: 'Kontrast',
     note: 'En mörk platta, en enda accentfärg. Siffran tar halva skärmen. Takten visas som en mätare där “idag” är markerad.',
+  },
+  {
+    id: 'platt',
+    name: 'Platt mono',
+    note: 'Ditt val från 06: 24 px hörn, cognac, monospace-siffror, platta ytor, kompakt. Här på en hel översikt, med reglage för att spåna vidare.',
   },
 ] as const
 
@@ -309,6 +315,7 @@ const views: Record<DirectionId, () => React.ReactElement> = {
   redaktionell: EditorialDirection,
   kassabok: LedgerDirection,
   kontrast: ContrastDirection,
+  platt: FlatMonoDirection,
 }
 
 interface HeroDirectionsProps {
