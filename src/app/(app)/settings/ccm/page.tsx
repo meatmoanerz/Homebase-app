@@ -606,7 +606,8 @@ export default function CCMDashboardPage() {
       .reduce((sum, [, exps]) => sum + sumCardExpenses(exps), 0)
     return { card, unpaid }
   })
-  const totalUnpaid = unpaidByCard.reduce((s, c) => s + c.unpaid, 0)
+  // Without a card, purchases are not on any invoice yet: all of them are unpaid.
+  const totalUnpaid = cards.length === 0 ? totalCCM : unpaidByCard.reduce((s, c) => s + c.unpaid, 0)
   const userRef = { id: user.id, first_name: user.first_name }
   const partnerRef = partner ? { id: partner.id, first_name: partner.first_name } : null
 
@@ -685,7 +686,9 @@ export default function CCMDashboardPage() {
               <CreditCard className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
               <p className="text-muted-foreground">Inga kreditkort ännu</p>
               <p className="text-sm text-muted-foreground/70 mt-1 mb-4">
-                Lägg till ditt första kort för att börja spåra fakturor
+                {ccmExpenses.length > 0
+                  ? `Du har ${ccmExpenses.length === 1 ? '1 köp' : `${ccmExpenses.length} köp`} på kreditkort. Lägg till kortet så hamnar de på rätt faktura.`
+                  : 'Lägg till ditt första kort för att börja spåra fakturor'}
               </p>
               <Button size="sm" onClick={openNewCard}>
                 <Plus className="w-4 h-4 mr-2" />

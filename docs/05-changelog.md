@@ -7,6 +7,22 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-08 — Genomgång av hela appen med testkonton
+
+- Testkonton `claude-test-1@test.se` och `claude-test-2@test.se` (kopplade som
+  partner) finns kvar för framtida tester. Allt deras data är testdata.
+- Rättat: nya användare kunde inte lägga till sitt första lån (skapandet av
+  standardgrupperna loopade och blockerade sparandet).
+- Rättat: bankfiler kontrolleras mot dubbletter (datum, belopp, text) — rader
+  som redan finns markeras och hoppas över.
+- Rättat: sparmål räknade en månad för lite kvar (klockslag), "Total progress"
+  på svenska, kreditkortssidan visade 0 kr obetalt utan kort, kreditkortsvalet
+  i Ny utgift var av första gången, tydligt fel för projekt utan koppling i
+  snabbformuläret, missvisande text om projekt utan koppling.
+- Inte ändrat, att besluta: `expenses.category_id` är NOT NULL i live trots
+  migrationen `20240101000023_expenses_nullable_category.sql`; kategoriregler
+  lärs bara in via "Spara som regel", trots att texterna lovar automatik.
+
 ## 2026-11-08 — Inköpslista
 
 - Ny sida `/shopping`: skriv in varor en i taget, avdelningen gissas och går

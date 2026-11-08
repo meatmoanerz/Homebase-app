@@ -426,6 +426,7 @@ export function TemporaryBudgetDetail({ id }: TemporaryBudgetDetailProps) {
         >
           <Button
             onClick={() => setAddExpenseOpen(true)}
+            aria-label="Lägg till utgift"
             className="w-14 h-14 rounded-full bg-hb-cognac hover:bg-hb-cognac/90 shadow-lg shadow-hb-cognac/30"
             size="icon"
           >

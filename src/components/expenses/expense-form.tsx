@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -39,6 +40,7 @@ export function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   const { data: partner } = usePartner()
   const { fixed, variable, savings } = useCategoriesByType()
   const createExpense = useCreateExpense()
+  const router = useRouter()
   const { data: activeProjectBudgets } = useActiveTemporaryBudgets()
   const updateSpent = useUpdateTemporaryBudgetSpent()
   const hasPartner = !!partner
@@ -68,6 +70,13 @@ export function ExpenseForm({ onSuccess }: ExpenseFormProps) {
   })
 
   const allCategories = useMemo(() => [...variable, ...fixed, ...savings], [variable, fixed, savings])
+
+  // The form is created before the profile has loaded, so the default above
+  // can be false the first time. Apply it once the profile is known, unless
+  // the user has already flipped the switch.
+  useEffect(() => {
+    if (isCCMEnabled && !form.getFieldState('is_ccm').isDirty) form.setValue('is_ccm', true)
+  }, [isCCMEnabled, form])
   
   const selectedCategory = allCategories.find(c => c.id === form.watch('category_id'))
 
@@ -173,6 +182,17 @@ export function ExpenseForm({ onSuccess }: ExpenseFormProps) {
     try {
       const projectBudget = activeProjectBudgets?.find(b => b.id === selectedProjectBudgetId)
       const effectiveCategoryId = projectBudget?.linked_category_id || data.category_id || null
+
+      // Every expense needs a budget category. A project not linked to the
+      // monthly budget has none, and this form has no second picker for it:
+      // send the user to the project page, which asks for one.
+      if (projectBudget && !effectiveCategoryId) {
+        toast.error('Välj budgetkategori på projektsidan', {
+          description: `${projectBudget.name} är inte kopplat till månadsbudgeten, så utgiften behöver en budgetkategori.`,
+          action: { label: 'Öppna projektet', onClick: () => router.push(`/budget/project/${projectBudget.id}`) },
+        })
+        return
+      }
 
       await createExpense.mutateAsync({
         ...data,

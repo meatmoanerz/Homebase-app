@@ -198,7 +198,7 @@ export default function SavingsPage() {
               <Card className="border-0 shadow-sm bg-secondary/40">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Total progress</span>
+                    <span className="text-sm font-medium">Totalt för alla mål</span>
                     <span className="text-sm text-muted-foreground">
                       {((totalSaved / totalTarget) * 100).toFixed(0)}%
                     </span>

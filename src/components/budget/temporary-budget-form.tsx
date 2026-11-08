@@ -735,8 +735,9 @@ export function TemporaryBudgetForm({ existingBudget }: TemporaryBudgetFormProps
                     <div>
                       <p className="text-sm font-medium">Ingen koppling till månadsbudget</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Utgifter i denna projektbudget kommer inte att räknas i din månadsbudget.
-                        Du kan ändra detta senare i projektbudgetens inställningar.
+                        Projektet får ingen egen post i månadsbudgeten. Varje utgift räknas ändå i
+                        månadsbudgeten, under den budgetkategori du väljer när du lägger in den. Du kan
+                        koppla projektet senare i projektbudgetens inställningar.
                       </p>
                       <div className="flex gap-2 mt-3">
                         <Button

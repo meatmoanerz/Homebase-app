@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { LoanGroup } from '@/types'
@@ -127,9 +128,15 @@ export function useDeleteLoanGroup() {
 export function useEnsureDefaultLoanGroups() {
   const { data: existingGroups, isLoading } = useLoanGroups()
   const createGroup = useCreateLoanGroup()
+  const { mutateAsync: createGroupAsync } = createGroup
+  // Runs once per mount. Without this, each create re-rendered the form, the
+  // effect called again, and the stream of getUser() calls held the auth lock
+  // so the user's own save never went out (new users could not add a loan).
+  const started = useRef(false)
 
-  const ensureDefaults = async () => {
-    if (isLoading || !existingGroups) return
+  const ensureDefaults = useCallback(async () => {
+    if (isLoading || !existingGroups || started.current) return
+    started.current = true
 
     // Check if defaults already exist
     const hasBolanGroup = existingGroups.some(g =>
@@ -144,7 +151,7 @@ export function useEnsureDefaultLoanGroups() {
     const promises: Promise<LoanGroup>[] = []
 
     if (!hasBolanGroup) {
-      promises.push(createGroup.mutateAsync({
+      promises.push(createGroupAsync({
         name: DEFAULT_LOAN_GROUPS[0].name,
         description: DEFAULT_LOAN_GROUPS[0].description,
         color: DEFAULT_LOAN_GROUPS[0].color,
@@ -152,7 +159,7 @@ export function useEnsureDefaultLoanGroups() {
     }
 
     if (!hasOvrigaGroup) {
-      promises.push(createGroup.mutateAsync({
+      promises.push(createGroupAsync({
         name: DEFAULT_LOAN_GROUPS[1].name,
         description: DEFAULT_LOAN_GROUPS[1].description,
         color: DEFAULT_LOAN_GROUPS[1].color,
@@ -162,7 +169,7 @@ export function useEnsureDefaultLoanGroups() {
     if (promises.length > 0) {
       await Promise.all(promises)
     }
-  }
+  }, [isLoading, existingGroups, createGroupAsync])
 
   return { ensureDefaults, isLoading: isLoading || createGroup.isPending }
 }

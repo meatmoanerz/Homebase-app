@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
 import { useCategories } from '@/hooks/use-categories'
@@ -44,6 +44,13 @@ interface PreviewRow {
   warnings: string[]
   skip: boolean
   utlagg: UtlaggSplit | null
+  /** Same date, amount and text as an expense already saved: skipped by default. */
+  duplicate?: boolean
+}
+
+/** Key for spotting a row that is already saved: date, amount and text. */
+function duplicateKey(date: string, amount: number, description: string): string {
+  return `${date}|${Math.abs(amount).toFixed(2)}|${description.trim().toLowerCase().replace(/\s+/g, ' ')}`
 }
 
 export default function ImportPage() {
@@ -93,6 +100,42 @@ export default function ImportPage() {
 
   const categoryByName = new Map(categories.map((c) => [c.name.toLowerCase(), c]))
 
+  // Rows already saved (an overlapping bank file, or the same file twice) are
+  // marked and skipped, so nothing is counted twice. Matching is per row: two
+  // identical coffees in the file and one saved marks only one of them.
+  const dupCheck = useRef(0)
+  async function markDuplicates(rows: PreviewRow[]) {
+    if (!user || rows.length === 0) return
+    const token = ++dupCheck.current
+    const dates = rows.map((r) => r.date).filter(Boolean).sort()
+    if (dates.length === 0) return
+    const { data, error } = await createClient()
+      .from('expenses')
+      .select('date, amount, description, group_purchase_total')
+      .eq('user_id', user.id)
+      .gte('date', dates[0])
+      .lte('date', dates[dates.length - 1])
+    if (error || !data || token !== dupCheck.current) return
+    const saved = new Map<string, number>()
+    for (const e of data as { date: string; amount: number; description: string | null; group_purchase_total: number | null }[]) {
+      const key = duplicateKey(e.date, Number(e.group_purchase_total ?? e.amount), e.description ?? '')
+      saved.set(key, (saved.get(key) ?? 0) + 1)
+    }
+    const flags = rows.map((r) => {
+      const key = duplicateKey(r.date, r.amount, r.description)
+      const left = saved.get(key) ?? 0
+      if (left === 0) return false
+      saved.set(key, left - 1)
+      return true
+    })
+    if (!flags.some(Boolean)) return
+    setPreviewRows((current) =>
+      current === rows ? rows.map((r, i) => (flags[i] ? { ...r, duplicate: true, skip: true } : r)) : current
+    )
+    const count = flags.filter(Boolean).length
+    toast.info(count === 1 ? '1 rad finns redan och hoppas över' : `${count} rader finns redan och hoppas över`)
+  }
+
   function processHomebaseUpload(text: string) {
     const result = parseHomebaseCsv(text, categories.map((c) => c.name))
     setParseResult(result)
@@ -117,6 +160,7 @@ export default function ImportPage() {
     })
     setPreviewRows(rows)
     setStep('preview')
+    void markDuplicates(rows)
   }
 
   function processBankUpload(text: string) {
@@ -157,6 +201,7 @@ export default function ImportPage() {
       }
     })
     setPreviewRows(rows)
+    void markDuplicates(rows)
     setParseError(
       rows.length === 0
         ? `Hittade inga transaktioner i filen. Identifierat format: ${result.detectedBank}. ${result.errors.join(' ')} Kontrollera att rätt bank är vald.`
@@ -251,7 +296,7 @@ export default function ImportPage() {
     const rowsToImport = previewRows.filter((r) => !r.skip && r.date && r.description && r.amount !== 0)
     const missingCategory = rowsToImport.filter((r) => !r.selectedCategoryId).length
     if (missingCategory > 0) {
-      toast.error(`${missingCategory} rader saknar kategori. Välj kategori eller bocka i "Hoppa över" innan import.`)
+      toast.error(`${missingCategory === 1 ? '1 rad saknar' : `${missingCategory} rader saknar`} kategori. Välj kategori eller bocka i "Hoppa över" innan import.`)
       return
     }
     setStep('importing')
@@ -355,7 +400,7 @@ export default function ImportPage() {
     const selectedRows = stagingRows.map((r) => getMergedRow(r)).filter((r) => r.selected)
     const missingCategory = selectedRows.filter((r) => !r.category_id).length
     if (missingCategory > 0) {
-      toast.error(`${missingCategory} rader saknar kategori. Välj kategori eller bocka i "Hoppa över" innan import.`)
+      toast.error(`${missingCategory === 1 ? '1 rad saknar' : `${missingCategory} rader saknar`} kategori. Välj kategori eller bocka i "Hoppa över" innan import.`)
       return
     }
 
@@ -655,7 +700,7 @@ export default function ImportPage() {
               {aiUncategorised > 0 && (
                 <div className="bg-hb-amber/10 border border-hb-amber/30 rounded-xl px-3 py-2 flex items-center gap-2 text-xs text-hb-amber">
                   <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                  {aiUncategorised} rader saknar kategori — välj kategori eller bocka i &quot;Hoppa över&quot;
+                  {aiUncategorised === 1 ? "1 rad saknar" : `${aiUncategorised} rader saknar`} kategori — välj kategori eller bocka i &quot;Hoppa över&quot;
                 </div>
               )}
 
@@ -1298,7 +1343,8 @@ function PreviewRowItem({
       className={cn(
         'px-4 py-3 border-b border-border last:border-b-0',
         row.skip && 'opacity-50',
-        row.warnings.length > 0 && 'bg-hb-amber/5'
+        row.warnings.length > 0 && !row.duplicate && 'bg-hb-amber/5',
+        row.duplicate && 'bg-destructive/5'
       )}
     >
       <div className="flex items-center justify-between gap-2">
@@ -1307,7 +1353,8 @@ function PreviewRowItem({
           <div className="text-[11px] text-muted-foreground">
             {row.date}
             {row.bank && ` · ${row.bank}`}
-            {row.onCreditCard && ' · Amex'}
+            {row.onCreditCard && ' · kreditkort'}
+            {row.duplicate && <span className="text-destructive"> · Finns redan</span>}
             {row.cardholder && ` · ${row.cardholder}`}
           </div>
         </div>

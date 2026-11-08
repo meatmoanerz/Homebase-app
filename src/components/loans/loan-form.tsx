@@ -79,7 +79,9 @@ export function LoanForm({ loan, onSuccess }: LoanFormProps) {
   const { ensureDefaults } = useEnsureDefaultLoanGroups()
   useEffect(() => {
     if (!groupsLoading && loanGroups) {
-      ensureDefaults()
+      ensureDefaults().catch(() => {
+        // The groups are optional: the loan can still be saved without them.
+      })
     }
   }, [groupsLoading, loanGroups, ensureDefaults])
 

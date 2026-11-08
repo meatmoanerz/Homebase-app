@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { formatCurrency } from '@/lib/utils/formatters'
-import { format, differenceInDays, differenceInMonths } from 'date-fns'
+import { format, differenceInDays, differenceInMonths, parseISO, startOfDay } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 import { MoreHorizontal, Trash2, Edit2, CheckCircle2, Users, Calendar, ChevronRight } from 'lucide-react'
@@ -67,8 +67,10 @@ export function SavingsGoalCard({ goal, onEdit }: SavingsGoalCardProps) {
   // Calculate time remaining
   const getTimeRemaining = () => {
     if (!goal.target_date) return null
-    const targetDate = new Date(goal.target_date)
-    const today = new Date()
+    // Calendar dates: "2027-11-08" as local midnight, today without the time,
+    // so a date exactly a year away is 12 months, not 11.
+    const targetDate = parseISO(goal.target_date)
+    const today = startOfDay(new Date())
     const daysLeft = differenceInDays(targetDate, today)
     const monthsLeft = differenceInMonths(targetDate, today)
 
@@ -82,8 +84,8 @@ export function SavingsGoalCard({ goal, onEdit }: SavingsGoalCardProps) {
   // Calculate monthly savings needed
   const getMonthlySavingsNeeded = () => {
     if (!goal.target_date || remaining <= 0) return null
-    const targetDate = new Date(goal.target_date)
-    const today = new Date()
+    const targetDate = parseISO(goal.target_date)
+    const today = startOfDay(new Date())
     const monthsLeft = Math.max(differenceInMonths(targetDate, today), 1)
     return Math.ceil(remaining / monthsLeft)
   }
@@ -214,7 +216,7 @@ export function SavingsGoalCard({ goal, onEdit }: SavingsGoalCardProps) {
           {/* Target date display */}
           {goal.target_date && (
             <p className="text-xs text-muted-foreground mt-2">
-              Mål: {format(new Date(goal.target_date), 'd MMMM yyyy', { locale: sv })}
+              Mål: {format(parseISO(goal.target_date), 'd MMMM yyyy', { locale: sv })}
             </p>
           )}
         </CardContent>

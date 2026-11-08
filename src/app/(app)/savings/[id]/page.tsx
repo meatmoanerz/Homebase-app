@@ -15,7 +15,7 @@ import { useUser, usePartner } from '@/hooks/use-user'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils/formatters'
-import { format, differenceInDays, differenceInMonths } from 'date-fns'
+import { format, differenceInDays, differenceInMonths, parseISO, startOfDay } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { motion } from 'framer-motion'
 import {
@@ -122,9 +122,11 @@ export default function SavingsGoalDetailPage({ params }: { params: Promise<{ id
   const remaining = Math.max(targetAmount - totalSaved, 0)
 
   // Calculate time remaining
-  const targetDate = goal.target_date ? new Date(goal.target_date) : null
-  const daysRemaining = targetDate ? differenceInDays(targetDate, new Date()) : null
-  const monthsRemaining = targetDate ? differenceInMonths(targetDate, new Date()) : null
+  // Calendar dates (local midnight vs start of today), so a year away is 12 months.
+  const targetDate = goal.target_date ? parseISO(goal.target_date) : null
+  const today = startOfDay(new Date())
+  const daysRemaining = targetDate ? differenceInDays(targetDate, today) : null
+  const monthsRemaining = targetDate ? differenceInMonths(targetDate, today) : null
 
   // Calculate monthly savings needed
   const monthlySavingsNeeded =
