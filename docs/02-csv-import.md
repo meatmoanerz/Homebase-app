@@ -36,6 +36,16 @@ Formatet har ändrats förr.
    på datumintervall + bank
 4. INSERT i `import_staging` med gemensamt `batch_id` via CTE (se `01-databas.md`)
 
+### Inlärda regler (appen)
+
+När en kategori väljs eller ändras för hand vid import i appen skapas en regel i
+`category_mappings` (`match_type = 'contains'`, `priority = 50`, banken satt),
+eller så får en befintlig regel med samma mönster den nya kategorin. Mönstret
+tas fram med `suggestPatternFromDescription()` ("ICA NARA SOLNA" → "ICA NARA").
+Betalsätt som Swish, Bankgiro, Autogiro och överföringar blir aldrig regler
+(`isLearnablePattern()`), och ett mönster som fått olika kategorier i samma
+import hoppas över. Från Claudes importkö lärs bara rader där kategorin ändrats.
+
 ---
 
 ## Vad som ska med — Amex-faktura

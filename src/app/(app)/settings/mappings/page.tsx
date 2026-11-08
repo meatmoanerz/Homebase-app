@@ -79,8 +79,9 @@ export default function MappingsSettingsPage() {
         <p>
           När du importerar bankfiler matchas varje transaktion mot dessa regler.
           Reglerna söker efter ett textmönster i transaktionstexten — längsta
-          träffen vinner, så &quot;ICA MAXI&quot; slår &quot;ICA&quot;. Nya regler skapas automatiskt
-          när du kategoriserar okända transaktioner.
+          träffen vinner, så &quot;ICA MAXI&quot; slår &quot;ICA&quot;. När du väljer
+          eller ändrar kategori vid import blir det en regel automatiskt (inte för Swish,
+          Bankgiro och liknande).
         </p>
       </div>
 

@@ -200,6 +200,20 @@ export function useDeleteMapping() {
  *   "APOTEK HJÄRTAT STOCKHOLM C" → "APOTEK HJÄRTAT"
  *   "SPOTIFY*PREMIUM" → "SPOTIFY"
  */
+// Payment rails and bank wording, not merchants: a rule on these would put
+// every Swish or every bank-giro payment in one category.
+const GENERIC_PATTERN = /^(SWISH|BANKGIRO|BG|PG|PLUSGIRO|AUTOGIRO|OCR|ÖVERFÖRING|OVERFORING|EGEN ÖVERFÖRING|INSÄTTNING|INSATTNING|INBETALNING|UTTAG|BANKOMAT|LÖN|LON|KORTKÖP|KORTKOP|BETALNING|RÄNTA|RANTA|AVGIFT|PAYPAL|KLARNA)(\s|$)/
+
+/**
+ * Whether a suggested pattern is specific enough to become a rule by itself:
+ * at least three characters, some letters, and not a payment rail (Swish,
+ * bank giro, transfer ...).
+ */
+export function isLearnablePattern(pattern: string): boolean {
+  const p = pattern.trim().toUpperCase()
+  return p.length >= 3 && /\p{L}/u.test(p) && !GENERIC_PATTERN.test(p)
+}
+
 export function suggestPatternFromDescription(description: string): string {
   let s = description.trim().toUpperCase()
 

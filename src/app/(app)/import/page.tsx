@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
 import { useCategories } from '@/hooks/use-categories'
 import { useCreateExpense, useLatestImportedTransactionDates } from '@/hooks/use-expenses'
-import { useCategoryMappings, findMatchingMapping, incrementMappingHit, useCreateMapping, suggestPatternFromDescription } from '@/hooks/use-category-mappings'
+import { useCategoryMappings, findMatchingMapping, incrementMappingHit, useCreateMapping, useUpdateMapping, suggestPatternFromDescription, isLearnablePattern } from '@/hooks/use-category-mappings'
 import { useAssignmentOptions } from '@/hooks/use-assignment-options'
 import { parseHomebaseCsv, getCsvTemplate, type CsvParseResult } from '@/lib/import/csv-parser'
 import { parseBankCsv, parseBankXlsx, isXlsxBuffer, decodeCsvBuffer, type BankParseResult } from '@/lib/import/bank-parsers'
@@ -62,6 +62,7 @@ export default function ImportPage() {
   const { data: mappings = [] } = useCategoryMappings()
   const createExpense = useCreateExpense()
   const createMapping = useCreateMapping()
+  const updateMapping = useUpdateMapping()
   const assignmentOptions = useAssignmentOptions()
 
   // AI-import hooks
@@ -81,7 +82,6 @@ export default function ImportPage() {
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([])
   const [importProgress, setImportProgress] = useState(0)
   const [importedCount, setImportedCount] = useState(0)
-  const [savedRuleRows, setSavedRuleRows] = useState<Set<number>>(new Set())
   const [parseError, setParseError] = useState<string | null>(null)
 
   // AI-import state
@@ -269,25 +269,60 @@ export default function ImportPage() {
     setPreviewRows((rows) => rows.map((r, i) => (i === index ? { ...r, ...updates } : r)))
   }
 
-  async function handleSaveRule(index: number) {
-    const row = previewRows[index]
-    if (!row || !row.selectedCategoryId) return
-    const pattern = suggestPatternFromDescription(row.description)
-    try {
-      await createMapping.mutateAsync({
-        pattern,
-        category_id: row.selectedCategoryId,
-        cost_assignment: row.costAssignment,
-        match_type: 'contains',
-        bank: row.bank,
-        priority: 50,
-        comment: `Skapad vid import från "${row.description}"`,
+  /**
+   * Categories picked by hand become rules, so the same merchant is
+   * categorised automatically next time. One rule per pattern (and bank):
+   * an existing rule with the same pattern gets the new category, otherwise a
+   * new one is made, and the longer pattern wins over a shorter one. Patterns
+   * that are payment rails (Swish, bank giro ...) or that got different
+   * categories in the same import are left out.
+   */
+  async function learnRules(
+    picks: { description: string; bank: string | null; categoryId: string; costAssignment: 'personal' | 'shared' | 'partner' }[]
+  ) {
+    const byPattern = new Map<string, (typeof picks)[number] & { pattern: string; conflict: boolean }>()
+    for (const pick of picks) {
+      const pattern = suggestPatternFromDescription(pick.description)
+      if (!isLearnablePattern(pattern)) continue
+      const key = `${pattern.toLowerCase()}|${(pick.bank ?? '').toLowerCase()}`
+      const seen = byPattern.get(key)
+      if (seen) seen.conflict = seen.conflict || seen.categoryId !== pick.categoryId
+      else byPattern.set(key, { ...pick, pattern, conflict: false })
+    }
+
+    let learned = 0
+    for (const pick of byPattern.values()) {
+      if (pick.conflict) continue
+      const existing = mappings.find(
+        (m) =>
+          m.pattern.toLowerCase() === pick.pattern.toLowerCase() &&
+          (m.bank ?? '').toLowerCase() === (pick.bank ?? '').toLowerCase()
+      )
+      try {
+        if (existing) {
+          if (existing.category_id === pick.categoryId) continue
+          await updateMapping.mutateAsync({ id: existing.id, category_id: pick.categoryId })
+        } else {
+          await createMapping.mutateAsync({
+            pattern: pick.pattern,
+            category_id: pick.categoryId,
+            cost_assignment: pick.costAssignment,
+            match_type: 'contains',
+            bank: pick.bank,
+            priority: 50,
+            comment: `Inlärd vid import från "${pick.description}"`,
+          })
+        }
+        learned++
+      } catch (err) {
+        console.error('Kunde inte spara regel:', err)
+      }
+    }
+    if (learned > 0) {
+      toast.success(learned === 1 ? '1 kategoriregel inlärd' : `${learned} kategoriregler inlärda`, {
+        description: 'Samma butiker kategoriseras automatiskt nästa gång.',
+        action: { label: 'Visa', onClick: () => router.push('/settings/mappings') },
       })
-      setSavedRuleRows((prev) => new Set(prev).add(index))
-      toast.success(`Regel sparad: "${pattern}" → kategoriseras automatiskt framöver`)
-    } catch (err) {
-      console.error('Kunde inte spara regel:', err)
-      toast.error('Kunde inte spara regeln')
     }
   }
 
@@ -341,6 +376,14 @@ export default function ImportPage() {
     }
     setStep('done')
     toast.success(`${imported} utgifter importerade`)
+    // Learn from bank rows where the category was picked or changed by hand.
+    if (mode === 'bank') {
+      await learnRules(
+        rowsToImport
+          .filter((r) => r.selectedCategoryId && r.selectedCategoryId !== r.suggestedCategoryId)
+          .map((r) => ({ description: r.description, bank: r.bank, categoryId: r.selectedCategoryId!, costAssignment: r.costAssignment }))
+      )
+    }
   }
 
   // ---- AI-import helpers ----
@@ -404,6 +447,16 @@ export default function ImportPage() {
       return
     }
 
+    // Rows whose category the user changed here: learned as rules once saved.
+    const stagingPicks = stagingRows
+      .filter((row) => {
+        const edited = stagingEdits[row.id]?.category_id
+        return !!edited && edited !== row.category_id
+      })
+      .map((row) => getMergedRow(row))
+      .filter((row) => row.selected && row.category_id)
+      .map((row) => ({ description: row.description, bank: row.bank, categoryId: row.category_id as string, costAssignment: row.cost_assignment }))
+
     setImportingStaging(true)
     if (stagingRows.some((row) => row.bank_sync_transaction_id)) {
       try {
@@ -415,6 +468,7 @@ export default function ImportPage() {
         setStep('done')
         setImportedCount(imported)
         toast.success(`${imported} utgifter importerade från bankimporten`)
+        await learnRules(stagingPicks)
       } catch (error) {
         console.error('Bank import error:', error)
         toast.error('Importen kunde inte sparas. Dina ändringar finns kvar; försök igen.')
@@ -433,6 +487,7 @@ export default function ImportPage() {
         setStep('done')
         setImportedCount(imported)
         toast.success(`${imported} utgifter importerade från AI-import`)
+        await learnRules(stagingPicks)
       } catch (error) {
         console.error('Amex import error:', error)
         toast.error('Importen kunde inte sparas. Dina ändringar finns kvar; försök igen.')
@@ -510,6 +565,7 @@ export default function ImportPage() {
     setStep('done')
     setImportedCount(imported)
     toast.success(`${imported} utgifter importerade från AI-import`)
+    if (imported > 0) await learnRules(stagingPicks)
   }
 
   // Computed stats (regular import)
@@ -947,9 +1003,7 @@ export default function ImportPage() {
                   row={row}
                   categories={categories}
                   onUpdate={(updates) => updateRow(idx, updates)}
-                  onSaveRule={() => handleSaveRule(idx)}
-                  ruleSaved={savedRuleRows.has(idx)}
-                  showSaveRule={mode === 'bank'}
+                  showLearnRule={mode === 'bank'}
                   assignmentOptions={assignmentOptions}
                   onOpenUtlagg={() => setSplitTarget({ kind: 'preview', index: idx })}
                 />
@@ -1320,20 +1374,24 @@ function StatCard({ label, value, accent, isCurrency }: { label: string; value: 
 }
 
 function PreviewRowItem({
-  row, categories, onUpdate, onSaveRule, ruleSaved, showSaveRule, assignmentOptions, onOpenUtlagg,
+  row, categories, onUpdate, showLearnRule, assignmentOptions, onOpenUtlagg,
 }: {
   row: PreviewRow
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categories: any[]
   onUpdate: (updates: Partial<PreviewRow>) => void
-  onSaveRule: () => void
-  ruleSaved: boolean
-  showSaveRule: boolean
+  showLearnRule: boolean
   assignmentOptions: { value: 'personal' | 'shared' | 'partner'; label: string }[]
   onOpenUtlagg: () => void
 }) {
-  const canSaveRule =
-    showSaveRule && !row.suggestedCategoryId && !!row.selectedCategoryId && !ruleSaved
+  // A category picked or changed by hand is learned as a rule on import.
+  const learnPattern = suggestPatternFromDescription(row.description)
+  const willLearn =
+    showLearnRule &&
+    !row.skip &&
+    !!row.selectedCategoryId &&
+    row.selectedCategoryId !== row.suggestedCategoryId &&
+    isLearnablePattern(learnPattern)
   const utlaggBudget = row.utlagg
     ? Math.round((row.utlagg.userShare + row.utlagg.partnerShare) * 100) / 100
     : null
@@ -1419,20 +1477,10 @@ function PreviewRowItem({
         </div>
       )}
 
-      {canSaveRule && (
-        <button
-          onClick={onSaveRule}
-          className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-hb-cognac-deep bg-hb-cognac/10 hover:bg-hb-cognac/20 transition-colors rounded-full px-2.5 py-1"
-        >
+      {willLearn && (
+        <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-hb-cognac-deep bg-hb-cognac/10 rounded-full px-2.5 py-1">
           <Sparkles className="w-3 h-3" />
-          Spara som regel för framtiden
-        </button>
-      )}
-
-      {ruleSaved && (
-        <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-success">
-          <CheckCircle2 className="w-3 h-3" />
-          Regel sparad
+          Lärs in vid import: {learnPattern}
         </div>
       )}
     </div>

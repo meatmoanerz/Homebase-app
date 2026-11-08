@@ -19,9 +19,13 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
   på svenska, kreditkortssidan visade 0 kr obetalt utan kort, kreditkortsvalet
   i Ny utgift var av första gången, tydligt fel för projekt utan koppling i
   snabbformuläret, missvisande text om projekt utan koppling.
-- Inte ändrat, att besluta: `expenses.category_id` är NOT NULL i live trots
-  migrationen `20240101000023_expenses_nullable_category.sql`; kategoriregler
-  lärs bara in via "Spara som regel", trots att texterna lovar automatik.
+- Kategoriregler lärs in automatiskt vid import: vald eller ändrad kategori
+  blir en regel (eller uppdaterar regeln med samma mönster). Swish, Bankgiro och
+  liknande betalsätt undantas. Knappen "Spara som regel" är borttagen. Se
+  `02-csv-import.md`.
+- Migrationen `20240101000023_expenses_nullable_category.sql` är borttagen: den
+  kördes aldrig i live, och varje utgift ska ha en kategori.
+- Reglage: avstängt är neutralt grått i stället för salviagrönt.
 
 ## 2026-11-08 — Inköpslista
 
