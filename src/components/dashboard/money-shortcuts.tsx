@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { motion } from 'framer-motion'
 import { Target, Landmark, ChevronRight } from 'lucide-react'
 import { useSavingsGoals, getSavedAmount } from '@/hooks/use-savings-goals'
 import { useAllLoans } from '@/hooks/use-loans'
@@ -25,10 +24,7 @@ export function MoneyShortcuts() {
   if (active.length === 0 && loans.length === 0) return null
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.25 }}
+    <div
       className="grid grid-cols-2 gap-1.5"
     >
       <Link href="/savings" className="rounded-[24px] bg-surface px-4 py-3.5 hover:bg-surface-hover transition-colors">
@@ -66,6 +62,6 @@ export function MoneyShortcuts() {
           {loans.length === 0 ? 'Inga lån' : `~${formatCurrency(monthlyLoanCost)}/mån ränta + amortering`}
         </div>
       </Link>
-    </motion.div>
+    </div>
   )
 }

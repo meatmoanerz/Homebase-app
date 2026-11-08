@@ -61,7 +61,7 @@ import { CategoryFilterSheet, type CategoryOption } from '@/components/analytics
 import { AnalyticsDrilldownSheet, type DrilldownData } from '@/components/analytics/analytics-drilldown-sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils/cn'
-import { Amount } from '@/components/shared/amount'
+import { Amount, AnimatedAmount } from '@/components/shared/amount'
 
 type DrillTarget =
   | { kind: 'category'; id: string }
@@ -418,11 +418,20 @@ export default function AnalysPage() {
                 if (t === 'month' || t === 'ytd') setAnchor(currentPeriod)
               }}
               className={cn(
-                'flex-1 py-1.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap',
-                view === 'history' && timeframe === t ? 'bg-hb-nav text-hb-nav-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                'relative flex-1 py-1.5 rounded-full text-[13px] font-medium transition-colors duration-150 whitespace-nowrap',
+                view === 'history' && timeframe === t ? 'text-hb-nav-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              {t === 'ytd' && timeframe === 'ytd' && anchorYear !== currentYear ? anchorYear : TIMEFRAME_LABELS[t]}
+              {view === 'history' && timeframe === t && (
+                <motion.span
+                  layoutId="analys-range-pill"
+                  className="absolute inset-0 rounded-full bg-hb-nav"
+                  transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+                />
+              )}
+              <span className="relative">
+                {t === 'ytd' && timeframe === 'ytd' && anchorYear !== currentYear ? anchorYear : TIMEFRAME_LABELS[t]}
+              </span>
             </button>
           ))}
           <button
@@ -431,11 +440,18 @@ export default function AnalysPage() {
             aria-checked={view === 'forecast'}
             onClick={() => setView('forecast')}
             className={cn(
-              'flex-1 py-1.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap',
-              view === 'forecast' ? 'bg-hb-cognac text-white shadow-sm' : 'text-hb-cognac-deep hover:text-foreground'
+              'relative flex-1 py-1.5 rounded-full text-[13px] font-medium transition-colors duration-150 whitespace-nowrap',
+              view === 'forecast' ? 'text-hb-nav' : 'text-hb-cognac-deep hover:text-foreground'
             )}
           >
-            Framåt
+            {view === 'forecast' && (
+              <motion.span
+                layoutId="analys-range-pill"
+                className="absolute inset-0 rounded-full bg-hb-cognac"
+                transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+              />
+            )}
+            <span className="relative">Framåt</span>
           </button>
         </div>
         <div className="flex items-center gap-2">
@@ -527,12 +543,8 @@ export default function AnalysPage() {
       ) : (
       <>
       {/* Hero */}
-      <motion.section
-        key={`${timeframe}-${anchor}`}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="dark slab relative overflow-hidden px-5 py-5 md:px-6"
-      >
+      {/* Stays mounted when the range changes: the number moves instead of the block blinking */}
+      <section className="dark slab relative overflow-hidden px-5 py-5 md:px-6">
         <div className="flex items-center justify-between gap-2">
           {timeframe === 'month' ? (
             <div className="flex items-center gap-1 -ml-2">
@@ -595,7 +607,7 @@ export default function AnalysPage() {
           {searchTerm ? `Spenderat · "${query.trim()}"` : catFilter ? 'Spenderat i valda kategorier' : 'Spenderat'}
         </div>
         <div className="flex items-end gap-3 flex-wrap">
-          <div className="font-serif-hero text-[40px] md:text-[46px] leading-[1.05] mt-1"><Amount value={total} /></div>
+          <div className="font-serif-hero text-[40px] md:text-[46px] leading-[1.05] mt-1"><AnimatedAmount value={total} /></div>
           {change != null && (
             <span
               className={cn(
@@ -669,7 +681,7 @@ export default function AnalysPage() {
           <ListFilter className="w-4 h-4" />
           Visa alla {rows.length} transaktioner
         </button>
-      </motion.section>
+      </section>
 
       {/* 12-month trend */}
       <section className="bg-card rounded-3xl p-4 md:p-5 shadow-sm">

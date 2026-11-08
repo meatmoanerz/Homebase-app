@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { formatRelativeDate } from '@/lib/utils/formatters'
 import { Amount } from '@/components/shared/amount'
 import { Receipt } from 'lucide-react'
-import { motion } from 'framer-motion'
 import { AssignmentPill, CreditCardPill } from '@/components/shared/assignment-pill'
 import type { ExpenseWithCategory } from '@/types'
 
@@ -51,12 +50,9 @@ export function RecentExpenses({ expenses }: RecentExpensesProps) {
       </div>
 
       <div className="rounded-[24px] bg-surface overflow-hidden">
-        {expenses.map((expense, index) => (
-          <motion.div
+        {expenses.map((expense) => (
+          <div
             key={expense.id}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.04 }}
             className="flex items-center justify-between px-4 py-3 border-b border-surface-line last:border-b-0"
           >
             <div className="min-w-0 flex-1">
@@ -72,7 +68,7 @@ export function RecentExpenses({ expenses }: RecentExpensesProps) {
                 </div>
             </div>
             <Amount value={expense.amount} className="text-[14px] ml-3 flex-shrink-0" />
-          </motion.div>
+          </div>
         ))}
       </div>
     </section>

@@ -31,7 +31,6 @@ import { buildForecast } from '@/lib/analytics/forecast'
 import { knownCardInvoices } from '@/lib/analytics/card-invoices'
 import { getBudgetPeriod, getDaysUntilSalary, getPeriodProgress } from '@/lib/utils/budget-period'
 import { splitBudgetItem } from '@/lib/utils/budget-split'
-import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { GettingStartedChecklist } from '@/components/onboarding/getting-started-checklist'
 
@@ -244,16 +243,14 @@ export default function DashboardPage() {
   return (
     <div className="px-4 md:px-8 pt-2 md:pt-4 pb-4 space-y-5 max-w-3xl md:mx-auto">
       {/* Desktop title (mobile shows in header) */}
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
+      <div
         className="hidden md:block space-y-1"
       >
         <h1 className="font-serif text-[32px] font-medium tracking-tight">Översikt</h1>
         <p className="text-sm text-muted-foreground">
           {isCurrentPeriod ? 'Aktuell budgetperiod' : 'Tidigare/kommande period'}
         </p>
-      </motion.div>
+      </div>
 
       {/* Period strip with arrows */}
       <div data-tour="period">
@@ -294,7 +291,7 @@ export default function DashboardPage() {
 
       {/* Per person — only in the household view */}
       {hasPartner && person === 'all' && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+        <div>
           <PersonBudgetBreakdown
             userName={user?.first_name || 'Du'}
             partnerName={partner?.first_name || 'Partner'}
@@ -303,20 +300,17 @@ export default function DashboardPage() {
             userBudget={budgetItems.length > 0 ? split.user : 0}
             partnerBudget={budgetItems.length > 0 ? split.partner : 0}
           />
-        </motion.div>
+        </div>
       )}
 
       <SettlementShortcut />
       <MoneyShortcuts />
 
       {/* Recent Expenses */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
+      <div
       >
         <RecentExpenses expenses={expenses.slice(0, 5)} />
-      </motion.div>
+      </div>
     </div>
   )
 }

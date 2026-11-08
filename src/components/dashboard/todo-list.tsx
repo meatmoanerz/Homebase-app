@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { motion } from 'framer-motion'
 import { Inbox, Banknote, Wallet, ChevronRight } from 'lucide-react'
 import { useNotifications, type NotificationKind } from '@/hooks/use-notifications'
 import { cn } from '@/lib/utils/cn'
@@ -18,7 +17,7 @@ export function TodoList() {
   if (notifications.length === 0) return null
 
   return (
-    <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+    <section>
       <h2 className="px-1 pb-2 text-[13px] font-medium">Att göra</h2>
       <div className="rounded-[24px] bg-surface divide-y divide-surface-line overflow-hidden">
         {notifications.slice(0, 4).map((n) => {
@@ -42,6 +41,6 @@ export function TodoList() {
           )
         })}
       </div>
-    </motion.section>
+    </section>
   )
 }

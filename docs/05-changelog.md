@@ -7,6 +7,19 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-08 — Rörelse och 3D-kort från designlabbet
+
+- Kreditkort: sammanfattningen är ett kort som lutar efter fingret
+  (`components/ccm/credit-card-3d.tsx`, CSS 3D) med obetalt, närmaste
+  förfallodag, antal utgifter och totalt. Flera kort listas under.
+- `AnimatedAmount`: siffran räknar fram första gången per session
+  (översiktens hero) och rör sig vid byte (Analys). Reducerad rörelse
+  respekteras.
+- Översikten: pillret "Kvar · per dag" visas överst när heron scrollats
+  förbi. Inglidningar vid sidladdning borttagna.
+- Analys: indikatorn för tidsspann glider (layoutId) och heron laddas inte
+  om vid byte.
+
 ## 2026-11-08 — Platt mono i hela appen
 
 - Kort är platta (`--card` = ytfärgen, ingen kant, små skuggor av via

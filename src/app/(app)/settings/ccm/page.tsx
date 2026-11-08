@@ -24,6 +24,7 @@ import { useCreditCards, type CreditCard as CreditCardType } from '@/hooks/use-c
 import { groupExpensesByCardAndPeriod, getInvoicePaymentDate, getCardInvoicePeriod, sumCardExpenses } from '@/lib/utils/credit-cards'
 import { CreditCardDialog } from '@/components/ccm/credit-card-dialog'
 import { Amount } from '@/components/shared/amount'
+import { CreditCard3D } from '@/components/ccm/credit-card-3d'
 
 
 
@@ -609,6 +610,17 @@ export default function CCMDashboardPage() {
   })
   // Without a card, purchases are not on any invoice yet: all of them are unpaid.
   const totalUnpaid = cards.length === 0 ? totalCCM : unpaidByCard.reduce((s, c) => s + c.unpaid, 0)
+  // Earliest payment date among unpaid invoices, for the line on the 3D card
+  const nextDue = cards
+    .flatMap((card) =>
+      Array.from((groupedByCard.get(card.id) || new Map<string, ExpenseWithCategory[]>()).keys())
+        .filter((period) => !invoiceMap.get(`${card.id}:${period}`)?.paid_at)
+        .map((period) => getInvoicePaymentDate(period, card))
+    )
+    .sort((a, b) => a.getTime() - b.getTime())[0]
+  const nextDueLabel = nextDue
+    ? new Intl.DateTimeFormat('sv-SE', { day: 'numeric', month: 'short' }).format(nextDue)
+    : null
   const userRef = { id: user.id, first_name: user.first_name }
   const partnerRef = partner ? { id: partner.id, first_name: partner.first_name } : null
 
@@ -632,32 +644,23 @@ export default function CCMDashboardPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
       >
-        <Card className="dark slab">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Obetalt på kreditkort</p>
-                <p className="font-serif-kpi text-[32px] leading-tight text-hb-terracotta"><Amount value={totalUnpaid} /></p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {ccmExpenses.length} {ccmExpenses.length === 1 ? 'utgift' : 'utgifter'} totalt · {formatCurrency(totalCCM)}
-                </p>
+        <CreditCard3D
+          label={cards.length === 1 ? cards[0].name : cards.length > 1 ? 'Alla kort' : 'Kreditkort'}
+          caption={nextDueLabel ? `Obetalt · förfaller ${nextDueLabel}` : 'Obetalt'}
+          amount={totalUnpaid}
+          footerLeft={`${ccmExpenses.length} ${ccmExpenses.length === 1 ? 'utgift' : 'utgifter'}`}
+          footerRight={`${formatCurrency(totalCCM)} totalt`}
+        />
+        {cards.length > 1 && (
+          <div className="mt-1 rounded-[24px] bg-card divide-y divide-border overflow-hidden">
+            {unpaidByCard.map(({ card, unpaid }) => (
+              <div key={card.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <span className="truncate text-muted-foreground">{card.name}</span>
+                <Amount value={unpaid} className="shrink-0 text-[14px]" />
               </div>
-              <div className="p-3 rounded-full bg-hb-terracotta/20">
-                <CreditCard className="w-6 h-6 text-hb-terracotta" />
-              </div>
-            </div>
-            {cards.length > 1 && (
-              <div className="mt-3 pt-3 border-t border-border/60 space-y-1">
-                {unpaidByCard.map(({ card, unpaid }) => (
-                  <div key={card.id} className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{card.name}</span>
-                    <span className="font-medium">{formatCurrency(unpaid)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            ))}
+          </div>
+        )}
       </motion.div>
 
       <motion.div

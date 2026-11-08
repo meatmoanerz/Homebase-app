@@ -88,10 +88,10 @@ export const critiqueFindings: Finding[] = [
     detail: 'label-caps är nu vanlig skiftläge i 12 px. Klassen ligger kvar så alla 19 ställen följde med.',
   },
   {
-    status: 'warn',
+    status: 'pass',
     title: 'Allt glider in vid sidladdning',
     detail:
-      '18 initial={…} på dashboarden. Rörelse som sker varje gång betyder ingenting. Animera det som ändras: ett nytt köp, en siffra som flyttar sig.',
+      'Borttaget på översikten. Rörelse finns nu där något ändras: siffran räknar fram första gången per session och när den byts, heron krymper till ett piller när du scrollar förbi, och indikatorn glider i Analys.',
   },
 ]
 

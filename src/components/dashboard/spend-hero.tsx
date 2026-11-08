@@ -1,8 +1,10 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronRight } from 'lucide-react'
-import { Amount } from '@/components/shared/amount'
+import { Amount, AnimatedAmount } from '@/components/shared/amount'
 import { cn } from '@/lib/utils/cn'
 
 interface SpendHeroProps {
@@ -68,9 +70,46 @@ export function SpendHero({
   const primaryValue = hasBudget ? remaining : spent
   const primaryLabel = hasBudget ? 'Kvar att spendera' : 'Spenderat denna period'
 
+  // Scroll: once the slab has scrolled up under the header, a compact pill
+  // keeps the number in view (the hero "collapses" into the top).
+  const slabRef = useRef<HTMLDivElement>(null)
+  const [collapsed, setCollapsed] = useState(false)
+  useEffect(() => {
+    const el = slabRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      ([entry]) => setCollapsed(!entry.isIntersecting && entry.boundingClientRect.top < 0),
+      // The mobile header covers roughly the top 70px
+      { rootMargin: '-70px 0px 0px 0px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <div className="space-y-1.5">
-      <div className={cn('rounded-[24px] bg-hero-slab px-5 pb-5 pt-4', SLAB_TEXT)}>
+      <AnimatePresence>
+        {collapsed && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+            className="fixed inset-x-0 top-[calc(env(safe-area-inset-top,0px)+70px)] z-30 mx-auto flex w-fit items-baseline gap-2 rounded-full bg-hero-slab px-4 py-2 text-[13px] text-[#f4ede3] shadow-lg md:left-60 md:top-4"
+            aria-hidden="true"
+          >
+            <span className="text-[#f4ede3]/60">{hasBudget ? 'Kvar' : 'Spenderat'}</span>
+            <Amount value={primaryValue} className={cn('text-[15px] font-medium', overBudget && 'text-[#e8957a]')} />
+            {perDay != null && (
+              <span className="text-[#f4ede3]/60">
+                · <Amount value={perDay} className="text-[#d4a574]" />/dag
+              </span>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div ref={slabRef} className={cn('rounded-[24px] bg-hero-slab px-5 pb-5 pt-4', SLAB_TEXT)}>
         <div className="flex items-center justify-between gap-2 text-[12px]">
           <span className={SLAB_MUTED}>{primaryLabel}</span>
           <span className="flex items-center gap-2">
@@ -86,7 +125,7 @@ export function SpendHero({
         </div>
 
         <p className="mt-2 text-[44px] font-medium leading-none md:text-[52px]">
-          <Amount value={primaryValue} className={overBudget ? 'text-[#e8957a]' : undefined} />
+          <AnimatedAmount value={primaryValue} revealKey="dashboard-hero" className={overBudget ? 'text-[#e8957a]' : undefined} />
         </p>
 
         {perDay != null && (
