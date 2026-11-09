@@ -7,6 +7,16 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-09 — Kort och konto per budgetrad, utfall och importpåminnelse
+
+- Budget: kortknappen på en rad öppnar Konto / Kort / Båda. Vid Båda anges
+  kortdelen (`budget_items.ccm_amount`), resten dras från kontot. Gemensamt
+  konto, "Dras från kontot" och per person räknar bara kontodelen.
+- Ny budget: "Förra perioden" visar utfall per rad (hittills om perioden
+  pågår) med förra budgeten bredvid, och Använd per rad. Kopiera tar budgeten.
+- Ny budget: påminnelse om banker vars filer inte når till igår, för er båda
+  (`import_freshness()`). Går att dölja per period.
+
 ## 2026-11-08 — Rörelse och 3D-kort från designlabbet
 
 - Kreditkort: sammanfattningen är ett kort som lutar efter fingret

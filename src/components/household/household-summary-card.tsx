@@ -125,9 +125,10 @@ export function HouseholdSummaryCard({
                   key={row.categoryId}
                   className="grid grid-cols-[minmax(0,1fr)_64px_64px_72px] gap-1 items-center min-h-9 border-t border-border text-[13px] tabular-nums"
                 >
-                  <span className="truncate">
+                  <span className={cn('truncate', row.amount === 0 && 'text-muted-foreground')}>
                     {row.name}
                     {row.byIncome && <span className="sr-only"> (efter inkomst)</span>}
+                    {row.cardAmount > 0 && <span className="sr-only"> ({formatCurrency(row.cardAmount)} på kort, ingår inte)</span>}
                   </span>
                   <span className="text-right">{row.user.toLocaleString('sv-SE')}</span>
                   <span className="text-right">{row.partner.toLocaleString('sv-SE')}</span>
@@ -137,7 +138,10 @@ export function HouseholdSummaryCard({
                 <div key={row.categoryId} className="flex justify-between items-center min-h-9 border-t border-border text-[13px]">
                   <span className={cn('truncate', row.amount === 0 && 'text-muted-foreground')}>
                     {row.name}
-                    {row.amount === 0 && ' · ej budgeterad'}
+                    {row.amount === 0 && row.cardAmount === 0 && ' · ej budgeterad'}
+                    {row.cardAmount > 0 && (
+                      <span className="text-muted-foreground"> · {formatCurrency(row.cardAmount)} på kort</span>
+                    )}
                   </span>
                   <span className="tabular-nums">{formatCurrency(row.amount)}</span>
                 </div>

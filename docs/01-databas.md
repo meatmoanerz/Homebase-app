@@ -107,6 +107,20 @@ Härleds från `cost_assignment`. Det finns inga andel-kolumner per person i
 - Uttag = rad i `savings_goal_contributions` utan `expense_id`, negativt `amount`,
   `date` satt. user1 = målets ägare, user2 = ägarens partner.
 
+## Budgetrader (`budget_items`)
+
+- `is_ccm = true`: hela raden betalas med kort (räknas i Kreditkort nästa
+  faktura, inte i "Dras från kontot").
+- `ccm_amount`: kortdelen när raden betalas både med kort och från konto.
+  NULL = följer `is_ccm`. Satt bara när `is_ccm = false` och
+  `0 < ccm_amount < amount` (check-constraint: `0 ≤ ccm_amount ≤ amount`).
+  Gemensamt konto räknar `amount - ccm_amount`. Hjälpare:
+  `budgetCardPart` i `src/lib/utils/budget-split.ts`.
+
+`import_freshness()` (SECURITY INVOKER): per person och bank senaste
+transaktionsdatum och senaste uppladdning bland `import_source = 'csv'`.
+Används av påminnelsen på Ny budget.
+
 ## Hushållsmodell (`shared_account_defaults`)
 
 Gäller från `effective_from` och framåt (senaste raden ≤ perioden). `model`:

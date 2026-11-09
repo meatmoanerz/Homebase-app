@@ -24,7 +24,7 @@ import { useCreateBudget, useUpdateBudget, useDeleteBudget, usePreviousBudget, u
 import { useUser, usePartner } from '@/hooks/use-user'
 import { useLoans, getLoanTotalsForPeriod } from '@/hooks/use-loans'
 import { useCCMInvoices } from '@/hooks/use-ccm-invoices'
-import { useCCMExpenses } from '@/hooks/use-expenses'
+import { useCCMExpenses, useExpensesByPeriod } from '@/hooks/use-expenses'
 import { useCreditCards } from '@/hooks/use-credit-cards'
 import { useHouseholdSettings } from '@/hooks/use-household-economy'
 import {
@@ -36,7 +36,10 @@ import {
 } from '@/lib/household/economy'
 import { getCreditCardAmountsForBudget } from '@/lib/utils/credit-cards'
 import { formatCurrency, formatPercentage } from '@/lib/utils/formatters'
-import { formatPeriodDisplay, getCurrentBudgetPeriod, getNextPeriods } from '@/lib/utils/budget-period'
+import { formatPeriodDisplay, formatPeriodMonth, getCurrentBudgetPeriod, getNextPeriods, getPeriodDates, shiftPeriod } from '@/lib/utils/budget-period'
+import { budgetCardPart } from '@/lib/utils/budget-split'
+import { actualsByCategoryName, type CategoryActual } from '@/lib/budget/previous-actuals'
+import { ImportFreshnessCard } from '@/components/budget/import-freshness-card'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -76,8 +79,31 @@ interface BudgetItemState {
   isSplit: boolean
   hasExplicitSplit: boolean // True only when user has explicitly set different amounts in split view
   is_ccm: boolean // Whether this is a CCM (credit card) expense
+  /** Card part when the row is paid both by card and from the account ("Båda"); undefined = not split */
+  ccmAmount?: number
+  /** The Konto/Kort/Båda panel under the row is open */
+  isPaymentOpen?: boolean
   /** false: filled from its source (loans, credit cards) and follows it until someone types an amount */
   isManualAmount?: boolean
+}
+
+type PaymentMode = 'account' | 'card' | 'mixed'
+
+const PAYMENT_LABELS: Record<PaymentMode, string> = { account: 'Konto', card: 'Kort', mixed: 'Båda' }
+
+function paymentModeOf(item: BudgetItemState): PaymentMode {
+  if (item.is_ccm) return 'card'
+  return item.ccmAmount !== undefined ? 'mixed' : 'account'
+}
+
+/** What the row puts on the card (reaches the account with a later invoice) */
+function cardPartOf(item: BudgetItemState): number {
+  return budgetCardPart({ amount: item.total || 0, is_ccm: item.is_ccm, ccm_amount: item.ccmAmount })
+}
+
+/** A new total never leaves a card part larger than the row */
+function clampCardPart(item: BudgetItemState | undefined, total: number): number | undefined {
+  return item?.ccmAmount === undefined ? undefined : Math.min(item.ccmAmount, total)
 }
 
 // Income state for editable amounts
@@ -162,6 +188,19 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
     return map
   }, [previousBudget])
 
+  // Last period's actuals per category (what was really spent), and how much
+  // of it went on a card. The period may still be running when the next budget
+  // is made, hence "hittills".
+  const previousPeriod = shiftPeriod(period, -1)
+  const { data: previousExpenses } = useExpensesByPeriod(previousPeriod, salaryDay)
+  const previousActuals = useMemo(() => actualsByCategoryName(previousExpenses ?? []), [previousExpenses])
+  const hasPreviousActuals = Object.keys(previousActuals).length > 0
+  const previousInProgress = useMemo(() => {
+    const { endDate } = getPeriodDates(previousPeriod, salaryDay)
+    const dayAfterEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1)
+    return new Date() < dayAfterEnd
+  }, [previousPeriod, salaryDay])
+
   // Lånens ränta + amortering för den valda perioden (projicerat från lånens
   // nuvarande läge — se getLoanAmountForPeriod)
   const loanTotals = useMemo(() => {
@@ -232,7 +271,8 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           total: item.amount,
           isSplit: false,
           hasExplicitSplit: false,
-          is_ccm: item.is_ccm || false
+          is_ccm: item.is_ccm || false,
+          ccmAmount: !item.is_ccm && item.ccm_amount != null ? Number(item.ccm_amount) : undefined,
         }
       }
     })
@@ -538,6 +578,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
               isSplit: false,
               hasExplicitSplit: true,
               is_ccm: item.is_ccm || false,
+              ccmAmount: !item.is_ccm && item.ccm_amount != null ? Number(item.ccm_amount) : undefined,
               isManualAmount: item.is_manual_amount ?? true,
             }
           } else {
@@ -546,6 +587,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
               isSplit: false,
               hasExplicitSplit: false,
               is_ccm: item.is_ccm || false,
+              ccmAmount: !item.is_ccm && item.ccm_amount != null ? Number(item.ccm_amount) : undefined,
               isManualAmount: item.is_manual_amount ?? true,
             }
           }
@@ -706,14 +748,15 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         const item = budgetItems[cat.id]
         if (!item) return
 
-        // Skip CCM items for expense calculations (they're paid next month)
-        if (!isSavings && item.is_ccm) return
+        // Only what is drawn from the account counts: the card part is paid next month
+        const accountShare = isSavings || !item.total ? 1 : (item.total - cardPartOf(item)) / item.total
+        if (accountShare <= 0) return
 
         // Split set by hand, otherwise the model's default (income share or 50/50)
         const explicit = item.hasExplicitSplit && item.userAmount !== undefined && item.partnerAmount !== undefined
         const fallback = defaultSplit(item.total, cat.id, splitRule)
-        const userAmt = explicit ? item.userAmount! : fallback.user
-        const partnerAmt = explicit ? item.partnerAmount! : fallback.partner
+        const userAmt = (explicit ? item.userAmount! : fallback.user) * accountShare
+        const partnerAmt = (explicit ? item.partnerAmount! : fallback.partner) * accountShare
 
         if (isSavings) {
           userSav += userAmt
@@ -738,7 +781,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
   const totalCCM = useMemo(() => {
     return [...fixed, ...variable].reduce((sum, cat) => {
       const item = budgetItems[cat.id]
-      return sum + (item?.is_ccm ? (item.total || 0) : 0)
+      return sum + (item ? cardPartOf(item) : 0)
     }, 0)
   }, [fixed, variable, budgetItems])
 
@@ -782,6 +825,8 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           isSplit: false,
           hasExplicitSplit: false,
           is_ccm: current.is_ccm, // Preserve CCM status
+          ccmAmount: clampCardPart(current, value),
+          isPaymentOpen: current.isPaymentOpen,
           isManualAmount: true,
         },
       }
@@ -803,6 +848,8 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           isSplit: true,
           hasExplicitSplit,
           is_ccm: current.is_ccm, // Preserve CCM status
+          ccmAmount: clampCardPart(current, userAmount + partnerAmount),
+          isPaymentOpen: current.isPaymentOpen,
           isManualAmount: true,
         },
       }
@@ -834,6 +881,8 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         isSplit: false,
         hasExplicitSplit: source.userAmount !== undefined && source.userAmount !== source.partnerAmount,
         is_ccm: prev[cat.id]?.is_ccm ?? false,
+        ccmAmount: clampCardPart(prev[cat.id], source.total),
+        isPaymentOpen: prev[cat.id]?.isPaymentOpen,
         isManualAmount: false,
       },
     }))
@@ -868,23 +917,42 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
             isSplit: true,
             hasExplicitSplit: current.hasExplicitSplit,
             is_ccm: current.is_ccm,
+            ccmAmount: current.ccmAmount,
+            isPaymentOpen: current.isPaymentOpen,
           },
         }
       }
     })
   }
 
-  const toggleCCM = (categoryId: string) => {
+  // The card button opens Konto / Kort / Båda under the row
+  const togglePaymentPanel = (categoryId: string) => {
     setBudgetItems(prev => {
       const current = prev[categoryId] || { total: 0, isSplit: false, hasExplicitSplit: false, is_ccm: false }
+      return { ...prev, [categoryId]: { ...current, isPaymentOpen: !current.isPaymentOpen } }
+    })
+  }
 
-      return {
-        ...prev,
-        [categoryId]: {
-          ...current,
-          is_ccm: !current.is_ccm,
-        },
+  // Konto / Kort close the panel; Båda keeps it open for the card part, starting
+  // from how last period actually split (card vs account) when it did
+  const setPaymentMode = (cat: Category, mode: PaymentMode) => {
+    const actual = previousActuals[cat.name]
+    setBudgetItems(prev => {
+      const current = prev[cat.id] || { total: 0, isSplit: false, hasExplicitSplit: false, is_ccm: false }
+      if (mode !== 'mixed') {
+        return { ...prev, [cat.id]: { ...current, is_ccm: mode === 'card', ccmAmount: undefined, isPaymentOpen: false } }
       }
+      const suggested = actual && actual.card > 0 && actual.card < actual.total ? Math.round(actual.card) : 0
+      const ccmAmount = Math.min(current.ccmAmount ?? suggested, current.total)
+      return { ...prev, [cat.id]: { ...current, is_ccm: false, ccmAmount, isPaymentOpen: true } }
+    })
+  }
+
+  const updateCardPart = (categoryId: string, value: number) => {
+    setBudgetItems(prev => {
+      const current = prev[categoryId]
+      if (!current) return prev
+      return { ...prev, [categoryId]: { ...current, is_ccm: false, ccmAmount: Math.min(value, current.total) } }
     })
   }
 
@@ -907,6 +975,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         next[cat.id] = {
           ...item,
           total: source.total,
+          ccmAmount: clampCardPart(item, source.total),
           userAmount: source.userAmount,
           partnerAmount: source.partnerAmount,
           hasExplicitSplit: source.userAmount !== undefined && source.userAmount !== source.partnerAmount,
@@ -961,13 +1030,14 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           isSplit: false,
           hasExplicitSplit: false,
           is_ccm: item.is_ccm || false,
+          ccmAmount: !item.is_ccm && item.ccm_amount != null ? Number(item.ccm_amount) : undefined,
           isManualAmount: true,
         }
       }
     })
     setBudgetItems(newItems)
     setShowCopyConfirm(false)
-    toast.success('Värden kopierade från föregående månad! 📋')
+    toast.success('Förra periodens budget kopierad 📋')
   }
 
   async function handleDelete() {
@@ -1017,13 +1087,17 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         categories.forEach(cat => {
           const item = budgetItems[cat.id]
           if (item && item.total > 0) {
+            // "Båda" with nothing on the card is a plain account row; all on the card, a card row
+            const card = type === 'savings' ? 0 : cardPartOf(item)
+            const allCard = type !== 'savings' && (item.is_ccm || card >= item.total)
             items.push({
               budget_id: budgetId,
               category_id: cat.id,
               name: cat.name,
               type,
               amount: item.total,
-              is_ccm: item.is_ccm || false,
+              is_ccm: allCard,
+              ccm_amount: !allCard && card > 0 ? card : null,
               is_manual_amount: item.isManualAmount !== false,
             })
           }
@@ -1210,8 +1284,18 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         </motion.div>
       )}
 
-      {/* Previous Budget Controls */}
-      {!existingBudget && !periodAlreadyHasBudget && previousBudget && (
+      {/* Upload the latest bank files first: last period's actuals build on them */}
+      {!existingBudget && !periodAlreadyHasBudget && (
+        <ImportFreshnessCard
+          period={period}
+          userId={user?.id}
+          userName={user?.first_name || 'Du'}
+          partnerName={partner ? partner.first_name || 'Partner' : undefined}
+        />
+      )}
+
+      {/* Previous period: actuals per row, last budget to copy */}
+      {!existingBudget && !periodAlreadyHasBudget && (previousBudget || hasPreviousActuals) && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1225,28 +1309,32 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
                     <History className="w-4 h-4 text-amber-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">Föregående månad</p>
+                    <p className="text-sm font-medium truncate">Förra perioden</p>
                     <p className="text-xs text-muted-foreground">
-                      Visa budgeterade värden
+                      Visa utfall för {formatPeriodMonth(previousPeriod)}{previousInProgress ? ' hittills' : ''}
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2 shrink-0">
                   <Switch
                     checked={showPreviousValues}
                     onCheckedChange={setShowPreviousValues}
+                    aria-label="Visa förra periodens utfall"
                     className="data-[state=checked]:bg-amber-500"
                   />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowCopyConfirm(true)}
-                    className="gap-1.5 border-amber-300 hover:bg-amber-100 dark:border-amber-700 dark:hover:bg-amber-950"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Kopiera</span>
-                  </Button>
+                  {previousBudget && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowCopyConfirm(true)}
+                      aria-label="Kopiera förra periodens budget"
+                      className="gap-1.5 border-amber-300 hover:bg-amber-100 dark:border-amber-700 dark:hover:bg-amber-950"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Kopiera budget</span>
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -1437,7 +1525,9 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         onUpdateItem={updateItem}
         onUpdateSplit={updateItemSplit}
         onToggleSplit={toggleSplit}
-        onToggleCCM={toggleCCM}
+        onTogglePayment={togglePaymentPanel}
+        onSetPaymentMode={setPaymentMode}
+        onUpdateCardPart={updateCardPart}
         total={periodAlreadyHasBudget ?
           Object.values(mapBudgetItemsToCurrentCategories(existingPeriodBudget?.budget_items, fixed))
             .reduce((sum, item) => sum + item.total, 0)
@@ -1450,6 +1540,9 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         userName={userName}
         partnerName={partnerName}
         previousAmounts={previousAmounts}
+        previousActuals={previousActuals}
+        previousInProgress={previousInProgress}
+        onUseActual={updateItem}
         showPreviousValues={showPreviousValues && !periodAlreadyHasBudget}
         readOnly={periodAlreadyHasBudget}
         ccmEnabled={user?.ccm_enabled}
@@ -1471,7 +1564,9 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         onUpdateItem={updateItem}
         onUpdateSplit={updateItemSplit}
         onToggleSplit={toggleSplit}
-        onToggleCCM={toggleCCM}
+        onTogglePayment={togglePaymentPanel}
+        onSetPaymentMode={setPaymentMode}
+        onUpdateCardPart={updateCardPart}
         total={periodAlreadyHasBudget ?
           Object.values(mapBudgetItemsToCurrentCategories(existingPeriodBudget?.budget_items, variable))
             .reduce((sum, item) => sum + item.total, 0)
@@ -1484,6 +1579,9 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         userName={userName}
         partnerName={partnerName}
         previousAmounts={previousAmounts}
+        previousActuals={previousActuals}
+        previousInProgress={previousInProgress}
+        onUseActual={updateItem}
         showPreviousValues={showPreviousValues && !periodAlreadyHasBudget}
         readOnly={periodAlreadyHasBudget}
         ccmEnabled={user?.ccm_enabled}
@@ -1518,6 +1616,9 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         userName={userName}
         partnerName={partnerName}
         previousAmounts={previousAmounts}
+        previousActuals={previousActuals}
+        previousInProgress={previousInProgress}
+        onUseActual={updateItem}
         showPreviousValues={showPreviousValues && !periodAlreadyHasBudget}
         readOnly={periodAlreadyHasBudget}
         getSplitInfo={splitInfo}
@@ -1718,10 +1819,10 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Copy className="w-5 h-5 text-amber-500" />
-              Kopiera från föregående månad?
+              Kopiera förra periodens budget?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Detta kommer att ersätta alla nuvarande värden (förutom inkomster) med värdena från föregående månads budget.
+              Detta kommer att ersätta alla nuvarande värden (förutom inkomster) med beloppen från förra periodens budget, inte utfallet. Utfallet tar du per rad med Använd.
               <br /><br />
               <span className="text-amber-600 dark:text-amber-400 font-medium">
                 Alla ändringar du gjort kommer att skrivas över.
@@ -1779,7 +1880,10 @@ interface CategorySectionProps {
   onUpdateItem: (categoryId: string, value: number) => void
   onUpdateSplit: (categoryId: string, userAmount: number, partnerAmount: number) => void
   onToggleSplit: (categoryId: string) => void
-  onToggleCCM?: (categoryId: string) => void
+  /** Card button: opens Konto / Kort / Båda under the row */
+  onTogglePayment?: (categoryId: string) => void
+  onSetPaymentMode?: (category: Category, mode: PaymentMode) => void
+  onUpdateCardPart?: (categoryId: string, value: number) => void
   total: number
   expanded: boolean
   onToggle: () => void
@@ -1788,7 +1892,13 @@ interface CategorySectionProps {
   hasPartner: boolean
   userName: string
   partnerName: string
+  /** Last period's budget per category name */
   previousAmounts: Record<string, number>
+  /** Last period's actuals per category name, with the card part */
+  previousActuals: Record<string, CategoryActual>
+  /** Last period is still running: its actuals are "hittills" */
+  previousInProgress: boolean
+  onUseActual?: (categoryId: string, amount: number) => void
   showPreviousValues: boolean
   readOnly?: boolean
   ccmEnabled?: boolean
@@ -1808,7 +1918,9 @@ function CategorySection({
   onUpdateItem,
   onUpdateSplit,
   onToggleSplit,
-  onToggleCCM,
+  onTogglePayment,
+  onSetPaymentMode,
+  onUpdateCardPart,
   total,
   expanded,
   onToggle,
@@ -1818,6 +1930,9 @@ function CategorySection({
   userName,
   partnerName,
   previousAmounts,
+  previousActuals,
+  previousInProgress,
+  onUseActual,
   showPreviousValues,
   readOnly = false,
   ccmEnabled = false,
@@ -1880,7 +1995,13 @@ function CategorySection({
                   const sourceNote = readOnly ? null : getSourceNote?.(cat) ?? null
                   const splitInfo = hasPartner ? getSplitInfo?.(cat) : undefined
                   const previousValue = previousAmounts[cat.name]
-                  const hasPreviousValue = previousValue !== undefined && previousValue > 0
+                  const actual = previousActuals[cat.name]
+                  const actualTotal = actual ? Math.round(actual.total) : 0
+                  const actualCard = actual ? Math.round(actual.card) : 0
+                  const hasPreviousHint = actualTotal !== 0 || (previousValue !== undefined && previousValue > 0)
+                  const paymentMode = paymentModeOf(item)
+                  const cardPart = cardPartOf(item)
+                  const showPayment = ccmEnabled && !readOnly && !!onTogglePayment
 
                   return (
                     <div key={cat.id} className="space-y-1">
@@ -1889,18 +2010,40 @@ function CategorySection({
                           <span className="text-sm truncate block">{cat.name}</span>
                           {/* Previous value hint - show below category name when toggle is on */}
                           <AnimatePresence>
-                            {showPreviousValues && hasPreviousValue && (
+                            {showPreviousValues && hasPreviousHint && (
                               <motion.span
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
-                                className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1"
+                                className="text-xs text-amber-700 dark:text-amber-400 block"
                               >
-                                <History className="w-3 h-3" />
-                                Förra: {formatCurrency(previousValue)}
+                                <History className="w-3 h-3 inline -mt-0.5 mr-1" />
+                                Förra: {formatCurrency(actualTotal)} {previousInProgress ? 'hittills' : 'utfall'}
+                                {previousValue !== undefined && previousValue > 0 && (
+                                  <span className="text-muted-foreground"> · budget {formatCurrency(previousValue)}</span>
+                                )}
+                                {!readOnly && onUseActual && actualTotal > 0 && actualTotal !== Math.round(item.total) && (
+                                  <>
+                                    {' · '}
+                                    <button
+                                      type="button"
+                                      onClick={() => onUseActual(cat.id, actualTotal)}
+                                      aria-label={`Använd förra periodens utfall för ${cat.name}`}
+                                      className="font-semibold underline"
+                                    >
+                                      Använd
+                                    </button>
+                                  </>
+                                )}
                               </motion.span>
                             )}
                           </AnimatePresence>
+                          {/* Paid both ways: what goes on the card and what is drawn from the account */}
+                          {ccmEnabled && paymentMode === 'mixed' && !item.isPaymentOpen && (
+                            <span className="text-[11px] block text-hb-terracotta">
+                              {formatCurrency(cardPart)} kort · {formatCurrency(item.total - cardPart)} konto
+                            </span>
+                          )}
                           {sourceNote && (
                             <span className={cn('text-[11px] block', sourceNote.offer ? 'text-amber-700 dark:text-amber-300' : 'text-muted-foreground')}>
                               {sourceNote.text}
@@ -1916,17 +2059,22 @@ function CategorySection({
                           )}
                         </div>
 
-                        {/* CCM toggle button - only show if CCM enabled and not read-only */}
-                        {ccmEnabled && !readOnly && onToggleCCM && (
+                        {/* Payment button: account (muted), card (filled), both (outlined) */}
+                        {showPayment && (
                           <button
-                            onClick={() => onToggleCCM(cat.id)}
+                            type="button"
+                            onClick={() => onTogglePayment!(cat.id)}
                             className={cn(
                               "p-1.5 rounded-md transition-colors shrink-0",
-                              item.is_ccm
+                              paymentMode === 'card'
                                 ? "bg-hb-terracotta text-white"
-                                : "bg-muted hover:bg-muted/80 text-muted-foreground"
+                                : paymentMode === 'mixed'
+                                  ? "bg-hb-terracotta/15 text-hb-terracotta ring-1 ring-inset ring-hb-terracotta"
+                                  : "bg-muted hover:bg-muted/80 text-muted-foreground"
                             )}
-                            title={item.is_ccm ? "Kassaflöde" : "CCM (kreditkort)"}
+                            title={`Betalas: ${PAYMENT_LABELS[paymentMode].toLowerCase()}`}
+                            aria-label={`Betalning för ${cat.name}: ${PAYMENT_LABELS[paymentMode]}`}
+                            aria-expanded={!!item.isPaymentOpen}
                           >
                             <CreditCard className="w-3.5 h-3.5" />
                           </button>
@@ -2071,6 +2219,90 @@ function CategorySection({
                                     </button>
                                   )}
                                 </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Payment panel: Konto / Kort / Båda, and the card part when both */}
+                      <AnimatePresence>
+                        {showPayment && item.isPaymentOpen && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="ml-4 pl-3 border-l-2 border-hb-terracotta/40 space-y-1.5 py-1">
+                              <div role="radiogroup" aria-label={`Hur betalas ${cat.name}?`} className="flex justify-end gap-1">
+                                {(['account', 'card', 'mixed'] as const).map((mode) => (
+                                  <button
+                                    key={mode}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={paymentMode === mode}
+                                    onClick={() => onSetPaymentMode?.(cat, mode)}
+                                    className={cn(
+                                      "min-h-8 px-3 rounded-md text-xs font-medium transition-colors",
+                                      paymentMode === mode
+                                        ? "bg-hb-terracotta text-white"
+                                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                    )}
+                                  >
+                                    {PAYMENT_LABELS[mode]}
+                                  </button>
+                                ))}
+                              </div>
+
+                              {paymentMode === 'mixed' && (
+                                <>
+                                  <div className="flex items-center justify-end gap-2">
+                                    <label htmlFor={`card-part-${cat.id}`} className="text-xs text-muted-foreground">Varav kort</label>
+                                    <div className="relative w-28">
+                                      <input
+                                        id={`card-part-${cat.id}`}
+                                        type="text"
+                                        inputMode="numeric"
+                                        value={item.ccmAmount || ''}
+                                        onChange={(e) => {
+                                          const value = parseInt(e.target.value.replace(/\D/g, ''), 10) || 0
+                                          onUpdateCardPart?.(cat.id, value)
+                                        }}
+                                        placeholder="0"
+                                        className="w-full h-8 px-3 pr-7 text-right text-sm rounded-md bg-muted/70 focus:outline-none focus:ring-1 focus:ring-hb-terracotta"
+                                      />
+                                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+                                        kr
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center justify-end gap-2 min-h-8">
+                                    <span className="text-xs text-muted-foreground">Från konto</span>
+                                    <span className="w-28 pr-7 text-right text-sm font-medium tabular-nums">
+                                      {Math.round(item.total - cardPart).toLocaleString('sv-SE')}
+                                    </span>
+                                  </div>
+                                </>
+                              )}
+
+                              {/* How last period actually went, card vs account */}
+                              {actualCard > 0 && (
+                                <p className="text-[11px] text-muted-foreground text-right">
+                                  Förra perioden: {formatCurrency(actualCard)} kort · {formatCurrency(actualTotal - actualCard)} konto
+                                  {paymentMode === 'mixed' && actualCard < actualTotal && Math.min(actualCard, item.total) !== Math.round(item.ccmAmount ?? 0) && (
+                                    <>
+                                      {' · '}
+                                      <button
+                                        type="button"
+                                        onClick={() => onUpdateCardPart?.(cat.id, actualCard)}
+                                        className="font-semibold underline text-hb-terracotta"
+                                      >
+                                        Använd
+                                      </button>
+                                    </>
+                                  )}
+                                </p>
                               )}
                             </div>
                           </motion.div>

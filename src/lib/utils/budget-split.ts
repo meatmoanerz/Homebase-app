@@ -46,6 +46,31 @@ export function splitBudgetItem(
   return { user: split.user, partner: split.partner, explicit: false }
 }
 
+/** How a budget row is paid: is_ccm = all by card; ccm_amount = the card part of a row paid both ways. */
+export interface BudgetPaymentFields {
+  amount: number
+  is_ccm?: boolean | null
+  ccm_amount?: number | null
+}
+
+/**
+ * The part of a budget row paid by card (it leaves the account with a later
+ * invoice): all of it when is_ccm, its ccm_amount when paid both ways, else 0.
+ */
+export function budgetCardPart(item: BudgetPaymentFields): number {
+  const amount = item.amount || 0
+  if (item.is_ccm) return amount
+  if (item.ccm_amount == null) return 0
+  return Math.min(Math.max(item.ccm_amount, 0), amount)
+}
+
+/** Share of a budget row drawn from the account this period (0–1). */
+export function budgetAccountShare(item: BudgetPaymentFields): number {
+  if (item.is_ccm) return 0
+  if (!item.amount) return 1
+  return (item.amount - budgetCardPart(item)) / item.amount
+}
+
 export type BudgetViewMode = 'total' | 'mine' | 'partner'
 
 /**

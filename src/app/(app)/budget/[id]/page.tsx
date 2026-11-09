@@ -45,7 +45,7 @@ import { cn } from '@/lib/utils/cn'
 import { isInvoiceLine } from '@/lib/analytics/analytics'
 import { getBudgetStatus, budgetStatusBarClass, budgetStatusTextClass } from '@/lib/utils/budget-status'
 import type { BudgetItem, Category, ExpenseWithCategory } from '@/types'
-import { budgetAmountForView, type SplittableBudgetItem } from '@/lib/utils/budget-split'
+import { budgetAccountShare, budgetAmountForView, type SplittableBudgetItem } from '@/lib/utils/budget-split'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,13 +102,14 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
     }
   }, [budget])
 
-  // Calculate cashflow: budgeted expenses excluding credit card items
+  // Calculate cashflow: budgeted expenses excluding what is paid by card
+  // (all of a card row, the card part of a row paid both ways).
   // Per-person amounts come from budget_item_assignments (50/50 only as fallback)
   const cashflow = useMemo(() => {
     if (!budget?.budget_items) return 0
     return budget.budget_items
-      .filter(item => !item.is_ccm && (item.type === 'fixedExpense' || item.type === 'variableExpense'))
-      .reduce((sum, item) => sum + budgetAmountForView(item, viewMode, user?.id, partner?.id, splitRule), 0)
+      .filter(item => item.type === 'fixedExpense' || item.type === 'variableExpense')
+      .reduce((sum, item) => sum + budgetAmountForView(item, viewMode, user?.id, partner?.id, splitRule) * budgetAccountShare(item), 0)
   }, [budget, viewMode, user?.id, partner?.id, splitRule])
 
   // Calculate actual spending per category based on view mode

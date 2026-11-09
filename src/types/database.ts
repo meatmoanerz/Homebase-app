@@ -284,6 +284,8 @@ export type Database = {
           type: 'income' | 'fixedExpense' | 'variableExpense' | 'savings'
           amount: number
           is_ccm: boolean
+          /** Card part of a row paid partly by card, partly from the account. null = follows is_ccm */
+          ccm_amount: number | null
           /** false: follows its source (loans, credit cards) until someone types an amount */
           is_manual_amount: boolean
           created_at: string
@@ -296,6 +298,7 @@ export type Database = {
           type: 'income' | 'fixedExpense' | 'variableExpense' | 'savings'
           amount?: number
           is_ccm?: boolean
+          ccm_amount?: number | null
           is_manual_amount?: boolean
           created_at?: string
         }
@@ -307,6 +310,7 @@ export type Database = {
           type?: 'income' | 'fixedExpense' | 'variableExpense' | 'savings'
           amount?: number
           is_ccm?: boolean
+          ccm_amount?: number | null
           is_manual_amount?: boolean
           created_at?: string
         }
@@ -858,6 +862,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      import_freshness: {
+        Args: Record<string, never>
+        Returns: {
+          user_id: string
+          bank: string
+          latest_date: string
+          last_upload: string
+        }[]
+      }
       get_partner_id: {
         Args: { user_id: string }
         Returns: string | null
