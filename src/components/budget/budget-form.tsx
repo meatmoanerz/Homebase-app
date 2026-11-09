@@ -101,9 +101,10 @@ function cardPartOf(item: BudgetItemState): number {
   return budgetCardPart({ amount: item.total || 0, is_ccm: item.is_ccm, ccm_amount: item.ccmAmount })
 }
 
-/** A new total never leaves a card part larger than the row */
-function clampCardPart(item: BudgetItemState | undefined, total: number): number | undefined {
-  return item?.ccmAmount === undefined ? undefined : Math.min(item.ccmAmount, total)
+/** The card part as shown and saved: never more than the row. The typed value is
+ *  kept, so retyping the total (300 passes through 3 and 30) does not lose it. */
+function shownCardPart(item: BudgetItemState): number {
+  return Math.min(item.ccmAmount ?? 0, item.total || 0)
 }
 
 // Income state for editable amounts
@@ -825,7 +826,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           isSplit: false,
           hasExplicitSplit: false,
           is_ccm: current.is_ccm, // Preserve CCM status
-          ccmAmount: clampCardPart(current, value),
+          ccmAmount: current.ccmAmount,
           isPaymentOpen: current.isPaymentOpen,
           isManualAmount: true,
         },
@@ -848,7 +849,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
           isSplit: true,
           hasExplicitSplit,
           is_ccm: current.is_ccm, // Preserve CCM status
-          ccmAmount: clampCardPart(current, userAmount + partnerAmount),
+          ccmAmount: current.ccmAmount,
           isPaymentOpen: current.isPaymentOpen,
           isManualAmount: true,
         },
@@ -881,7 +882,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         isSplit: false,
         hasExplicitSplit: source.userAmount !== undefined && source.userAmount !== source.partnerAmount,
         is_ccm: prev[cat.id]?.is_ccm ?? false,
-        ccmAmount: clampCardPart(prev[cat.id], source.total),
+        ccmAmount: prev[cat.id]?.ccmAmount,
         isPaymentOpen: prev[cat.id]?.isPaymentOpen,
         isManualAmount: false,
       },
@@ -943,7 +944,7 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         return { ...prev, [cat.id]: { ...current, is_ccm: mode === 'card', ccmAmount: undefined, isPaymentOpen: false } }
       }
       const suggested = actual && actual.card > 0 && actual.card < actual.total ? Math.round(actual.card) : 0
-      const ccmAmount = Math.min(current.ccmAmount ?? suggested, current.total)
+      const ccmAmount = current.ccmAmount ?? Math.min(suggested, current.total)
       return { ...prev, [cat.id]: { ...current, is_ccm: false, ccmAmount, isPaymentOpen: true } }
     })
   }
@@ -975,7 +976,6 @@ export function BudgetForm({ existingBudget, defaultPeriod }: BudgetFormProps) {
         next[cat.id] = {
           ...item,
           total: source.total,
-          ccmAmount: clampCardPart(item, source.total),
           userAmount: source.userAmount,
           partnerAmount: source.partnerAmount,
           hasExplicitSplit: source.userAmount !== undefined && source.userAmount !== source.partnerAmount,
@@ -2264,7 +2264,7 @@ function CategorySection({
                                         id={`card-part-${cat.id}`}
                                         type="text"
                                         inputMode="numeric"
-                                        value={item.ccmAmount || ''}
+                                        value={shownCardPart(item) || ''}
                                         onChange={(e) => {
                                           const value = parseInt(e.target.value.replace(/\D/g, ''), 10) || 0
                                           onUpdateCardPart?.(cat.id, value)
@@ -2290,7 +2290,7 @@ function CategorySection({
                               {actualCard > 0 && (
                                 <p className="text-[11px] text-muted-foreground text-right">
                                   Förra perioden: {formatCurrency(actualCard)} kort · {formatCurrency(actualTotal - actualCard)} konto
-                                  {paymentMode === 'mixed' && actualCard < actualTotal && Math.min(actualCard, item.total) !== Math.round(item.ccmAmount ?? 0) && (
+                                  {paymentMode === 'mixed' && actualCard < actualTotal && Math.min(actualCard, item.total) !== Math.round(shownCardPart(item)) && (
                                     <>
                                       {' · '}
                                       <button
