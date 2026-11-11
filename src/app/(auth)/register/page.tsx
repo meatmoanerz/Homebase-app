@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Loader2, Mail, User } from 'lucide-react'
@@ -20,7 +19,6 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
-  const router = useRouter()
   const supabase = createClient()
 
   async function handleEmailSignup(e: React.FormEvent) {
@@ -53,8 +51,8 @@ export default function RegisterPage() {
       toast.error(error.message)
     } else {
       toast.success('Konto skapat! Kontrollera din e-post för verifiering.')
-      router.push('/onboarding')
-      router.refresh()
+      // Full page load: the new account starts with an empty cache.
+      window.location.assign('/onboarding')
     }
 
     setLoading(false)

@@ -39,7 +39,7 @@ export function usePartnerLoans() {
   return useQuery({
     queryKey: ['partner-loans'],
     queryFn: async () => {
-      const response = await fetch('/api/partner-loans')
+      const response = await fetch('/api/partner-loans', { cache: 'no-store' })
       const data = await response.json()
 
       if (data.error) {

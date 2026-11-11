@@ -4,25 +4,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import type { Profile } from '@/types'
-import { useEffect } from 'react'
 
 export function useUser() {
   const supabase = createClient()
-  const queryClient = useQueryClient()
 
-  // Listen for auth changes and invalidate query
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-        queryClient.invalidateQueries({ queryKey: ['user'] })
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [supabase, queryClient])
-
+  // Auth changes (sign-in, sign-out, account switch) are handled centrally
+  // by AuthSessionGuard, which clears or refreshes the cache.
   return useQuery({
     queryKey: ['user'],
     queryFn: async () => {
@@ -133,7 +120,7 @@ export function usePartner() {
   return useQuery({
     queryKey: ['partner'],
     queryFn: async () => {
-      const response = await fetch('/api/partner')
+      const response = await fetch('/api/partner', { cache: 'no-store' })
       const data = await response.json()
       
       if (data.error) {
@@ -151,7 +138,7 @@ export function usePartnerConnection() {
   return useQuery({
     queryKey: ['partner-connection'],
     queryFn: async () => {
-      const response = await fetch('/api/partner')
+      const response = await fetch('/api/partner', { cache: 'no-store' })
       const data = await response.json()
       
       if (data.error) {

@@ -128,7 +128,7 @@ export function useHouseholdIncomeDetails() {
   return useQuery({
     queryKey: ['household-income-details'],
     queryFn: async () => {
-      const response = await fetch('/api/household-incomes')
+      const response = await fetch('/api/household-incomes', { cache: 'no-store' })
       const data = await response.json()
       
       if (data.error) {

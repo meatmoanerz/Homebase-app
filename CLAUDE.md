@@ -61,6 +61,7 @@ pnpm lint             # Run ESLint
 8. Add translations to both `sv.json` and `en.json`
 9. All tables have RLS - add policies for new tables
 10. Use named exports (no default exports for components)
+11. Sign-in/sign-out use a full page load (`window.location`), never `router.push` — the query cache must not survive an account change. New localStorage keys holding one account's data go in `USER_STORAGE_PREFIXES` in `src/lib/auth/user-state.ts`
 
 ### Database Pattern
 ```typescript

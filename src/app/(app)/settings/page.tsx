@@ -1,12 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useUser } from '@/hooks/use-user'
 import { useModules, useSetModuleEnabled } from '@/hooks/use-modules'
 import { ALL_OPTIONAL_MODULES, MODULE_INFO, type OptionalModule } from '@/lib/onboarding/modules'
 import { useImportBatches } from '@/hooks/use-import-staging'
 import { createClient } from '@/lib/supabase/client'
+import { useQueryClient } from '@tanstack/react-query'
+import { clearUserState } from '@/lib/auth/user-state'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -91,17 +92,19 @@ export default function SettingsPage() {
   const pendingImports = batches.reduce((sum, b) => sum + b.row_count, 0)
   const { isEnabled, isAvailable } = useModules()
   const setModuleEnabled = useSetModuleEnabled()
-  const router = useRouter()
+  const queryClient = useQueryClient()
   const supabase = createClient()
 
   async function handleLogout() {
     const { error } = await supabase.auth.signOut()
     if (error) {
       toast.error('Kunde inte logga ut')
-    } else {
-      router.push('/login')
-      router.refresh()
+      return
     }
+    // Drop everything cached for this account, then load the login page
+    // fresh so nothing from this session is left in memory.
+    clearUserState(queryClient)
+    window.location.replace('/login')
   }
 
   if (isLoading) {

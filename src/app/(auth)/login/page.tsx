@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { toast } from 'sonner'
@@ -18,7 +17,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
-  const router = useRouter()
   const supabase = createClient()
 
   async function handleEmailLogin(e: React.FormEvent) {
@@ -35,12 +33,12 @@ export default function LoginPage() {
         ? 'Fel e-post eller lösenord' 
         : error.message
       )
-    } else {
-      router.push('/dashboard')
-      router.refresh()
+      setLoading(false)
+      return
     }
 
-    setLoading(false)
+    // Full page load: the app starts with an empty cache for this account.
+    window.location.assign('/dashboard')
   }
 
   async function handleGoogleLogin() {

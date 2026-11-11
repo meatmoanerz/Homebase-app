@@ -7,6 +7,15 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-11 — Inget cachat data följer med mellan konton
+
+- Byte av konto i samma webbläsare visade det förra kontots data (dashboard,
+  inställningar, partner, profil) eftersom query-cachen överlevde in- och
+  utloggning. `AuthSessionGuard` tömmer nu cachen vid utloggning och kontobyte,
+  och in-/utloggning laddar om sidan helt (`lib/auth/user-state.ts`).
+- Kontobundna nycklar i localStorage (budgetutkast, perspektiv, lästa notiser
+  m.m.) och sessionStorage rensas vid utloggning. Temat ligger kvar.
+
 ## 2026-11-09 — Kort och konto per budgetrad, utfall och importpåminnelse
 
 - Budget: kortknappen på en rad öppnar Konto / Kort / Båda. Vid Båda anges

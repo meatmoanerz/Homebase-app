@@ -21,7 +21,7 @@ export function useWalletTokens() {
   return useQuery({
     queryKey: ['wallet-tokens'],
     queryFn: async () => {
-      const data = await readJson<{ tokens: WalletToken[] }>(await fetch('/api/wallet-tokens'))
+      const data = await readJson<{ tokens: WalletToken[] }>(await fetch('/api/wallet-tokens', { cache: 'no-store' }))
       return data.tokens
     },
   })

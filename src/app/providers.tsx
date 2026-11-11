@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { useKeyboard } from '@/hooks/use-keyboard'
 import { useCapacitorInit } from '@/hooks/use-capacitor'
 import { THEME_COLOR } from '@/lib/utils/theme-color'
+import { AuthSessionGuard } from '@/components/auth-session-guard'
 
 // Component to initialize keyboard detection globally
 function KeyboardDetector() {
@@ -54,6 +55,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <AuthSessionGuard />
       <ThemeProvider
         attribute="class"
         defaultTheme="system"
