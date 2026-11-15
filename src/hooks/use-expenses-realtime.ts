@@ -20,6 +20,8 @@ interface ExpenseRealtimePayload {
   updated_at: string
 }
 
+const REFETCH_DEBOUNCE_MS = 400
+
 export function useExpensesRealtime(userId: string | undefined, partnerId: string | undefined) {
   const queryClient = useQueryClient()
   const supabase = createClient()
@@ -27,6 +29,18 @@ export function useExpensesRealtime(userId: string | undefined, partnerId: strin
   useEffect(() => {
     // Only setup realtime if we have a valid user
     if (!userId) return
+
+    // An import writes many rows at once and each row arrives as its own
+    // event. Refetch once per burst instead of once per row.
+    let refetchTimer: ReturnType<typeof setTimeout> | null = null
+    const scheduleRefetch = () => {
+      if (refetchTimer) clearTimeout(refetchTimer)
+      refetchTimer = setTimeout(() => {
+        refetchTimer = null
+        queryClient.invalidateQueries({ queryKey: ['expenses'] })
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      }, REFETCH_DEBOUNCE_MS)
+    }
 
     console.log('[Realtime] Setting up expense realtime subscription for user:', userId)
     if (partnerId) {
@@ -44,8 +58,6 @@ export function useExpensesRealtime(userId: string | undefined, partnerId: strin
           table: 'expenses',
         },
         async (payload: RealtimePostgresChangesPayload<ExpenseRealtimePayload>) => {
-          console.log('[Realtime] Expense change detected:', payload.eventType, payload)
-
           const expense = payload.new as ExpenseRealtimePayload
           const oldExpense = payload.old as ExpenseRealtimePayload
 
@@ -72,20 +84,10 @@ export function useExpensesRealtime(userId: string | undefined, partnerId: strin
               oldExpense.assigned_to === userId
           }
 
-          if (!isRelevant) {
-            console.log('[Realtime] Expense not relevant to current user, ignoring')
-            return
-          }
-
-          console.log('[Realtime] Expense is relevant, invalidating queries')
+          if (!isRelevant) return
 
           // Invalidate all expense-related queries to trigger refetch
-          // This is the simplest and safest approach
-          queryClient.invalidateQueries({ queryKey: ['expenses'] })
-          queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-
-          // Optionally, we could also show a toast notification
-          // but let's keep it subtle for now
+          scheduleRefetch()
         }
       )
       .subscribe((status, err) => {
@@ -105,6 +107,7 @@ export function useExpensesRealtime(userId: string | undefined, partnerId: strin
     // Cleanup function
     return () => {
       console.log('[Realtime] Cleaning up expense realtime subscription')
+      if (refetchTimer) clearTimeout(refetchTimer)
       channel.unsubscribe()
     }
   }, [userId, partnerId, supabase, queryClient])

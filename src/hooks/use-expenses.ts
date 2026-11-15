@@ -290,6 +290,69 @@ export function useCreateExpense() {
   })
 }
 
+const BULK_INSERT_CHUNK = 50
+
+/**
+ * Saves many expenses at once (file import). Rows go in chunks, so a hundred
+ * rows take a couple of requests instead of several per row. A chunk that
+ * fails (one bad row rolls back the whole chunk) is retried row by row, so
+ * only the bad rows are lost. Queries are refreshed once at the end.
+ */
+export function useBulkCreateExpenses() {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      expenses,
+      onProgress,
+    }: {
+      expenses: InsertTables<'expenses'>[]
+      onProgress?: (done: number, total: number) => void
+    }): Promise<{ saved: number; failed: number[] }> => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const rows = expenses.map((expense) => ({ ...expense, user_id: user.id }))
+      let saved = 0
+      let processed = 0
+      const failed: number[] = []
+
+      for (let start = 0; start < rows.length; start += BULK_INSERT_CHUNK) {
+        const chunk = rows.slice(start, start + BULK_INSERT_CHUNK)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase.from('expenses') as any).insert(chunk)
+        if (!error) {
+          saved += chunk.length
+        } else {
+          console.error('Bulk insert failed, retrying row by row:', error)
+          for (let i = 0; i < chunk.length; i++) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { error: rowError } = await (supabase.from('expenses') as any).insert(chunk[i])
+            if (rowError) {
+              console.error('Import error:', rowError)
+              failed.push(start + i)
+            } else {
+              saved++
+            }
+          }
+        }
+        processed += chunk.length
+        onProgress?.(processed, rows.length)
+      }
+
+      return { saved, failed }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      // Rows in a savings goal's category get their contribution from the DB trigger
+      queryClient.invalidateQueries({ queryKey: ['savings-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['savings-goal-contributions'] })
+    },
+  })
+}
+
 export function useUpdateExpense() {
   const supabase = createClient()
   const queryClient = useQueryClient()

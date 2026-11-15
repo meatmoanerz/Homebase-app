@@ -1,14 +1,15 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
 import { useCategories } from '@/hooks/use-categories'
-import { useCreateExpense, useLatestImportedTransactionDates } from '@/hooks/use-expenses'
+import { useBulkCreateExpenses, useLatestImportedTransactionDates } from '@/hooks/use-expenses'
 import { useCategoryMappings, findMatchingMapping, incrementMappingHit, useCreateMapping, useUpdateMapping, suggestPatternFromDescription, isLearnablePattern } from '@/hooks/use-category-mappings'
 import { useAssignmentOptions } from '@/hooks/use-assignment-options'
 import { parseHomebaseCsv, getCsvTemplate, type CsvParseResult } from '@/lib/import/csv-parser'
 import { parseBankCsv, parseBankXlsx, isXlsxBuffer, decodeCsvBuffer, type BankParseResult } from '@/lib/import/bank-parsers'
+import { findProbableDuplicates, candidateWindow, chargedAmount, type SavedExpenseLite } from '@/lib/import/probable-duplicates'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { useUser } from '@/hooks/use-user'
 import { useImportBatches, useStagingRows, useToggleBatchPin, useMarkBatchOpened, useDeleteBatch, useCompleteAmexBatch, useCompleteBankBatch, type StagingBatch, type StagingRow } from '@/hooks/use-import-staging'
@@ -47,6 +48,14 @@ interface PreviewRow {
   utlagg: UtlaggSplit | null
   /** Same date, amount and text as an expense already saved: skipped by default. */
   duplicate?: boolean
+  /** Same card purchase already saved under another name (shortcut/manual): skipped by default. */
+  duplicateOf?: string | null
+}
+
+/** "ICA Kvantum · 12 nov": the saved row a probable duplicate points at. */
+function describeSaved(expense: SavedExpenseLite): string {
+  const date = format(new Date(`${expense.date}T00:00:00`), 'd MMM', { locale: sv })
+  return `${expense.description || 'utan text'} · ${date}`
 }
 
 /** Key for spotting a row that is already saved: date, amount and text. */
@@ -61,7 +70,7 @@ export default function ImportPage() {
   const { data: partner } = usePartner()
   const { data: categories = [] } = useCategories()
   const { data: mappings = [] } = useCategoryMappings()
-  const createExpense = useCreateExpense()
+  const bulkCreateExpenses = useBulkCreateExpenses()
   const createMapping = useCreateMapping()
   const updateMapping = useUpdateMapping()
   const assignmentOptions = useAssignmentOptions()
@@ -83,6 +92,7 @@ export default function ImportPage() {
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([])
   const [importProgress, setImportProgress] = useState(0)
   const [importedCount, setImportedCount] = useState(0)
+  const [importTotal, setImportTotal] = useState(0)
   const [parseError, setParseError] = useState<string | null>(null)
 
   // AI-import state
@@ -90,6 +100,9 @@ export default function ImportPage() {
   const { data: stagingRows = [], isLoading: stagingLoading } = useStagingRows(activeBatchId)
   const [stagingEdits, setStagingEdits] = useState<Record<number, Partial<StagingRow>>>({})
   const [importingStaging, setImportingStaging] = useState(false)
+  // Plånbok rows whose purchase is already saved from a bank file: row id → that saved row
+  const [walletDuplicates, setWalletDuplicates] = useState<Record<number, string>>({})
+  const walletDupCheckedFor = useRef<string | null>(null)
   // Multi-select (bulk categorize) state
   const [bulkMode, setBulkMode] = useState(false)
   const [bulkSelected, setBulkSelected] = useState<Set<number>>(new Set())
@@ -104,37 +117,61 @@ export default function ImportPage() {
   // Rows already saved (an overlapping bank file, or the same file twice) are
   // marked and skipped, so nothing is counted twice. Matching is per row: two
   // identical coffees in the file and one saved marks only one of them.
+  // A card purchase saved earlier by the Plånbok shortcut (or by hand) has
+  // another name than in the bank file, so it is matched on bank, amount and
+  // date instead (see probable-duplicates.ts).
   const dupCheck = useRef(0)
   async function markDuplicates(rows: PreviewRow[]) {
     if (!user || rows.length === 0) return
     const token = ++dupCheck.current
-    const dates = rows.map((r) => r.date).filter(Boolean).sort()
-    if (dates.length === 0) return
+    const window = candidateWindow(rows.map((r) => r.date))
+    if (!window) return
     const { data, error } = await createClient()
       .from('expenses')
-      .select('date, amount, description, group_purchase_total')
+      .select('id, date, amount, description, bank, import_source, group_purchase_total')
       .eq('user_id', user.id)
-      .gte('date', dates[0])
-      .lte('date', dates[dates.length - 1])
+      .gte('date', window.from)
+      .lte('date', window.to)
     if (error || !data || token !== dupCheck.current) return
-    const saved = new Map<string, number>()
-    for (const e of data as { date: string; amount: number; description: string | null; group_purchase_total: number | null }[]) {
-      const key = duplicateKey(e.date, Number(e.group_purchase_total ?? e.amount), e.description ?? '')
-      saved.set(key, (saved.get(key) ?? 0) + 1)
+    const savedRows = data as SavedExpenseLite[]
+
+    const byKey = new Map<string, string[]>()
+    for (const e of savedRows) {
+      const key = duplicateKey(e.date, chargedAmount(e), e.description ?? '')
+      byKey.set(key, [...(byKey.get(key) ?? []), e.id])
     }
-    const flags = rows.map((r) => {
-      const key = duplicateKey(r.date, r.amount, r.description)
-      const left = saved.get(key) ?? 0
-      if (left === 0) return false
-      saved.set(key, left - 1)
+    const used = new Set<string>()
+    const exact = rows.map((r) => {
+      const id = byKey.get(duplicateKey(r.date, r.amount, r.description))?.shift()
+      if (!id) return false
+      used.add(id)
       return true
     })
-    if (!flags.some(Boolean)) return
-    setPreviewRows((current) =>
-      current === rows ? rows.map((r, i) => (flags[i] ? { ...r, duplicate: true, skip: true } : r)) : current
+    const probable = findProbableDuplicates(
+      rows,
+      savedRows.filter((e) => e.import_source !== 'csv' && !used.has(e.id)),
+      exact
     )
-    const count = flags.filter(Boolean).length
-    toast.info(count === 1 ? '1 rad finns redan och hoppas över' : `${count} rader finns redan och hoppas över`)
+    if (!exact.some(Boolean) && !probable.some(Boolean)) return
+    setPreviewRows((current) =>
+      current === rows
+        ? rows.map((r, i) =>
+            exact[i] ? { ...r, duplicate: true, skip: true }
+              : probable[i] ? { ...r, duplicateOf: describeSaved(probable[i]!), skip: true }
+                : r)
+        : current
+    )
+    const count = exact.filter(Boolean).length
+    const likely = probable.filter(Boolean).length
+    if (count > 0) {
+      toast.info(count === 1 ? '1 rad finns redan och hoppas över' : `${count} rader finns redan och hoppas över`)
+    }
+    if (likely > 0) {
+      toast.info(
+        likely === 1 ? '1 köp finns redan under ett annat namn' : `${likely} köp finns redan under ett annat namn`,
+        { description: 'Sparade från Plånbok-genvägen eller för hand. De hoppas över — kontrollera de markerade raderna.' }
+      )
+    }
   }
 
   function processHomebaseUpload(text: string) {
@@ -328,66 +365,138 @@ export default function ImportPage() {
   }
 
   async function handleImport() {
-    if (!user) return
+    if (!user || step === 'importing') return
     const rowsToImport = previewRows.filter((r) => !r.skip && r.date && r.description && r.amount !== 0)
     const missingCategory = rowsToImport.filter((r) => !r.selectedCategoryId).length
     if (missingCategory > 0) {
       toast.error(`${missingCategory === 1 ? '1 rad saknar' : `${missingCategory} rader saknar`} kategori. Välj kategori eller bocka i "Hoppa över" innan import.`)
       return
     }
+    setImportProgress(0)
+    setImportedCount(0)
+    setImportTotal(rowsToImport.length)
     setStep('importing')
-    let imported = 0
-    for (const row of rowsToImport) {
-      try {
-        const utlagg = row.utlagg
-        const budgetAmount = utlagg
-          ? Math.round((utlagg.userShare + utlagg.partnerShare) * 100) / 100
-          : row.amount
-        await createExpense.mutateAsync({
-          date: row.date,
-          description: row.description,
-          amount: budgetAmount,
-          category_id: row.selectedCategoryId,
-          cost_assignment: utlagg
-            ? deriveCostAssignment(utlagg.userShare, utlagg.partnerShare)
-            : row.costAssignment,
-          is_ccm: row.onCreditCard,
-          is_refund: row.amount < 0,
-          bank: row.bank,
-          import_source: 'csv',
-          ...(utlagg && {
-            is_group_purchase: true,
-            group_purchase_total: row.amount,
-            group_purchase_user_share: utlagg.userShare,
-            group_purchase_partner_share: utlagg.partnerShare,
-            group_purchase_swish_amount: Math.round((row.amount - budgetAmount) * 100) / 100,
-            group_purchase_swish_recipient: utlagg.swishRecipient,
-          }),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any)
-        imported++
-        if (row.mappingId) {
-          incrementMappingHit(row.mappingId).catch(() => {})
-        }
-        setImportProgress(Math.round((imported / rowsToImport.length) * 100))
-        setImportedCount(imported)
-      } catch (err) {
-        console.error('Import error:', err)
+    window.scrollTo({ top: 0 })
+
+    const expenses = rowsToImport.map((row) => {
+      const utlagg = row.utlagg
+      const budgetAmount = utlagg
+        ? Math.round((utlagg.userShare + utlagg.partnerShare) * 100) / 100
+        : row.amount
+      return {
+        date: row.date,
+        description: row.description,
+        amount: budgetAmount,
+        category_id: row.selectedCategoryId,
+        cost_assignment: utlagg
+          ? deriveCostAssignment(utlagg.userShare, utlagg.partnerShare)
+          : row.costAssignment,
+        is_ccm: row.onCreditCard,
+        is_refund: row.amount < 0,
+        bank: row.bank,
+        import_source: 'csv',
+        ...(utlagg && {
+          is_group_purchase: true,
+          group_purchase_total: row.amount,
+          group_purchase_user_share: utlagg.userShare,
+          group_purchase_partner_share: utlagg.partnerShare,
+          group_purchase_swish_amount: Math.round((row.amount - budgetAmount) * 100) / 100,
+          group_purchase_swish_recipient: utlagg.swishRecipient,
+        }),
       }
+    })
+
+    let imported = 0
+    let failed: number[] = []
+    try {
+      const result = await bulkCreateExpenses.mutateAsync({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expenses: expenses as any,
+        onProgress: (done, total) => {
+          setImportProgress(Math.round((done / total) * 100))
+          setImportedCount(done)
+        },
+      })
+      imported = result.saved
+      failed = result.failed
+    } catch (err) {
+      console.error('Import error:', err)
+      toast.error('Importen kunde inte sparas. Försök igen.')
+      setStep('preview')
+      return
     }
+
+    const failedSet = new Set(failed)
+    // Hit counters are bookkeeping for rule ordering; they need not block the UI.
+    const mappingIds = rowsToImport
+      .filter((r, i) => r.mappingId && !failedSet.has(i))
+      .map((r) => r.mappingId as string)
+    void Promise.all(mappingIds.map((id) => incrementMappingHit(id).catch(() => {})))
+
+    setImportedCount(imported)
     setStep('done')
+    window.scrollTo({ top: 0 })
+    if (failed.length > 0) {
+      toast.error(`${failed.length === 1 ? '1 rad' : `${failed.length} rader`} kunde inte sparas`, {
+        description: rowsToImport.filter((_, i) => failedSet.has(i)).slice(0, 3).map((r) => `${r.date} ${r.description}`).join(', '),
+      })
+    }
     toast.success(`${imported} utgifter importerade`)
     // Learn from bank rows where the category was picked or changed by hand.
     if (mode === 'bank') {
       await learnRules(
         rowsToImport
-          .filter((r) => r.selectedCategoryId && r.selectedCategoryId !== r.suggestedCategoryId)
+          .filter((r, i) => !failedSet.has(i) && r.selectedCategoryId && r.selectedCategoryId !== r.suggestedCategoryId)
           .map((r) => ({ description: r.description, bank: r.bank, categoryId: r.selectedCategoryId!, costAssignment: r.costAssignment }))
       )
     }
   }
 
   // ---- AI-import helpers ----
+
+  // The Plånbok inbox holds purchases as Apple Pay names them. If the bank file
+  // with the same purchase was imported first, the inbox row would count it a
+  // second time: mark it and leave it out by default.
+  useEffect(() => {
+    if (step !== 'ai-review' || !activeBatchId || !user || stagingRows.length === 0) return
+    if (walletDupCheckedFor.current === activeBatchId) return
+    const walletRows = stagingRows.filter((row) => row.amex_sync_transaction_id)
+    if (walletRows.length === 0) return
+    walletDupCheckedFor.current = activeBatchId
+    const window = candidateWindow(walletRows.map((row) => row.date))
+    if (!window) return
+    const batchId = activeBatchId
+    void (async () => {
+      const { data, error } = await createClient()
+        .from('expenses')
+        .select('id, date, amount, description, bank, import_source, group_purchase_total')
+        .eq('user_id', user.id)
+        .eq('import_source', 'csv')
+        .gte('date', window.from)
+        .lte('date', window.to)
+      if (error || !data || walletDupCheckedFor.current !== batchId) return
+      const matches = findProbableDuplicates(walletRows, data as SavedExpenseLite[])
+      const found: Record<number, string> = {}
+      walletRows.forEach((row, i) => {
+        const match = matches[i]
+        if (match) found[row.id] = describeSaved(match)
+      })
+      const ids = Object.keys(found).map(Number)
+      if (ids.length === 0) return
+      setWalletDuplicates(found)
+      setStagingEdits((prev) => {
+        const next = { ...prev }
+        for (const id of ids) {
+          if (next[id]?.selected === undefined) next[id] = { ...(next[id] || {}), selected: false }
+        }
+        return next
+      })
+      toast.info(
+        ids.length === 1 ? '1 köp finns redan från bankfilen' : `${ids.length} köp finns redan från bankfilen`,
+        { description: 'De är avbockade så att de inte räknas två gånger.' }
+      )
+    })()
+  }, [step, activeBatchId, user, stagingRows])
 
   function getMergedRow(row: StagingRow): StagingRow {
     const edits = stagingEdits[row.id] || {}
@@ -431,10 +540,10 @@ export default function ImportPage() {
   async function flushEdits() {
     const supabase = createClient()
     const entries = Object.entries(stagingEdits)
-    for (const [idStr, updates] of entries) {
+    await Promise.all(entries.map(([idStr, updates]) =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('import_staging') as any).update(updates).eq('id', Number(idStr))
-    }
+      (supabase.from('import_staging') as any).update(updates).eq('id', Number(idStr))
+    ))
     setStagingEdits({})
   }
 
@@ -505,47 +614,61 @@ export default function ImportPage() {
 
     const supabase = createClient()
     let imported = 0
-
-    for (const row of rowsToImport) {
-      try {
-        const isUtlagg = row.is_group_purchase
-        const uShare = row.group_purchase_user_share || 0
-        const pShare = row.group_purchase_partner_share || 0
-        const budgetAmount = isUtlagg ? Math.round((uShare + pShare) * 100) / 100 : row.amount
-        await createExpense.mutateAsync({
-          date: row.date,
-          description: row.description,
-          amount: budgetAmount,
-          category_id: row.category_id,
-          cost_assignment: isUtlagg ? deriveCostAssignment(uShare, pShare) : row.cost_assignment,
-          is_ccm: row.is_ccm,
-          is_refund: budgetAmount < 0,
-          bank: row.bank,
-          import_source: 'csv',
-          ...(isUtlagg && {
-            is_group_purchase: true,
-            group_purchase_total: row.amount,
-            group_purchase_user_share: uShare,
-            group_purchase_partner_share: pShare,
-            group_purchase_swish_amount: Math.round((row.amount - budgetAmount) * 100) / 100,
-            group_purchase_swish_recipient: row.group_purchase_swish_recipient || 'user',
-          }),
+    let failed: number[] = []
+    try {
+      const result = await bulkCreateExpenses.mutateAsync({
+        expenses: rowsToImport.map((row) => {
+          const isUtlagg = row.is_group_purchase
+          const uShare = row.group_purchase_user_share || 0
+          const pShare = row.group_purchase_partner_share || 0
+          const budgetAmount = isUtlagg ? Math.round((uShare + pShare) * 100) / 100 : row.amount
+          return {
+            date: row.date,
+            description: row.description,
+            amount: budgetAmount,
+            category_id: row.category_id,
+            cost_assignment: isUtlagg ? deriveCostAssignment(uShare, pShare) : row.cost_assignment,
+            is_ccm: row.is_ccm,
+            is_refund: budgetAmount < 0,
+            bank: row.bank,
+            import_source: 'csv',
+            ...(isUtlagg && {
+              is_group_purchase: true,
+              group_purchase_total: row.amount,
+              group_purchase_user_share: uShare,
+              group_purchase_partner_share: pShare,
+              group_purchase_swish_amount: Math.round((row.amount - budgetAmount) * 100) / 100,
+              group_purchase_swish_recipient: row.group_purchase_swish_recipient || 'user',
+            }),
+          }
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any)
-        imported++
+        }) as any,
+      })
+      imported = result.saved
+      failed = result.failed
+    } catch (err) {
+      console.error('AI import error:', err)
+      toast.error('Importen kunde inte sparas. Försök igen.')
+      setImportingStaging(false)
+      return
+    }
+    const failedSet = new Set(failed)
+    const savedRows = rowsToImport.filter((_, i) => !failedSet.has(i))
+    if (savedRows.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('import_staging') as any)
+        .update({ status: 'imported' })
+        .in('id', savedRows.map((row) => row.id))
+      const savedRawIds = savedRows.map((row) => row.amex_sync_transaction_id).filter(Boolean) as string[]
+      if (savedRawIds.length > 0) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase.from('import_staging') as any)
-          .update({ status: 'imported' })
-          .eq('id', row.id)
-        if (row.amex_sync_transaction_id) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (supabase.from('amex_sync_transactions') as any)
-            .update({ status: 'imported', staging_batch_id: null })
-            .eq('id', row.amex_sync_transaction_id)
-        }
-      } catch (err) {
-        console.error('AI import error:', err)
+        await (supabase.from('amex_sync_transactions') as any)
+          .update({ status: 'imported', staging_batch_id: null })
+          .in('id', savedRawIds)
       }
+    }
+    if (failed.length > 0) {
+      toast.error(`${failed.length === 1 ? '1 rad' : `${failed.length} rader`} kunde inte sparas`)
     }
 
     const ignoredRawIds = stagingRows
@@ -719,6 +842,8 @@ export default function ImportPage() {
                 }
                 setActiveBatchId(batch.batch_id)
                 setStagingEdits({})
+                setWalletDuplicates({})
+                walletDupCheckedFor.current = null
                 setStep('ai-review')
               }}
               onPin={() => togglePin.mutate({ batchId: batch.batch_id, pinned: !batch.pinned })}
@@ -816,6 +941,7 @@ export default function ImportPage() {
                       <AiPreviewRow
                         key={row.id}
                         row={merged}
+                        duplicateOf={walletDuplicates[row.id] ?? null}
                         categories={categories}
                         assignmentOptions={assignmentOptions}
                         onUpdate={(updates) => updateStagingEdit(row.id, updates)}
@@ -1028,7 +1154,13 @@ export default function ImportPage() {
           <div className="w-14 h-14 mx-auto rounded-2xl bg-hb-cognac/10 grid place-items-center mb-4 animate-pulse">
             <Upload className="w-7 h-7 text-hb-cognac" />
           </div>
-          <p className="font-medium text-sm mb-3">Importerar… {importedCount} klara</p>
+          <p className="font-medium text-sm mb-1 flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Sparar {importTotal} {importTotal === 1 ? 'utgift' : 'utgifter'}…
+          </p>
+          <p className="text-xs text-muted-foreground mb-3">
+            {importedCount > 0 ? `${importedCount} av ${importTotal} klara` : 'Stäng inte sidan'}
+          </p>
           <div className="h-1.5 bg-secondary rounded-full overflow-hidden max-w-xs mx-auto">
             <div className="h-full bg-hb-cognac rounded-full transition-all" style={{ width: `${importProgress}%` }} />
           </div>
@@ -1245,9 +1377,11 @@ function BatchCard({
 }
 
 function AiPreviewRow({
-  row, categories, assignmentOptions, onUpdate, bulkMode, bulkChecked, onBulkToggle, onOpenUtlagg,
+  row, duplicateOf, categories, assignmentOptions, onUpdate, bulkMode, bulkChecked, onBulkToggle, onOpenUtlagg,
 }: {
   row: StagingRow
+  /** Saved bank-file row this purchase most likely is */
+  duplicateOf: string | null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categories: any[]
   assignmentOptions: { value: 'personal' | 'shared' | 'partner'; label: string }[]
@@ -1257,7 +1391,7 @@ function AiPreviewRow({
   onBulkToggle: () => void
   onOpenUtlagg: () => void
 }) {
-  const isDuplicate = row.dup_existing
+  const isDuplicate = row.dup_existing || !!duplicateOf
   const isBlank = !row.category_id
   const utlaggBudget = row.is_group_purchase
     ? Math.round(((row.group_purchase_user_share || 0) + (row.group_purchase_partner_share || 0)) * 100) / 100
@@ -1293,8 +1427,11 @@ function AiPreviewRow({
               {row.match_source === 'blank' && (
                 <span className="ml-1 text-hb-amber">· Ingen match</span>
               )}
-              {isDuplicate && (
+              {isDuplicate && !duplicateOf && (
                 <span className="ml-1 text-destructive">· Finns redan</span>
+              )}
+              {duplicateOf && (
+                <span className="ml-1 text-destructive">· Finns redan från bankfilen: {duplicateOf}</span>
               )}
             </div>
           </div>
@@ -1398,8 +1535,8 @@ function PreviewRowItem({
       className={cn(
         'px-4 py-3 border-b border-border last:border-b-0',
         row.skip && 'opacity-50',
-        row.warnings.length > 0 && !row.duplicate && 'bg-hb-amber/5',
-        row.duplicate && 'bg-destructive/5'
+        row.warnings.length > 0 && !row.duplicate && !row.duplicateOf && 'bg-hb-amber/5',
+        (row.duplicate || row.duplicateOf) && 'bg-destructive/5'
       )}
     >
       <div className="flex items-center justify-between gap-2">
@@ -1410,6 +1547,7 @@ function PreviewRowItem({
             {row.bank && ` · ${row.bank}`}
             {row.onCreditCard && ' · kreditkort'}
             {row.duplicate && <span className="text-destructive"> · Finns redan</span>}
+            {row.duplicateOf && <span className="text-destructive"> · Troligen samma köp som {row.duplicateOf}</span>}
             {row.cardholder && ` · ${row.cardholder}`}
           </div>
         </div>
