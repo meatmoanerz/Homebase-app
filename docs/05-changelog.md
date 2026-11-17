@@ -15,6 +15,13 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
   `02-csv-import.md`.
 - Filimporten sparar i block om 50 rader och visar spinner direkt.
 
+## 2026-11-17 — Testkonton dokumenterade
+
+- Ny `11-testkonton.md`: de två testkontona, lokal start mot live-DB,
+  inloggningshjälp för Playwright och vad som inte går att testa lokalt.
+  Lösenordet ligger inte i repot (publikt) utan som miljövariabeln
+  `TEST_PASSWORD` i molnmiljön Homebase-app.
+
 ## 2026-11-11 — Inget cachat data följer med mellan konton
 
 - Byte av konto i samma webbläsare visade det förra kontots data (dashboard,
