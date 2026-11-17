@@ -6,6 +6,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { formatCurrency } from '@/lib/utils/formatters'
 import type { ExpenseWithCategory } from '@/types'
 import { Amount } from '@/components/shared/amount'
+import { consumptionAmount } from '@/lib/analytics/analytics'
 
 interface ExpenseChartProps {
   expenses: ExpenseWithCategory[]
@@ -21,7 +22,7 @@ function ExpenseChartContent({ expenses }: ExpenseChartProps) {
   // Group expenses by cost type
   const dataByType = expenses.reduce((acc, expense) => {
     const type = expense.category?.cost_type || 'Variable'
-    acc[type] = (acc[type] || 0) + expense.amount
+    acc[type] = (acc[type] || 0) + consumptionAmount(expense)
     return acc
   }, {} as Record<string, number>)
 

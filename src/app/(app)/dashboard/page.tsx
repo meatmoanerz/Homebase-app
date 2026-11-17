@@ -17,7 +17,9 @@ import { BudgetDeviations, type CategoryDeviation } from '@/components/dashboard
 import { MoneyShortcuts } from '@/components/dashboard/money-shortcuts'
 import { SettlementShortcut } from '@/components/dashboard/settlement-shortcut'
 import { PeriodStrip } from '@/components/shared/period-strip'
-import { calcCashOut, calcConsumption, calcPersonSpend, isCreditPurchaseThisPeriod } from '@/lib/utils/spend-calc'
+import { calcCashOut, calcConsumption, calcPersonSpend, consumptionAmount, isCreditPurchaseThisPeriod } from '@/lib/utils/spend-calc'
+import { useSavingsFundingInRange, fundingForPerson } from '@/hooks/use-savings-goals'
+import { format } from 'date-fns'
 import { sumBudgetSplit } from '@/lib/utils/budget-split'
 import { useHouseholdEconomy } from '@/hooks/use-household-economy'
 import { usePerspective } from '@/hooks/use-perspective'
@@ -97,6 +99,10 @@ export default function DashboardPage() {
   const { data: householdIncome } = useHouseholdIncome()
   const { data: monthlyIncomeTotal } = useMonthlyIncomeTotal(selectedPeriod)
   const { data: budget } = useBudgetByPeriod(selectedPeriod)
+  const { data: savingsFunding = [] } = useSavingsFundingInRange(
+    format(periodDates.startDate, 'yyyy-MM-dd'),
+    format(periodDates.endDate, 'yyyy-MM-dd')
+  )
   // Full history only feeds the running period's forecast.
   const { data: allExpenses = [] } = useAllExpenses()
   const { data: loans = [] } = useAllLoans()
@@ -110,7 +116,10 @@ export default function DashboardPage() {
 
   // Amounts as seen from the chosen perspective (Alla / Du / Partner).
   const scoped = useMemo(
-    () => expenses.map((e) => ({ ...e, amount: e.amount * personShare(e, person, user?.id) })),
+    () => expenses.map((e) => {
+      const share = personShare(e, person, user?.id)
+      return { ...e, amount: e.amount * share, savings_funded: Number(e.savings_funded ?? 0) * share }
+    }),
     [expenses, person, user?.id]
   )
 
@@ -164,7 +173,7 @@ export default function DashboardPage() {
     const actualByCategory = new Map<string, number>()
     for (const e of scoped) {
       const id = e.category_id || ''
-      actualByCategory.set(id, (actualByCategory.get(id) || 0) + e.amount)
+      actualByCategory.set(id, (actualByCategory.get(id) || 0) + consumptionAmount(e))
     }
     const projectedByCategory = new Map(
       (forecast?.categories ?? []).filter((c) => c.costType === 'Variable' && !c.isInvoice).map((c) => [c.id, c.current.projected])
@@ -212,6 +221,8 @@ export default function DashboardPage() {
   const totalSpent = calcConsumption(scoped)
   // CASH FLOW out (secondary): this period's credit-card purchases excluded, the invoice included.
   const cashOut = calcCashOut(scoped)
+  // Money moved in from savings goals this period to pay for something
+  const fromSavings = savingsFunding.reduce((sum, f) => sum + fundingForPerson(f, person, user?.id), 0)
 
   const budgetForPerson = budgetTotal(
     budget ? [{ period: selectedPeriod, budget_items: budgetItems }] : [],
@@ -270,6 +281,7 @@ export default function DashboardPage() {
         budget={budgetForPerson}
         income={totalIncome}
         cashOut={cashOut}
+        fromSavings={fromSavings}
         hasBudget={hasBudget}
         forecast={currentForecast ? { spend: currentForecast.spend, low: currentForecast.low, high: currentForecast.high } : null}
         savingsRoom={savingsRoom}

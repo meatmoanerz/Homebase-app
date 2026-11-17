@@ -81,6 +81,18 @@ export function comparisonLabel(timeframe: Timeframe, running = false): string {
 }
 
 /**
+ * What an expense counts as consumption. The part paid from a savings goal is
+ * left out: that money was already counted, as savings, in the months it was
+ * put aside. The transaction keeps its full amount everywhere else (lists,
+ * card invoices, cash out).
+ */
+export function consumptionAmount(expense: { amount: number; savings_funded?: number | null }): number {
+  const funded = Number(expense.savings_funded ?? 0)
+  if (!funded || expense.amount <= 0) return expense.amount
+  return Math.max(0, expense.amount - funded)
+}
+
+/**
  * Share of an expense that belongs to the chosen person.
  * cost_assignment is relative to the row's owner (user_id): 'personal' is the
  * owner's, 'partner' is the owner's partner's, 'shared' is split 50/50.
@@ -135,7 +147,8 @@ export function toRows(
       period = getBudgetPeriod(new Date(`${expense.date}T00:00:00`), salaryDay).period
       periodByDate.set(expense.date, period)
     }
-    rows.push({ expense, period, value: expense.amount * share })
+    // Consumption: the part paid from a savings goal was counted when saved
+    rows.push({ expense, period, value: consumptionAmount(expense) * share })
   }
   return rows
 }

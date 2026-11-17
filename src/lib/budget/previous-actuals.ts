@@ -1,4 +1,4 @@
-import { isCreditPurchaseThisPeriod, type ExpenseForCalc } from '@/lib/utils/spend-calc'
+import { consumptionAmount, isCreditPurchaseThisPeriod, type ExpenseForCalc } from '@/lib/utils/spend-calc'
 
 export interface CategoryActual {
   /** Everything spent in the category in the period, both of you */
@@ -18,8 +18,10 @@ export function actualsByCategoryName(expenses: ExpenseForCalc[]): Record<string
     const name = expense.category?.name
     if (!name) continue
     const entry = (map[name] ??= { total: 0, card: 0 })
-    entry.total += expense.amount
-    if (isCreditPurchaseThisPeriod(expense)) entry.card += expense.amount
+    // The part paid from a savings goal is not a cost to plan for again
+    const counted = consumptionAmount(expense)
+    entry.total += counted
+    if (isCreditPurchaseThisPeriod(expense)) entry.card += counted
   }
   return map
 }

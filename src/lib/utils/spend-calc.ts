@@ -1,4 +1,6 @@
-import { personShare } from '@/lib/analytics/analytics'
+import { personShare, consumptionAmount } from '@/lib/analytics/analytics'
+
+export { consumptionAmount }
 import type { CostAssignment } from '@/types'
 
 /**
@@ -24,6 +26,8 @@ import type { CostAssignment } from '@/types'
 
 export interface ExpenseForCalc {
   amount: number
+  /** Part paid from a savings goal ("Betala med sparande"), see consumptionAmount */
+  savings_funded?: number | null
   is_ccm?: boolean | null
   bank?: string | null
   category?: {
@@ -55,7 +59,7 @@ export function isCreditPurchaseThisPeriod(expense: ExpenseForCalc): boolean {
  * CONSUMPTION total — every purchase once; the credit-card invoice line excluded.
  */
 export function calcConsumption(expenses: ExpenseForCalc[]): number {
-  return expenses.reduce((sum, e) => (isCardInvoice(e) ? sum : sum + e.amount), 0)
+  return expenses.reduce((sum, e) => (isCardInvoice(e) ? sum : sum + consumptionAmount(e)), 0)
 }
 
 /**
@@ -71,14 +75,16 @@ export function calcCashOut(expenses: ExpenseForCalc[]): number {
 }
 
 /**
- * Net cash flow = income minus money leaving the account this period.
+ * Net cash flow = income (plus money moved in from savings to pay for
+ * something) minus money leaving the account this period.
  */
-export function calcCashFlow(income: number, expenses: ExpenseForCalc[]): number {
-  return income - calcCashOut(expenses)
+export function calcCashFlow(income: number, expenses: ExpenseForCalc[], fromSavings = 0): number {
+  return income + fromSavings - calcCashOut(expenses)
 }
 
 /**
- * A person's share of consumption (credit-card invoice line excluded).
+ * A person's share of consumption (credit-card invoice line and the part paid
+ * from savings excluded).
  *   - personal → 100% to the row's owner (user_id)
  *   - partner  → 100% to the owner's partner
  *   - shared   → 50/50
@@ -94,7 +100,7 @@ export function calcPersonSpend(
   return expenses.reduce(
     (sum, e) => isCardInvoice(e)
       ? sum
-      : sum + e.amount * personShare({ user_id: e.user_id ?? '', cost_assignment: (e.cost_assignment ?? 'personal') as CostAssignment }, who, viewerId),
+      : sum + consumptionAmount(e) * personShare({ user_id: e.user_id ?? '', cost_assignment: (e.cost_assignment ?? 'personal') as CostAssignment }, who, viewerId),
     0
   )
 }

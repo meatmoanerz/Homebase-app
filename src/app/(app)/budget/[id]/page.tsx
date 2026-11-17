@@ -42,7 +42,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils/cn'
-import { isInvoiceLine } from '@/lib/analytics/analytics'
+import { isInvoiceLine, consumptionAmount } from '@/lib/analytics/analytics'
 import { getBudgetStatus, budgetStatusBarClass, budgetStatusTextClass } from '@/lib/utils/budget-status'
 import type { BudgetItem, Category, ExpenseWithCategory } from '@/types'
 import { budgetAccountShare, budgetAmountForView, type SplittableBudgetItem } from '@/lib/utils/budget-split'
@@ -123,26 +123,28 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
       const categoryId = expense.category_id
       if (!categoryId) return acc
       const assignment = expense.cost_assignment || 'personal'
+      // The part paid from a savings goal was counted when it was saved
+      const counted = consumptionAmount(expense)
 
       let amount = 0
 
       if (viewMode === 'total') {
         // Total view: count all expenses at full amount
-        amount = expense.amount
+        amount = counted
       } else if (viewMode === 'mine') {
         // My view: personal (100%), shared (50%), partner (0%)
         if (assignment === 'personal') {
-          amount = expense.amount
+          amount = counted
         } else if (assignment === 'shared') {
-          amount = expense.amount / 2
+          amount = counted / 2
         }
         // partner = 0
       } else if (viewMode === 'partner') {
         // Partner view: partner (100%), shared (50%), personal (0%)
         if (assignment === 'partner') {
-          amount = expense.amount
+          amount = counted
         } else if (assignment === 'shared') {
-          amount = expense.amount / 2
+          amount = counted / 2
         }
         // personal = 0
       }
@@ -700,12 +702,17 @@ export default function BudgetDetailPage({ params }: { params: Promise<{ id: str
                         <span className="font-semibold text-sm">
                           {formatCurrency(
                             viewMode === 'total'
-                              ? expense.amount
+                              ? consumptionAmount(expense)
                               : expense.cost_assignment === 'shared'
-                                ? expense.amount / 2
-                                : expense.amount
+                                ? consumptionAmount(expense) / 2
+                                : consumptionAmount(expense)
                           )}
                         </span>
+                        {Number(expense.savings_funded ?? 0) > 0 && (
+                          <span className="text-[10px] text-muted-foreground">
+                            +{formatCurrency(Number(expense.savings_funded))} sparande
+                          </span>
+                        )}
                         <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       </div>
                     </div>

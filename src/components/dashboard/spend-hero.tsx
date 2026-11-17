@@ -16,6 +16,8 @@ interface SpendHeroProps {
   income: number
   /** Direct withdrawals (excl. credit-card purchases) */
   cashOut: number
+  /** Money moved in from savings goals this period to pay for something */
+  fromSavings?: number
   hasBudget: boolean
   /** Projected consumption for the running period (null when not the current period). */
   forecast?: { spend: number; low: number; high: number } | null
@@ -53,6 +55,7 @@ export function SpendHero({
   budget,
   income,
   cashOut,
+  fromSavings = 0,
   hasBudget,
   forecast,
   savingsRoom,
@@ -64,7 +67,7 @@ export function SpendHero({
   const remaining = budget - spent
   const overBudget = hasBudget && remaining < 0
   const spentRatio = budget > 0 ? Math.min(spent / budget, 1) : 0
-  const cashFlow = income - cashOut
+  const cashFlow = income + fromSavings - cashOut
   const perDay = hasBudget && remaining > 0 && daysLeft != null && daysLeft > 0 ? remaining / daysLeft : null
 
   const primaryValue = hasBudget ? remaining : spent
@@ -196,7 +199,9 @@ export function SpendHero({
         <Tile
           label="Kassaflöde"
           value={<Amount value={cashFlow} prefix={cashFlow >= 0 ? '+' : ''} className={cashFlow < 0 ? 'text-destructive' : undefined} />}
-          note={<>ut <Amount value={cashOut} /></>}
+          note={fromSavings > 0
+            ? <>ut <Amount value={cashOut} /> · <Amount value={fromSavings} /> från sparande</>
+            : <>ut <Amount value={cashOut} /></>}
         />
         {savingsRoom && (
           <Tile

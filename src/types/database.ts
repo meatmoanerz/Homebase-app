@@ -362,6 +362,8 @@ export type Database = {
           is_refund: boolean
           credit_card_id: string | null
           import_source: 'csv' | 'auto' | null
+          /** Part of the expense paid from a savings goal (trigger-managed). Consumption counts amount − savings_funded. */
+          savings_funded?: number
           created_at: string
           updated_at: string
         }
@@ -660,6 +662,8 @@ export type Database = {
           /** date of a manual entry; expense-linked ones use the expense's date */
           date: string | null
           note: string | null
+          /** withdrawal that pays (part of) this expense ("Betala med sparande") */
+          funded_expense_id: string | null
           created_at: string
         }
         Insert: {
@@ -672,6 +676,7 @@ export type Database = {
           user2_amount?: number
           date?: string | null
           note?: string | null
+          funded_expense_id?: string | null
           created_at?: string
         }
         Update: {
@@ -684,6 +689,7 @@ export type Database = {
           user2_amount?: number
           date?: string | null
           note?: string | null
+          funded_expense_id?: string | null
           created_at?: string
         }
       }

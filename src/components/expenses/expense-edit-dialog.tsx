@@ -25,6 +25,7 @@ import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
 import type { ExpenseWithCategory } from '@/types'
+import { SavingsFundingSection } from '@/components/expenses/savings-funding-section'
 import type { Category } from '@/types'
 import {
   AlertDialog,
@@ -581,6 +582,8 @@ export function ExpenseEditDialog({ expense, open, onOpenChange }: ExpenseEditDi
                 })()}
               </div>
             )}
+
+            {expense && <SavingsFundingSection expense={expense} />}
 
             <DialogFooter className="flex gap-2 pt-4">
               <Button

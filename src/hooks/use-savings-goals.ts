@@ -265,3 +265,168 @@ export function useDeleteSavingsGoal() {
     },
   })
 }
+
+/** A withdrawal that pays (part of) an expense ("Betala med sparande"). */
+export interface ExpenseFunding {
+  id: string
+  savings_goal_id: string
+  goal_name: string
+  goal_owner_id: string
+  /** Positive: what is paid from the goal */
+  amount: number
+  user1_amount: number
+  user2_amount: number
+  /** When the money moves to the paying account */
+  date: string
+}
+
+interface FundingRow {
+  id: string
+  savings_goal_id: string
+  amount: number
+  user1_amount: number
+  user2_amount: number
+  date: string
+  goal: { name: string; user_id: string } | null
+}
+
+function toFunding(row: FundingRow): ExpenseFunding {
+  return {
+    id: row.id,
+    savings_goal_id: row.savings_goal_id,
+    goal_name: row.goal?.name ?? 'Sparmål',
+    goal_owner_id: row.goal?.user_id ?? '',
+    amount: -Number(row.amount),
+    user1_amount: -Number(row.user1_amount),
+    user2_amount: -Number(row.user2_amount),
+    date: row.date,
+  }
+}
+
+const FUNDING_SELECT = 'id, savings_goal_id, amount, user1_amount, user2_amount, date, goal:savings_goals(name, user_id)'
+
+/** Savings withdrawals that pay one expense. */
+export function useExpenseFunding(expenseId: string | null | undefined) {
+  const supabase = createClient()
+
+  return useQuery({
+    queryKey: ['savings-funding', 'expense', expenseId],
+    enabled: !!expenseId,
+    queryFn: async (): Promise<ExpenseFunding[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.from('savings_goal_contributions') as any)
+        .select(FUNDING_SELECT)
+        .eq('funded_expense_id', expenseId)
+      if (error) throw error
+      return ((data || []) as FundingRow[]).map(toFunding)
+    },
+  })
+}
+
+/**
+ * Money moved from savings to pay for something, by the date it moves
+ * (in a period: cash in). Empty if the database does not have the column yet.
+ */
+export function useSavingsFundingInRange(startDate: string, endDate: string) {
+  const supabase = createClient()
+
+  return useQuery({
+    queryKey: ['savings-funding', 'range', startDate, endDate],
+    queryFn: async (): Promise<ExpenseFunding[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.from('savings_goal_contributions') as any)
+        .select(FUNDING_SELECT)
+        .not('funded_expense_id', 'is', null)
+        .gte('date', startDate)
+        .lte('date', endDate)
+      if (error) {
+        console.error('Kunde inte hämta uttag från sparande:', error)
+        return []
+      }
+      return ((data || []) as FundingRow[]).map(toFunding)
+    },
+  })
+}
+
+/** A funding's amount from one perspective. user1 = the goal owner, user2 = the owner's partner. */
+export function fundingForPerson(
+  funding: ExpenseFunding,
+  person: 'all' | 'me' | 'partner',
+  viewerId: string | undefined
+): number {
+  if (person === 'all') return funding.amount
+  const viewerIsOwner = funding.goal_owner_id === viewerId
+  const mine = viewerIsOwner ? funding.user1_amount : funding.user2_amount
+  const theirs = viewerIsOwner ? funding.user2_amount : funding.user1_amount
+  return person === 'me' ? mine : theirs
+}
+
+interface FundExpenseInput {
+  expenseId: string
+  goal: Pick<SavingsGoal, 'id' | 'is_shared'>
+  amount: number
+  date: string
+  from: 'both' | 'user1' | 'user2'
+  note?: string
+}
+
+/** Pays (part of) an expense from a savings goal: a withdrawal linked to the expense. */
+export function useFundExpenseFromSavings() {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ expenseId, goal, amount, date, from, note }: FundExpenseInput) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const total = -Math.round(Math.abs(amount) * 100) / 100
+      const user1 = from === 'both' ? Math.round(total / 2 * 100) / 100 : from === 'user1' ? total : 0
+      const user2 = Math.round((total - user1) * 100) / 100
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from('savings_goal_contributions') as any).insert({
+        savings_goal_id: goal.id,
+        user_id: user.id,
+        amount: total,
+        user1_amount: goal.is_shared ? user1 : total,
+        user2_amount: goal.is_shared ? user2 : 0,
+        date,
+        note: note || null,
+        funded_expense_id: expenseId,
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['savings-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['savings-goal-contributions'] })
+      queryClient.invalidateQueries({ queryKey: ['savings-funding'] })
+      queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
+/** Takes a funding back: the money returns to the goal and the expense counts in full again. */
+export function useRemoveExpenseFunding() {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (contributionId: string) => {
+      const { error } = await supabase
+        .from('savings_goal_contributions')
+        .delete()
+        .eq('id', contributionId)
+        .is('expense_id', null)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['savings-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['savings-goal-contributions'] })
+      queryClient.invalidateQueries({ queryKey: ['savings-funding'] })
+      queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
