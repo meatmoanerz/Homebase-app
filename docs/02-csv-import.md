@@ -1,6 +1,6 @@
 # 02 — CSV-import
 
-Senast uppdaterad: 2026-09-16
+Senast uppdaterad: 2026-11-17
 
 ## Flödet
 
@@ -34,6 +34,17 @@ Formatet har ändrats förr.
 2. Slå upp kategori-UUID:n i `categories`
 3. Kontrollera dubbletter mot **både** `expenses` och `import_staging`,
    på datumintervall + bank
+
+### Dubbletter med olika namn (Plånbok-genvägen)
+
+Genvägen sparar kortköp med Apple Pay-namnet ("ICA Kvantum", "Zettle"), bankfilen
+med bankens ("ICA KVANTUM MALL OF SCA SOLNA", "PAYPAL *FUNKY CHICKEN F").
+Texten går därför inte att jämföra. Ett köp räknas som troligen samma när
+**bank, exakt belopp och datum ±2 dagar** stämmer mot en rad från den *andra*
+källan (bankfilsrad mot genväg/manuell, genvägsrad mot bankfilsrad — aldrig
+bankfil mot bankfil, så två riktiga 49 kr-köp samma vecka får vara kvar).
+Bankfilens rad behålls. Appen gör detta åt båda hållen
+(`src/lib/import/probable-duplicates.ts`); gör samma kontroll vid AI-import.
 4. INSERT i `import_staging` med gemensamt `batch_id` via CTE (se `01-databas.md`)
 
 ### Inlärda regler (appen)

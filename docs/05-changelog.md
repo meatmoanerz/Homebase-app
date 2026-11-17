@@ -7,6 +7,14 @@ Nyast överst. Format: `## ÅÅÅÅ-MM-DD — rubrik` + en till tre rader om vad
 
 ---
 
+## 2026-11-17 — Dubbletter mellan Plånbok-genvägen och bankfiler
+
+- 4 Amex-köp (1 094 kr) kom in två gånger 15 nov: bankfilen och Plånbok-inkorgen
+  hade olika namn på samma köp. Dubblettkollen matchar nu också på bank + exakt
+  belopp + ±2 dagar mot den andra källan, åt båda hållen. Regeln står i
+  `02-csv-import.md`.
+- Filimporten sparar i block om 50 rader och visar spinner direkt.
+
 ## 2026-11-11 — Inget cachat data följer med mellan konton
 
 - Byte av konto i samma webbläsare visade det förra kontots data (dashboard,
